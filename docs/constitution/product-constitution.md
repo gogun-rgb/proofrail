@@ -62,7 +62,8 @@ Executable code is forbidden by default except for Phase 0 governance tooling ex
 | Execution authority | [../architecture/execution-boundary.md](../architecture/execution-boundary.md) | Verification environment and execution controls. |
 | Protocol direction | [../protocols/evidence-schema.md](../protocols/evidence-schema.md), [../protocols/adapter-protocol.md](../protocols/adapter-protocol.md), [../protocols/policy-schema.md](../protocols/policy-schema.md), [../protocols/bundle-format.md](../protocols/bundle-format.md) | Design foundation only in Phase 0. |
 | Quality gates | [../quality/foundation-gate.md](../quality/foundation-gate.md) | Review criteria and future Clean Agent Test. |
-| Machine Task Contracts | [../engineering/machine-task-contract.md](../engineering/machine-task-contract.md) | Bounded task format. |
+| Machine Task Contracts | [../engineering/machine-task-contract.md](../engineering/machine-task-contract.md) | Bounded repository engineering task format; not product runtime authority. |
+| Fixture strategy | [../engineering/fixture-strategy.md](../engineering/fixture-strategy.md) | Phase 0 harness fixture strategy; no fixtures are implemented. |
 | Donor Archaeology | [../engineering/donor-archaeology.md](../engineering/donor-archaeology.md) | Process only in Phase 0. |
 
 AGENTS.md is an operational map. It is not more authoritative than the documents it links to.

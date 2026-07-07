@@ -12,6 +12,8 @@ Trusted configuration is configuration accepted through an authorized Proofrail 
 
 Trusted configuration is authoritative only within its declared version, scope, and lineage.
 
+Machine Task Contracts for Proofrail repository work are engineering harness governance artifacts. They are not Trusted Configuration for product runtime evaluation and must not authorize Evidence Contract selection, Policy selection, Evidence creation, Evidence satisfaction, verification execution in a target repository, or Verdict authority.
+
 ### Observed Facts
 
 Observed facts are deterministic measurements or discoveries produced by authorized inspection or verification mechanisms. They are not automatically sufficient as Evidence until matched to an Evidence Requirement.

@@ -18,14 +18,13 @@ Proofrail reliability depends on:
 
 ## Current Phase
 
-Phase 0 reliability work is limited to repository legibility and governance validation. No runtime reliability is claimed.
+Phase 0 reliability work is limited to repository legibility, governance validation, and documented harness strategy. The fixture and adversarial fixture strategy is defined in [../engineering/fixture-strategy.md](../engineering/fixture-strategy.md). No executable fixture corpus, runtime tests, or product reliability behavior is claimed.
 
 ## Future Reliability Requirements
 
 Future runtime work should define:
 
-- fixture strategy
-- adversarial fixture strategy
+- executable fixtures and tests derived from the documented fixture strategy
 - deterministic ordering requirements
 - reason-code registry checks
 - schema compatibility checks

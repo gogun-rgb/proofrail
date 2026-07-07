@@ -35,8 +35,8 @@ This document is authoritative for Phase 0 foundation review criteria. The Build
 - Machine Task Contract format exists.
 - Governance validation strategy exists.
 - Reason-code registry strategy exists.
-- Fixture strategy exists.
-- Adversarial fixture strategy exists.
+- Fixture strategy exists in [../engineering/fixture-strategy.md](../engineering/fixture-strategy.md).
+- Adversarial fixture strategy exists in [../engineering/fixture-strategy.md#adversarial-fixture-classes](../engineering/fixture-strategy.md#adversarial-fixture-classes).
 
 ## Agent Legibility Gate
 
@@ -87,6 +87,6 @@ Future executable gate:
 
 - architecture dependency checks
 - reason-code registry validation
-- fixture and adversarial fixture checks
+- fixture and adversarial fixture checks derived from the documented fixture strategy
 - protocol schema compatibility checks
 - Clean Agent Test protocol execution

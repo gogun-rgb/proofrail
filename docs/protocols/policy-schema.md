@@ -48,6 +48,8 @@ Future policies should declare:
 - Rules and reason-code namespace
 - compatibility constraints
 
+Evidence Contract authority and selection must derive from Trusted Configuration or deterministic Policy selection. Agent requests, natural-language task descriptions, and Machine Task Contracts do not make an Evidence Contract authoritative.
+
 ## Prohibited Policy Design
 
 Policies MUST NOT rely on model confidence, natural-language persuasion, or human assertions as deterministic authority.

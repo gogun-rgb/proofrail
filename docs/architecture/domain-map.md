@@ -87,4 +87,4 @@ Decision: Not adopted as the top-level structure. Bundle immutability is core, b
 
 ## Current Invariant
 
-No production package layout is implemented in Phase 0. This document records direction later tasks may encode and enforce through Machine Task Contracts and architecture checks.
+No production package layout is implemented in Phase 0. This document records direction later repository engineering tasks may encode and enforce through Machine Task Contracts and architecture checks. Those task contracts govern work on the Proofrail repository; they do not create product runtime authority.

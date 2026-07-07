@@ -14,7 +14,7 @@ Normative claims MUST distinguish current invariant, future requirement, design 
 
 ## Engineering Expectations
 
-Future implementation work should be:
+Future repository implementation work should be:
 
 - deterministic where it affects authority
 - covered by focused tests proportional to risk

@@ -10,13 +10,13 @@ Contributions must preserve the principle:
 
 Phase 0 contributions may improve repository legibility, documentation authority, governance configuration, and whitelisted validation tooling. They must not implement Proofrail product runtime behavior.
 
-Allowed executable work is limited to governance tooling such as required-file checks, terminology drift checks, Markdown link checks, documentation reference checks, governance configuration validation, and Machine Task Contract schema validation.
+Allowed executable work is limited to governance tooling such as required-file checks, terminology drift checks, Markdown link checks, documentation reference checks, governance configuration validation, and repository engineering Machine Task Contract schema validation.
 
 ## Before Changing Files
 
 Read [AGENTS.md](AGENTS.md), then read the authoritative documents relevant to the task. Do not rely on chat history as durable project authority.
 
-If a task needs broader authority, capture that need in a Machine Task Contract or active plan rather than expanding silently.
+If repository engineering work needs broader authority, capture that need in a Machine Task Contract or active plan rather than expanding silently. A Machine Task Contract does not authorize Proofrail product runtime execution or verdict authority.
 
 ## Verification
 

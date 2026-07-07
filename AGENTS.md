@@ -23,17 +23,19 @@ Core principle: Claim is not evidence. Verify it.
 - Inference authority: [docs/architecture/inference-boundary.md](docs/architecture/inference-boundary.md)
 - Protocol direction: [docs/protocols/evidence-schema.md](docs/protocols/evidence-schema.md), [docs/protocols/adapter-protocol.md](docs/protocols/adapter-protocol.md), [docs/protocols/policy-schema.md](docs/protocols/policy-schema.md), [docs/protocols/bundle-format.md](docs/protocols/bundle-format.md)
 - Quality gates: [docs/quality/foundation-gate.md](docs/quality/foundation-gate.md)
-- Task contracts: [docs/engineering/machine-task-contract.md](docs/engineering/machine-task-contract.md)
+- Repository engineering task contracts: [docs/engineering/machine-task-contract.md](docs/engineering/machine-task-contract.md)
+- Fixture strategy: [docs/engineering/fixture-strategy.md](docs/engineering/fixture-strategy.md)
 
 ## Task Routing
 
 - Product wording or identity: read the constitution first.
 - Domain concept work: read terminology, trust model, and relevant protocol docs.
 - Architecture work: read domain map, dependency rules, execution boundary, and inference boundary.
-- Adapter work: read adapter protocol, dependency rules, compatibility, and task contract.
+- Adapter work: read adapter protocol, dependency rules, compatibility, fixture strategy, and repository engineering task contract.
 - Policy work: read policy schema, verdict semantics, and trust model.
 - Evidence bundle work: read bundle format, evidence schema, verdict semantics, and trust model.
 - Donor work: read donor archaeology and only inspect donors named by a Machine Task Contract.
+- Harness or fixture work: read fixture strategy, Foundation Gate, reliability, and Machine Task Contract.
 
 ## Verification Expectations
 

@@ -8,9 +8,11 @@ This document is authoritative for controlled verification execution direction a
 
 Phase 0 does not implement verification execution. Only governance validation tooling may run.
 
-## Future Verification Execution
+## Future Product Verification Execution
 
-Future verification execution must be explicitly authorized by trusted configuration, a Machine Task Contract, or a policy-defined execution boundary.
+Future Proofrail product verification execution must be explicitly authorized by Trusted Configuration and applicable deterministic Policy-defined execution boundaries.
+
+Machine Task Contracts are repository engineering harness governance artifacts. They may authorize work on this Proofrail repository and its governance checks, but they MUST NOT authorize target repository execution, select an Evidence Contract, select Policy, satisfy an Evidence Requirement, create Evidence, or influence Verdict authority.
 
 Verification execution should record:
 

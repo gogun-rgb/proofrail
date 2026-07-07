@@ -35,3 +35,13 @@ Risk: Agent legibility remains independently reviewable rather than mechanically
 Current control: Foundation Gate documents the conceptual test and separates it from Builder self-review.
 
 Disposition: OPEN.
+
+### DEBT-004: Fixture Corpus Not Yet Executable
+
+Observation: Fixture and adversarial fixture strategy is documented, but no executable fixture corpus or fixture runner exists in Phase 0.
+
+Risk: Future implementation cannot yet mechanically exercise adversarial repository content, protocol malformed inputs, adapter capability cases, or verification receipt boundaries.
+
+Current control: `docs/engineering/fixture-strategy.md` defines taxonomy, identity, provenance, oracles, ordering, versioning, mutation rules, and adversarial classes for future authorized fixture work.
+
+Disposition: OPEN.

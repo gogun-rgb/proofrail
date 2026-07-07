@@ -10,7 +10,7 @@ Conceptual authoritative flow:
 
 ```text
 Claim
-  -> selected Evidence Contract
+  -> Evidence Contract selected by Trusted Configuration or deterministic Policy selection
   -> Evidence Requirements
   -> authorized Observations and Verification Receipts
   -> Evidence satisfaction
@@ -20,6 +20,8 @@ Claim
 ```
 
 Each step must preserve identity, scope, and lineage.
+
+Phase 0 closes Evidence satisfaction inputs to Observations and Verification Receipts. A future additional authoritative input class requires an explicit terminology and protocol revision before it can enter this flow.
 
 ## Inference Path
 

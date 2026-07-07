@@ -34,7 +34,7 @@ Run the governance verifier from the repository root:
 node scripts/validate-foundation.mjs
 ```
 
-The verifier checks required files, local documentation links, canonical terminology anchors, governance configuration, Machine Task Contract schema structure, and repository identity hygiene. It is not a product runtime and does not provide independent acceptance.
+The verifier checks required files, local documentation links, canonical terminology anchors, governance configuration, Machine Task Contract schema structure including independent-review constants, and repository identity hygiene. It is not a product runtime and does not provide independent acceptance.
 
 ## Next Foundation Task
 
