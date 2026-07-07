@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://proofrail.dev/schemas/machine-task-contract.schema.json",
+  "title": "Proofrail Machine Task Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "task",
+    "scope",
+    "authority",
+    "acceptance",
+    "verification",
+    "requiredArtifacts",
+    "stopConditions",
+    "review"
+  ],
+  "properties": {
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "class", "objective"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "class": { "type": "string", "minLength": 1 },
+        "objective": { "type": "string", "minLength": 1 }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["write", "forbidden"],
+      "properties": {
+        "write": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 },
+        "forbidden": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 }
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["read", "mayChangeAuthority"],
+      "properties": {
+        "read": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 },
+        "mayChangeAuthority": { "type": "boolean" }
+      }
+    },
+    "acceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requirements"],
+      "properties": {
+        "requirements": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commands"],
+      "properties": {
+        "commands": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 }
+      }
+    },
+    "requiredArtifacts": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 },
+    "stopConditions": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["expectation", "reviewerMustNotRelyOnBuilderClaim"],
+      "properties": {
+        "expectation": { "type": "string", "minLength": 1 },
+        "reviewerMustNotRelyOnBuilderClaim": { "type": "boolean" }
+      }
+    }
+  }
+}

@@ -1,0 +1,33 @@
+# Contributing
+
+Proofrail is currently in Phase 0: Foundation and Engineering Harness Bootstrap.
+
+Contributions must preserve the principle:
+
+> Claim is not evidence. Verify it.
+
+## Current Scope
+
+Phase 0 contributions may improve repository legibility, documentation authority, governance configuration, and whitelisted validation tooling. They must not implement Proofrail product runtime behavior.
+
+Allowed executable work is limited to governance tooling such as required-file checks, terminology drift checks, Markdown link checks, documentation reference checks, governance configuration validation, and Machine Task Contract schema validation.
+
+## Before Changing Files
+
+Read [AGENTS.md](AGENTS.md), then read the authoritative documents relevant to the task. Do not rely on chat history as durable project authority.
+
+If a task needs broader authority, capture that need in a Machine Task Contract or active plan rather than expanding silently.
+
+## Verification
+
+Run:
+
+```bash
+node scripts/validate-foundation.mjs
+```
+
+Update [docs/engineering/validation-evidence.md](docs/engineering/validation-evidence.md) when validation evidence changes.
+
+## Review Model
+
+Builder self-review is useful but provisional. Independent review is required for foundation acceptance decisions.
