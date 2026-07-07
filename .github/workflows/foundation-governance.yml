@@ -1,21 +1,29 @@
-name: Foundation Governance
+name: foundation-governance
 
 on:
-  push:
-    branches: ["main"]
   pull_request:
+  push:
+    branches:
+      - main
+      - "foundation/**"
 
 jobs:
   foundation-governance:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Check out repository
         uses: actions/checkout@v4
 
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: 24
 
-      - name: Validate foundation governance
-        run: node scripts/validate-foundation.mjs
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify Foundation governance
+        run: pnpm verify

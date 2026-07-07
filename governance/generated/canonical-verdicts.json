@@ -1,0 +1,26 @@
+{
+  "authorityNotice": "Generated projection for mechanical governance checks only. Authoritative Markdown remains the source of authority.",
+  "projection": "canonical-verdicts",
+  "schemaVersion": "1",
+  "sourceDigest": "sha256:c23e9e96347a978d2d14f04dd275daac4912c9d934b66859ab2c3be4ba87c15b",
+  "sourceDocument": "docs/product/verdict-semantics.md",
+  "sourceSection": "Canonical Verdicts",
+  "verdicts": [
+    {
+      "anchor": "admissible",
+      "verdict": "ADMISSIBLE"
+    },
+    {
+      "anchor": "revisionrequired",
+      "verdict": "REVISION_REQUIRED"
+    },
+    {
+      "anchor": "rejected",
+      "verdict": "REJECTED"
+    },
+    {
+      "anchor": "blocked",
+      "verdict": "BLOCKED"
+    }
+  ]
+}

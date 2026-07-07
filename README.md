@@ -31,10 +31,19 @@ Authoritative knowledge is organized under:
 Run the governance verifier from the repository root:
 
 ```bash
-node scripts/validate-foundation.mjs
+pnpm verify
 ```
 
-The verifier checks required files, local documentation links, canonical terminology anchors, governance configuration, Machine Task Contract schema structure including independent-review constants, and repository identity hygiene. It is not a product runtime and does not provide independent acceptance.
+The verifier checks required files and artifacts, local documentation links and anchors, exact-set canonical terminology and Verdict projections, governance configuration, Machine Task Contract instances, the HARN_ harness reason-code registry, generated projection freshness, authority-index routes, JSON-output parseability, governance tests, diff whitespace, and repository identity hygiene. It is not a product runtime and does not provide independent acceptance.
+
+For only the Foundation validator:
+
+```bash
+node scripts/validate-foundation.mjs
+node scripts/validate-foundation.mjs --format json
+```
+
+See [docs/engineering/foundation-mechanization.md](docs/engineering/foundation-mechanization.md) for the current governance mechanics.
 
 ## Next Foundation Task
 

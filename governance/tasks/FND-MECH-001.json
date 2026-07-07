@@ -1,0 +1,163 @@
+{
+  "task": {
+    "id": "FND-MECH-001",
+    "class": "mechanization",
+    "objective": "Convert mechanically verifiable portions of the Proofrail Foundation Gate into deterministic repository checks, generated governance projections, machine-readable harness findings, governance tests, and CI-ready verification without implementing Proofrail product runtime behavior or claiming that conceptual quality can be automated."
+  },
+  "scope": {
+    "write": [
+      "AGENTS.md",
+      "README.md",
+      "CONTRIBUTING.md",
+      "docs/engineering/**",
+      "docs/quality/**",
+      "docs/plans/**",
+      "docs/reviews/**",
+      "governance/**",
+      "scripts/**",
+      "tests/governance/**",
+      "package.json",
+      "pnpm-lock.yaml",
+      ".github/workflows/foundation-governance.yml",
+      ".gitignore"
+    ],
+    "read_only_authority": [
+      "docs/constitution/product-constitution.md",
+      "docs/constitution/terminology.md",
+      "docs/constitution/trust-model.md",
+      "docs/architecture/domain-map.md",
+      "docs/architecture/dependency-rules.md",
+      "docs/architecture/data-flow.md",
+      "docs/architecture/inference-boundary.md",
+      "docs/architecture/execution-boundary.md",
+      "docs/product/verdict-semantics.md",
+      "docs/protocols/evidence-schema.md",
+      "docs/protocols/adapter-protocol.md",
+      "docs/protocols/policy-schema.md",
+      "docs/protocols/bundle-format.md"
+    ],
+    "forbidden": [
+      "packages/**",
+      "apps/**",
+      "backend/**",
+      "frontend/**",
+      "src/**",
+      "Proofrail product runtime implementation",
+      "product kernel implementation",
+      "repository inspection implementation",
+      "semantic change observation implementation",
+      "verification execution implementation",
+      "Policy evaluation implementation",
+      "Evidence satisfaction runtime implementation",
+      "Verdict runtime implementation",
+      "Evidence Bundle runtime implementation",
+      "language adapter implementation",
+      "CLI implementation",
+      "API implementation",
+      "MCP implementation",
+      "web implementation",
+      "GitHub product integration implementation",
+      "SARIF product exporter implementation",
+      "model provider integration",
+      "Inference Zone implementation"
+    ]
+  },
+  "authority": {
+    "read": [
+      "AGENTS.md",
+      "docs/constitution/product-constitution.md",
+      "docs/constitution/terminology.md",
+      "docs/constitution/trust-model.md",
+      "docs/architecture/dependency-rules.md",
+      "docs/architecture/inference-boundary.md",
+      "docs/architecture/execution-boundary.md",
+      "docs/product/verdict-semantics.md",
+      "docs/protocols/evidence-schema.md",
+      "docs/protocols/adapter-protocol.md",
+      "docs/protocols/policy-schema.md",
+      "docs/protocols/bundle-format.md",
+      "docs/quality/foundation-gate.md",
+      "docs/quality/reliability.md",
+      "docs/engineering/fixture-strategy.md",
+      "docs/engineering/machine-task-contract.md",
+      "docs/plans/active/foundation-gate-mechanization.md",
+      "docs/plans/debt.md"
+    ],
+    "mayChangeProductSemantics": false
+  },
+  "acceptance": {
+    "requirements": [
+      "Preserve current canonical domain vocabulary and authoritative Verdict semantics while mechanizing existing Foundation authority.",
+      "Validate committed JSON Machine Task Contracts under governance/tasks with Ajv 8.x and document that YAML remains a direction but is not mechanically validated in this phase.",
+      "Create a structurally separate HARN_ Foundation engineering harness reason-code registry and require validator findings to use registered HARN_ codes.",
+      "Support deterministic human-readable validator output and deterministic JSON output with status VALID or INVALID, not Proofrail product Verdict values.",
+      "Validate governance/foundation.config.json against an explicit JSON Schema.",
+      "Keep required-document validation, local Markdown link and anchor validation, repository identity hygiene, and Machine Task Contract review constants mechanically enforced.",
+      "Mechanize exact-set canonical terminology and canonical Verdict validation from authoritative document structure.",
+      "Create generated governance projections for canonical terminology, canonical Verdict values, and the Documentation Authority Index, including source documents and deterministic source-section digests.",
+      "Keep generated projections derived from authoritative Markdown and fail governance checks when committed generated artifacts are stale.",
+      "Validate Documentation Authority Index duplicates, malformed local authority references, missing local targets, and declared AGENTS.md authority routes.",
+      "Add Node built-in node:test governance tests with synthetic data and negative cases for deterministic output, reason-code registry failures, required documents, stale projections, canonical drift, authority index drift, broken links, identity contamination, and Machine Task Contract review constants.",
+      "Create the Clean Agent Test protocol and machine-readable specification without claiming that the Builder ran or passed the test.",
+      "Create architecture mechanization preparation without implementing package dependency enforcement.",
+      "Update Foundation Gate documentation, validation evidence, known debt, AGENTS.md, README.md, CONTRIBUTING.md, CI, and Builder review boundaries honestly."
+    ]
+  },
+  "verification": {
+    "commands": [
+      "pnpm governance:generate",
+      "pnpm governance:check",
+      "pnpm test:governance",
+      "pnpm verify",
+      "node scripts/validate-foundation.mjs",
+      "node scripts/validate-foundation.mjs --format json",
+      "git diff --check"
+    ],
+    "requiredInvariants": [
+      "A second governance generation run without source changes produces no repository diff.",
+      "governance:check and verify do not modify the repository.",
+      "JSON validator output parses as JSON and reports VALID for a valid Foundation repository.",
+      "All emitted validator finding codes exist in the HARN_ registry.",
+      "No HARN_ code is documented as a Proofrail product runtime reason code.",
+      "Generated canonical terminology, canonical Verdict, and Documentation Authority Index projections are current.",
+      "Governance tests include negative cases and use synthetic data.",
+      "No Proofrail runtime package or product execution path is introduced."
+    ]
+  },
+  "requiredArtifacts": [
+    "governance/tasks/FND-MECH-001.json",
+    "governance Foundation config JSON Schema",
+    "governance harness reason-code registry",
+    "generated governance projections",
+    "modular Foundation governance validator",
+    "governance-focused automated tests",
+    "docs/engineering/foundation-mechanization.md",
+    "docs/engineering/clean-agent-test.md",
+    "machine-readable Clean Agent Test specification",
+    "architecture mechanization preparation artifact",
+    "updated Foundation Gate documentation",
+    "updated validation evidence",
+    "updated known debt",
+    "FND-MECH-001 Builder review"
+  ],
+  "stopConditions": [
+    "the exact PR #1 review subject changed before integration",
+    "PR #1 local Foundation validation fails",
+    "a required GitHub check fails",
+    "repository identity is not Proofrail",
+    "the task requires changing canonical domain terminology",
+    "the task requires changing authoritative Verdict semantics",
+    "the task requires changing Evidence authority classes",
+    "the task requires changing Trust semantics",
+    "mechanization requires Proofrail product runtime implementation",
+    "mechanization requires executing target repository code",
+    "the Machine Task Contract cannot remain engineering governance only",
+    "a security exception is required",
+    "Ajv installation cannot be completed and real JSON Schema instance validation cannot be provided without implementing a custom general JSON Schema engine",
+    "the authoritative Documentation Authority Index cannot be projected deterministically without redefining its authority in a second source"
+  ],
+  "review": {
+    "expectation": "independent_review_required",
+    "reviewerMustNotRelyOnBuilderClaim": true
+  }
+}

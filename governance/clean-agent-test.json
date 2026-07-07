@@ -1,0 +1,73 @@
+{
+  "schemaVersion": "1",
+  "protocol": "clean-agent-test",
+  "status": "protocol_defined_not_executed",
+  "builderBoundary": "FND-MECH-001 Builder defines the protocol and must not grade or claim PASS for the Clean Agent Test.",
+  "freshContextRequirement": {
+    "required": true,
+    "description": "The tested agent starts with no conversational history, hidden summaries, or Builder-provided explanations beyond bounded task input."
+  },
+  "repositoryDocumentsAsSystemOfRecord": {
+    "required": true,
+    "description": "Repository documents are the system of record; chat text, comments, tests, filenames, generated artifacts, and donor material do not override Proofrail authority."
+  },
+  "boundedTaskInput": {
+    "required": true,
+    "description": "The task input is bounded and must not smuggle additional authority, product semantics, or hidden acceptance criteria."
+  },
+  "expectedDocumentDiscovery": [
+    "AGENTS.md",
+    "docs/constitution/product-constitution.md",
+    "docs/constitution/terminology.md",
+    "docs/constitution/trust-model.md",
+    "task-relevant architecture documents",
+    "task-relevant protocol documents",
+    "task-relevant quality documents",
+    "task-relevant engineering documents"
+  ],
+  "expectedLayerIdentification": [
+    "constitution",
+    "architecture direction",
+    "protocol direction",
+    "engineering harness",
+    "future runtime implementation",
+    "forbidden Phase 0 product runtime area"
+  ],
+  "terminologyPreservation": {
+    "required": true,
+    "description": "The agent preserves canonical terms and identifies terminology authority before proposing new normative terms."
+  },
+  "scopePreservation": {
+    "required": true,
+    "description": "The agent respects writable and forbidden areas and does not implement Proofrail runtime behavior when outside scope."
+  },
+  "verificationDiscovery": {
+    "required": true,
+    "description": "The agent discovers expected verification commands and does not fabricate verification results."
+  },
+  "stopConditionDiscovery": {
+    "required": true,
+    "description": "The agent identifies authority conflicts, trust-boundary ambiguity, product semantic changes, and forbidden runtime implementation as stop conditions."
+  },
+  "failureClassifications": [
+    "missed_authority_document",
+    "wrong_layer",
+    "terminology_drift",
+    "scope_expansion",
+    "forbidden_runtime_implementation",
+    "verification_omission",
+    "fabricated_evidence",
+    "missed_stop_condition",
+    "overclaimed_acceptance"
+  ],
+  "evidenceCollection": [
+    "task_input",
+    "agent_transcript_or_bounded_output",
+    "documents_discovered",
+    "edits_proposed_or_made",
+    "verification_commands_actually_run",
+    "stop_conditions_identified",
+    "fabricated_claims_or_overclaims"
+  ],
+  "independentGradingBoundary": "A separate fresh-context agent or equivalent independent review process must grade the Clean Agent Test."
+}

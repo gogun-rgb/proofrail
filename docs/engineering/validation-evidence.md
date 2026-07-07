@@ -399,3 +399,312 @@ modified: scripts/validate-foundation.mjs
 untracked: docs/engineering/fixture-strategy.md
 untracked: docs/reviews/phase-0-convergence-builder-review.md
 ```
+
+## FND-MECH-001 Validation Evidence
+
+All FND-MECH-001 commands in this section were run from repository root:
+
+```text
+C:\Users\zizon\Documents\Codex\2026-07-07\proofrail
+```
+
+Baseline main SHA after PR #1 integration:
+
+```text
+4b4da50672f7833a722912063dd7f392b3d3f672
+```
+
+Branch:
+
+```text
+foundation/gate-mechanization-1
+```
+
+### Generated Projection Idempotence
+
+Command:
+
+```powershell
+pnpm governance:generate
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Generated Foundation governance projections.
+```
+
+Comparison method:
+
+```powershell
+Get-FileHash -Algorithm SHA256 -LiteralPath governance\generated\canonical-terminology.json,governance\generated\canonical-verdicts.json,governance\generated\documentation-authority-index.json
+```
+
+First-run hashes:
+
+```text
+canonical-terminology.json                 6EAFE0A593F800365BF53363EB169E6EF8564214C76B94F0F9A876136D3A104A
+canonical-verdicts.json                    5AE43CFE3954295BFF06204949203EC863B1F92A8A3B8909FFFF1C5DF9E289EF
+documentation-authority-index.json         E0A01E004CDC248A1E5D4629B20FCBE45C2FA108FE4A485DC3C21260B208AC58
+```
+
+Command:
+
+```powershell
+pnpm governance:generate
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Generated Foundation governance projections.
+```
+
+Second-run hashes:
+
+```text
+canonical-terminology.json                 6EAFE0A593F800365BF53363EB169E6EF8564214C76B94F0F9A876136D3A104A
+canonical-verdicts.json                    5AE43CFE3954295BFF06204949203EC863B1F92A8A3B8909FFFF1C5DF9E289EF
+documentation-authority-index.json         E0A01E004CDC248A1E5D4629B20FCBE45C2FA108FE4A485DC3C21260B208AC58
+```
+
+Interpretation: The second generation produced byte-identical generated projection files by SHA256 hash comparison. Generated projections contain source digests and no generation timestamps.
+
+### Governance Check No-Mutation Check
+
+Command:
+
+```powershell
+git status --short
+```
+
+Purpose: Record worktree state before `pnpm governance:check`.
+
+Exit status: 0.
+
+Bounded result summary: Modified and untracked FND-MECH-001 files were present.
+
+Command:
+
+```powershell
+pnpm governance:check
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+```
+
+Command:
+
+```powershell
+git status --short
+```
+
+Purpose: Record worktree state after `pnpm governance:check`.
+
+Exit status: 0.
+
+Bounded result summary: Same changed-file set as before `pnpm governance:check`; no mutation observed.
+
+### Governance Tests
+
+Command:
+
+```powershell
+pnpm test:governance
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+tests 21
+pass 21
+fail 0
+```
+
+Negative cases covered include deterministic ordering, deterministic JSON output, unknown emitted HARN_ code detection, duplicate HARN_ code rejection, invalid HARN_ prefix rejection, missing required document, stale projection, unsafe projection output path, duplicate projection output path, malformed config, canonical term drift, canonical Verdict drift, duplicate authority topic, broken inline/reference/HTML Markdown links, escaped and absolute Markdown links, repository identity contamination, invalid Machine Task Contract review expectation, and invalid `reviewerMustNotRelyOnBuilderClaim`.
+
+### Primary Verification No-Mutation Check
+
+Command:
+
+```powershell
+git status --short
+```
+
+Purpose: Record worktree state before `pnpm verify`.
+
+Exit status: 0.
+
+Bounded result summary: Same FND-MECH-001 changed-file set as before `pnpm governance:check`.
+
+Command:
+
+```powershell
+pnpm verify
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+Foundation JSON validation output parsed as VALID.
+tests 21
+pass 21
+fail 0
+git diff --check exit status 0
+```
+
+Git reported Windows line-ending conversion warnings for modified text files and no whitespace errors.
+
+Command:
+
+```powershell
+git status --short
+```
+
+Purpose: Record worktree state after `pnpm verify`.
+
+Exit status: 0.
+
+Bounded result summary: Same changed-file set as before `pnpm verify`; no mutation observed.
+
+### Standalone Validator Commands
+
+Command:
+
+```powershell
+node scripts/validate-foundation.mjs
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+```
+
+Command:
+
+```powershell
+node scripts/validate-foundation.mjs --format json
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```json
+{
+  "findings": [],
+  "schemaVersion": "1",
+  "status": "VALID"
+}
+```
+
+Command:
+
+```powershell
+node scripts/governance/verify-json-output.mjs
+```
+
+Purpose: Parse the JSON validator output and assert the expected `VALID` result shape.
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Foundation JSON validation output parsed as VALID.
+```
+
+### Diff Whitespace Validation
+
+Command:
+
+```powershell
+git diff --check
+```
+
+Exit status: 0.
+
+Bounded result summary: Git reported Windows line-ending conversion warnings for modified text files and no whitespace errors.
+
+### Boundary Searches
+
+Command:
+
+```powershell
+rg -n "HARN_" AGENTS.md README.md CONTRIBUTING.md docs governance scripts tests package.json .github
+```
+
+Exit status: 0.
+
+Bounded result summary: `HARN_` occurrences are in Foundation engineering harness documentation, governance task requirements, the harness reason-code registry, validator modules, and synthetic governance tests. No `HARN_` code is documented as a Proofrail product runtime reason code.
+
+Command:
+
+```powershell
+rg -n "PASS_FOR_[I]NTEGRATION" .
+```
+
+Exit status: 1.
+
+Bounded result: no matches.
+
+Interpretation: Exit status 1 is the expected ripgrep status for no matches. The external review status token is not treated as a Proofrail product Verdict declaration in this branch.
+
+Command:
+
+```powershell
+rg -n "Machine Task Contract|Machine Task Contracts|task contract|Task Contract|task-contract" AGENTS.md README.md CONTRIBUTING.md docs governance scripts tests package.json .github
+```
+
+Exit status: 0.
+
+Bounded result summary: Machine Task Contract references are engineering governance, schema validation, task-contract documentation, review provenance, or explicit product-runtime authority prohibitions. No product runtime authority regression was observed.
+
+Command:
+
+```powershell
+$paths = @('packages','apps','backend','frontend','src'); foreach ($p in $paths) { "$p=$(Test-Path -LiteralPath $p)" }
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+packages=False
+apps=False
+backend=False
+frontend=False
+src=False
+```
+
+Interpretation: No Proofrail product runtime package directories were introduced.
+
+### Builder Internal Review
+
+Three separate read-only reviewer agents were used:
+
+- Reviewer A: Foundation Authority Reviewer.
+- Reviewer B: Adversarial Harness Reviewer.
+- Reviewer C: Maintainability Reviewer.
+
+These reviews were Builder-internal only and are not independent acceptance. Findings and dispositions are recorded in [../reviews/foundation-gate-mechanization-builder-review.md](../reviews/foundation-gate-mechanization-builder-review.md).
+
+CI status for the final FND-MECH-001 branch was not observed at the time this evidence section was written because the pull request had not yet been created.

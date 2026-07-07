@@ -10,7 +10,7 @@ Contributions must preserve the principle:
 
 Phase 0 contributions may improve repository legibility, documentation authority, governance configuration, and whitelisted validation tooling. They must not implement Proofrail product runtime behavior.
 
-Allowed executable work is limited to governance tooling such as required-file checks, terminology drift checks, Markdown link checks, documentation reference checks, governance configuration validation, and repository engineering Machine Task Contract schema validation.
+Allowed executable work is limited to governance tooling such as required-file checks, terminology drift checks, Markdown link checks, documentation reference checks, governance configuration validation, generated governance projection checks, HARN_ harness reason-code checks, and repository engineering Machine Task Contract schema validation.
 
 ## Before Changing Files
 
@@ -23,8 +23,10 @@ If repository engineering work needs broader authority, capture that need in a M
 Run:
 
 ```bash
-node scripts/validate-foundation.mjs
+pnpm verify
 ```
+
+The root validator remains `node scripts/validate-foundation.mjs`. Use `node scripts/validate-foundation.mjs --format json` when machine-readable Foundation harness output is needed.
 
 Update [docs/engineering/validation-evidence.md](docs/engineering/validation-evidence.md) when validation evidence changes.
 

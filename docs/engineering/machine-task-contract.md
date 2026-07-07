@@ -12,7 +12,9 @@ It is an engineering harness governance artifact for work on the Proofrail repos
 
 ## Format Direction
 
-Machine Task Contracts should be authored as YAML or JSON using the same structural fields. The schema artifact in [../../governance/machine-task-contract.schema.json](../../governance/machine-task-contract.schema.json) captures the Phase 0 draft shape for future validation.
+Machine Task Contracts should be authored as YAML or JSON using the same structural fields. The schema artifact in [../../governance/machine-task-contract.schema.json](../../governance/machine-task-contract.schema.json) captures the Phase 0 draft shape.
+
+FND-MECH-001 mechanically validates committed JSON Machine Task Contracts under `governance/tasks` with Ajv. YAML remains a documented format direction, but YAML task contracts are not mechanically validated in this phase and no YAML parsing dependency is introduced.
 
 ## Required Sections
 
@@ -69,11 +71,14 @@ review:
 | `task.class` | Task category, such as documentation, bounded implementation, mechanization, review, or convergence. |
 | `task.objective` | Single task objective. |
 | `scope.write` | Paths the task may modify. |
+| `scope.read_only_authority` | Authority paths the task may read but must not modify. |
 | `scope.forbidden` | Paths or concepts the task must not modify. |
 | `authority.read` | Authoritative documents the agent must read before acting. |
 | `authority.mayChangeAuthority` | Whether the task is allowed to modify authority-bearing docs or schemas. |
+| `authority.mayChangeProductSemantics` | Whether the task may change Proofrail product semantics when a task needs that boundary stated explicitly. |
 | `acceptance.requirements` | Reviewable requirements for the task. |
 | `verification.commands` | Commands expected for self-checks. |
+| `verification.requiredInvariants` | Verification invariants expected in addition to command execution. |
 | `requiredArtifacts` | Required output artifact categories. |
 | `stopConditions` | Conditions that require stopping instead of expanding scope. |
 | `review` | Independent review expectations. |
