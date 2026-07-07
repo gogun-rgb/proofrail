@@ -88,6 +88,13 @@ function validateSchema(schemaPath) {
   for (const field of required) {
     if (!schema.required?.includes(field)) errors.push(`Machine Task Contract schema is missing required field: ${field}`);
   }
+  const reviewProperties = schema.properties?.review?.properties ?? {};
+  if (reviewProperties.expectation?.const !== "independent_review_required") {
+    errors.push("Machine Task Contract schema must enforce review.expectation as independent_review_required");
+  }
+  if (reviewProperties.reviewerMustNotRelyOnBuilderClaim?.const !== true) {
+    errors.push("Machine Task Contract schema must enforce review.reviewerMustNotRelyOnBuilderClaim as true");
+  }
 }
 
 function validateIdentityHygiene() {

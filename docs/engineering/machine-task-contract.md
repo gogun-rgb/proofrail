@@ -8,6 +8,8 @@ This document is authoritative for the proposed Machine Task Contract format.
 
 A Machine Task Contract makes task scope, authority, verification, and stop conditions explicit enough that silent task expansion becomes detectable.
 
+It is an engineering harness governance artifact for work on the Proofrail repository. It is not Proofrail product runtime authority.
+
 ## Format Direction
 
 Machine Task Contracts should be authored as YAML or JSON using the same structural fields. The schema artifact in [../../governance/machine-task-contract.schema.json](../../governance/machine-task-contract.schema.json) captures the Phase 0 draft shape for future validation.
@@ -87,3 +89,11 @@ A task contract MUST define stop conditions.
 A task contract SHOULD separate acceptance requirements from verification commands.
 
 A task contract MUST NOT authorize an agent to assign its own authoritative Verdict.
+
+A Machine Task Contract MUST NOT authorize Proofrail product target repository execution, Evidence Contract selection, Policy selection, Evidence Requirement satisfaction, Evidence creation, or Verdict authority.
+
+Future Proofrail product verification execution authority must derive from Trusted Configuration and applicable deterministic Policy-defined execution boundaries.
+
+Evidence Contract authority and selection must derive from Trusted Configuration or deterministic Policy selection.
+
+The Phase 0 schema MUST enforce `review.expectation` as exactly `independent_review_required` and `review.reviewerMustNotRelyOnBuilderClaim` as exactly `true`.

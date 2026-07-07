@@ -22,6 +22,8 @@ Evidence must connect:
 
 Evidence does not exist because a Claim was made. Evidence exists only when an authorized deterministic path establishes that a requirement has been satisfied.
 
+For Phase 0, the Evidence satisfaction input set is closed to Observations and Verification Receipts. Deterministic values, digests, parser results, repository text, filenames, and other records must be modeled through an authorized Observation or Verification Receipt before they can support Evidence. A future additional authoritative input class requires an explicit terminology and evidence protocol revision.
+
 ## Claim Versus Evidence
 
 A Claim is a statement that a change has a property. A Claim may be useful input, but it has no evidentiary authority by itself.

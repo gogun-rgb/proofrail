@@ -17,6 +17,7 @@ Expected future work includes:
 - canonical terminology drift checks
 - Markdown/reference checks
 - reason-code registry validation
+- fixture strategy presence and reference validation
 - Machine Task Contract validation
 - architecture rule encoding preparation
 
@@ -35,8 +36,8 @@ The following require independent judgment:
 Later implementation phases may add:
 
 - package dependency boundary checks
-- fixture-based tests
-- adversarial fixture tests
+- fixture-based tests derived from `docs/engineering/fixture-strategy.md`
+- adversarial fixture tests derived from `docs/engineering/fixture-strategy.md`
 - protocol schema compatibility tests
 - Clean Agent Test protocol execution
 

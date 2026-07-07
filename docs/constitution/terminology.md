@@ -30,13 +30,13 @@ Warnings: Repository prose is input to observation, not automatically an Observa
 
 ### Evidence
 
-Definition: An authoritative record that a specific Evidence Requirement has been satisfied by acceptable Observations, Verification Receipts, or other allowed deterministic inputs.
+Definition: An authoritative record that a specific Evidence Requirement has been satisfied by acceptable Observations or Verification Receipts.
 
 Authority characteristics: Evidence must be traceable to requirements, inputs, and lineage.
 
 Relationship: Evidence contributes to policy evaluation and verdict derivation. Evidence is not a Claim, Rule, or Policy.
 
-Warnings: AI explanations, human assertions, and comments are not Evidence by themselves.
+Warnings: AI explanations, human assertions, comments, deterministic values, digests, parser results, and other records are not Evidence by themselves. A future additional authoritative Evidence satisfaction input class requires an explicit terminology and protocol revision.
 
 ### Evidence Requirement
 
@@ -52,11 +52,11 @@ Warnings: Do not use "Evidence Constraint", "Requirement Spec", or "Evidence Rul
 
 Definition: A versioned set of Evidence Requirements and expected verification or observation obligations for a task or change class.
 
-Authority characteristics: An Evidence Contract is authoritative only when selected through trusted configuration or an authorized task contract.
+Authority characteristics: An Evidence Contract is authoritative only when selected through Trusted Configuration or deterministic Policy selection.
 
 Relationship: It governs what Evidence is needed before policy evaluation can derive a Verdict.
 
-Warnings: An Inference Proposal may draft an Evidence Contract, but the proposal is not authoritative until accepted through an authorized path.
+Warnings: An Inference Proposal may draft an Evidence Contract, but the proposal is not authoritative until accepted through Trusted Configuration or deterministic Policy selection. Agent requests, natural-language task descriptions, and Machine Task Contracts do not make an Evidence Contract authoritative.
 
 ### Verification Receipt
 

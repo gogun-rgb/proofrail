@@ -45,16 +45,30 @@ Examples that normally do not justify `BLOCKED`:
 
 ## Condition Mapping
 
-| Condition | Typical Verdict | Notes |
+Raw conditions must first be deterministically classified into candidate Verdict states before reduction. Classification must use applicable Evidence Requirements, Observations, Verification Receipts, Adapter Capability records, Policies, Rules, execution boundaries, and lineage. Natural-language explanation, model confidence, or Builder assertion must not classify a condition.
+
+| Raw condition | Classification rule | Candidate Verdict |
 | --- | --- | --- |
-| Missing Evidence Requirement | `REVISION_REQUIRED` | Unless the missing prerequisite makes evaluation impossible. |
-| Contradictory Evidence | `REVISION_REQUIRED` or `REJECTED` | Remediable contradictions usually require revision; policy-denying contradictions may reject. |
-| Verification failure | `REVISION_REQUIRED` | If execution happened and failed with usable receipts. |
-| Execution impossible | `BLOCKED` | Boundary or system condition prevents valid verification. |
-| Policy denial | `REJECTED` | Deterministic denial by applicable policy. |
-| Unsupported required capability | `REVISION_REQUIRED` or `BLOCKED` | Revision if another authorized path exists; blocked if no valid evaluation can continue. |
-| Degraded capability | `REVISION_REQUIRED` or `BLOCKED` | Depends on whether policy permits degraded evidence. |
-| Malformed input | `REVISION_REQUIRED` | Use `BLOCKED` only if authority or boundary conflict prevents correction. |
+| Missing Evidence Requirement | An applicable Evidence Requirement lacks acceptable Evidence from Observations or Verification Receipts. If a missing prerequisite prevents any valid evaluation from continuing, classify that prerequisite as execution impossible instead. | `REVISION_REQUIRED` |
+| Contradictory Evidence | Evidence or its lineage conflicts for the declared scope. Classify as `REJECTED` only when an applicable deterministic Policy or Rule declares a denial for that contradiction. Otherwise, classify a remediable submission contradiction as `REVISION_REQUIRED`. | See classification rule. |
+| Verification failure | Verification executed under an authorized boundary and produced a failing Verification Receipt with usable identity, scope, and lineage. | `REVISION_REQUIRED` |
+| Execution impossible | A boundary, prerequisite, environment, or system condition prevents valid verification or evaluation from continuing. | `BLOCKED` |
+| Policy denial | An applicable deterministic Policy or Rule declares a denial for the evaluated scope. | `REJECTED` |
+| Unsupported required Adapter Capability | A required Adapter Capability is unavailable. If an authorized alternate evaluation path exists, classify as `REVISION_REQUIRED`; if no valid evaluation can continue, classify as `BLOCKED`. | See classification rule. |
+| Degraded Adapter Capability | A capability is reduced by environment, parser, version, dependency, or runtime conditions. If an authorized alternate evaluation path exists, classify as `REVISION_REQUIRED`; if no valid evaluation can continue, classify as `BLOCKED`. | See classification rule. |
+| Malformed input | Required input is structurally invalid or cannot be interpreted for the declared scope. If correction within the same authority model is possible, classify as `REVISION_REQUIRED`; if an authority or boundary conflict prevents valid interpretation, classify as `BLOCKED`. | See classification rule. |
+
+## Verdict Reduction
+
+After all raw conditions are classified, the authoritative Verdict is the highest-precedence candidate state under this normalized precedence:
+
+```text
+BLOCKED > REJECTED > REVISION_REQUIRED > ADMISSIBLE
+```
+
+`ADMISSIBLE` is the candidate state only when all applicable Evidence Requirements and Policies are satisfied and no higher-precedence condition is classified.
+
+Reduction preserves every applicable reason code and Evidence Lineage record. Lower-precedence conditions do not disappear merely because a higher-precedence Verdict wins. The finalized Evidence Bundle must carry the winning Verdict plus the retained condition reasons and lineage needed to reproduce the reduction.
 
 ## Valid High-Level Transitions
 

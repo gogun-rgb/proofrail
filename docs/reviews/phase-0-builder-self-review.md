@@ -28,3 +28,7 @@ HIGH findings found within Phase 0 Builder scope were remediated by clean reboot
 Remaining findings are future mechanization risks, not acceptance claims.
 
 The independent governor may disagree with this self-review.
+
+## Convergence Note
+
+An external independent governor later returned `REVISION_REQUIRED` for findings FND-DOM-001, FND-ARC-001, FND-HAR-001, FND-VRD-001, and FND-GOV-001. Those findings were externally supplied and are not rewritten here as Builder-discovered findings. Remediation is recorded separately in [phase-0-convergence-builder-review.md](phase-0-convergence-builder-review.md).

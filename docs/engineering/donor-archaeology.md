@@ -8,7 +8,7 @@ This document is authoritative for the future Donor Archaeology process.
 
 Phase 0 defines the process only. It does not inspect, copy, or classify donor repositories.
 
-Actual donor repository identities and URLs must be supplied by a future Machine Task Contract.
+Actual donor repository identities and URLs must be supplied by a future Machine Task Contract for Proofrail repository engineering work.
 
 ## Classification Vocabulary
 
@@ -54,7 +54,7 @@ Future donor archaeology should collect:
 
 ## Process
 
-1. Confirm the donor source is explicitly named by a Machine Task Contract.
+1. Confirm the donor source is explicitly named by a Machine Task Contract for Proofrail repository engineering work.
 2. Identify the bounded capability under review.
 3. Record behavioral value separately from architecture compatibility.
 4. Classify as `PORT`, `REIMPLEMENT`, `REFERENCE`, or `REJECT`.
