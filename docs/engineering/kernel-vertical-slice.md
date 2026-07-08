@@ -31,6 +31,20 @@ The boundary rejects sparse arrays, accessor-backed array indices, symbol-keyed 
 
 This applies recursively to top-level kernel arrays and nested modeled arrays such as Evidence Contract `requirementIds` and Observation `limitations`.
 
+`KERNEL-VS-CONV-002` further hardens authoritative Array handling. Authoritative Arrays must have the ordinary direct `Array.prototype`, so null-prototype Arrays, Array subclass instances, and Arrays with custom direct prototypes are rejected with `KernelBoundaryError` before semantic validation.
+
+After recursive structural validation, the public boundary clones the accepted authoritative graph into fresh ordinary kernel-owned objects and Arrays. Authoritative Array cloning uses bounded indexed reads over previously validated dense own data indices and does not call caller-owned Array instance methods such as `forEach` or `map`.
+
+Semantic validation and later normalization operate on the kernel-owned clone, not caller-owned authoritative Arrays.
+
+## Proxy Boundary Validation
+
+`KERNEL-VS-CONV-002` rejects Proxy-backed authoritative values recursively at the public kernel boundary with `PROXY_INPUT`.
+
+Proxy rejection happens before trap-capable inspection such as `instanceof Date`, `instanceof Map`, `instanceof Set`, `Array.isArray`, `Object.getPrototypeOf`, `Object.getOwnPropertyDescriptors`, `Reflect.ownKeys`, and authoritative property reads.
+
+`PROXY_INPUT` is a kernel boundary shape issue. It is not Evidence, not a Proofrail Verdict, and not a product reason code.
+
 ## Evidence Contract Selection Provenance
 
 Evidence Contract selection provenance is modeled only as already authorized selection provenance for deterministic evaluation.

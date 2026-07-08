@@ -326,6 +326,240 @@ test("ordinary dense JSON-compatible Arrays remain accepted", () => {
   assert.equal(bundle.verdict, "ADMISSIBLE");
 });
 
+test("null-prototype observations Array is rejected with KernelBoundaryError", () => {
+  const input = makeInput();
+  Object.setPrototypeOf(input.observations, null);
+
+  const error = assertBoundaryError(input, "INVALID_ARRAY");
+  assert.equal(error.path, "$.observations");
+});
+
+test("null-prototype rules Array is rejected with KernelBoundaryError", () => {
+  const input = makeInput();
+  Object.setPrototypeOf(input.rules, null);
+
+  const error = assertBoundaryError(input, "INVALID_ARRAY");
+  assert.equal(error.path, "$.rules");
+});
+
+test("Array subclass instance is rejected", () => {
+  class AuthoritativeArray extends Array {}
+
+  const input = /** @type {any} */ (makeInput());
+  input.observations = new AuthoritativeArray(input.observations[0]);
+
+  const error = assertBoundaryError(input, "INVALID_ARRAY");
+  assert.equal(error.path, "$.observations");
+});
+
+test("Array subclass overriding forEach does not execute overridden body", () => {
+  let forEachExecutionCount = 0;
+  class TrackingArray extends Array {
+    forEach() {
+      forEachExecutionCount += 1;
+    }
+  }
+
+  const input = /** @type {any} */ (makeInput());
+  input.observations = new TrackingArray(input.observations[0]);
+
+  const error = assertBoundaryError(input, "INVALID_ARRAY");
+  assert.equal(error.path, "$.observations");
+  assert.equal(forEachExecutionCount, 0);
+});
+
+test("Array subclass overriding map does not execute overridden body", () => {
+  let mapExecutionCount = 0;
+  class TrackingArray extends Array {
+    map() {
+      mapExecutionCount += 1;
+      return [];
+    }
+  }
+
+  const input = /** @type {any} */ (makeInput());
+  input.observations = new TrackingArray(input.observations[0]);
+
+  const error = assertBoundaryError(input, "INVALID_ARRAY");
+  assert.equal(error.path, "$.observations");
+  assert.equal(mapExecutionCount, 0);
+});
+
+test("custom Array prototype attempting to skip validation does not execute", () => {
+  const input = /** @type {any} */ (makeInput());
+  let forEachExecutionCount = 0;
+  input.observations[0] = {
+    ...input.observations[0],
+    id: ""
+  };
+  Object.setPrototypeOf(input.observations, {
+    forEach() {
+      forEachExecutionCount += 1;
+    }
+  });
+
+  const error = assertBoundaryError(input, "INVALID_ARRAY");
+  assert.equal(error.path, "$.observations");
+  assert.equal(forEachExecutionCount, 0);
+});
+
+test("custom Array prototype attempting to substitute clone output does not execute", () => {
+  const input = /** @type {any} */ (makeInput());
+  let mapExecutionCount = 0;
+  input.observations[0] = {
+    ...input.observations[0],
+    id: ""
+  };
+  Object.setPrototypeOf(input.observations, {
+    map() {
+      mapExecutionCount += 1;
+      return makeInput().observations;
+    }
+  });
+
+  const error = assertBoundaryError(input, "INVALID_ARRAY");
+  assert.equal(error.path, "$.observations");
+  assert.equal(mapExecutionCount, 0);
+});
+
+test("nested Evidence Contract requirementIds with non-ordinary Array prototype is rejected", () => {
+  const input = makeInput();
+  const contract = /** @type {any} */ (input.evidenceContracts[0]);
+  Object.setPrototypeOf(contract.requirementIds, null);
+
+  const error = assertBoundaryError(input, "INVALID_ARRAY");
+  assert.equal(error.path, "$.evidenceContracts[0].requirementIds");
+});
+
+test("nested Observation limitations with non-ordinary Array prototype is rejected", () => {
+  const input = makeInput({
+    observationOverrides: {
+      limitations: ["SYNTHETIC_LIMITATION"]
+    }
+  });
+  const observation = /** @type {any} */ (input.observations[0]);
+  Object.setPrototypeOf(observation.limitations, null);
+
+  const error = assertBoundaryError(input, "INVALID_ARRAY");
+  assert.equal(error.path, "$.observations[0].limitations");
+});
+
+test("Proxy-wrapped root input is rejected before traps execute", () => {
+  const counters = createTrapCounters();
+  const proxy = countingProxy(makeInput(), counters);
+
+  const first = assertBoundaryError(proxy, "PROXY_INPUT");
+  const second = assertBoundaryError(proxy, "PROXY_INPUT");
+
+  assert.equal(first.path, "$");
+  assert.equal(first.issueCategory, second.issueCategory);
+  assert.equal(first.path, second.path);
+  assertZeroTrapCounters(counters);
+});
+
+test("Proxy-wrapped evaluation is rejected before traps execute", () => {
+  const input = /** @type {any} */ (makeInput());
+  const counters = createTrapCounters();
+  input.evaluation = countingProxy(input.evaluation, counters);
+
+  const error = assertBoundaryError(input, "PROXY_INPUT");
+
+  assert.equal(error.path, "$.evaluation");
+  assertZeroTrapCounters(counters);
+});
+
+test("Proxy-wrapped Observation is rejected before traps execute", () => {
+  const input = /** @type {any} */ (makeInput());
+  const counters = createTrapCounters();
+  input.observations[0] = countingProxy(input.observations[0], counters);
+
+  const error = assertBoundaryError(input, "PROXY_INPUT");
+
+  assert.equal(error.path, "$.observations[0]");
+  assertZeroTrapCounters(counters);
+});
+
+test("Proxy-wrapped observations Array is rejected before descriptor or clone traps execute", () => {
+  const input = /** @type {any} */ (makeInput());
+  const counters = createTrapCounters();
+  input.observations = countingProxy(input.observations, counters);
+
+  const error = assertBoundaryError(input, "PROXY_INPUT");
+
+  assert.equal(error.path, "$.observations");
+  assertZeroTrapCounters(counters);
+});
+
+test("Proxy-wrapped nested Observation limitations Array is rejected before traps execute", () => {
+  const input = /** @type {any} */ (makeInput({
+    observationOverrides: {
+      limitations: ["SYNTHETIC_LIMITATION"]
+    }
+  }));
+  const counters = createTrapCounters();
+  input.observations[0].limitations = countingProxy(input.observations[0].limitations, counters);
+
+  const error = assertBoundaryError(input, "PROXY_INPUT");
+
+  assert.equal(error.path, "$.observations[0].limitations");
+  assertZeroTrapCounters(counters);
+});
+
+test("Proxy-wrapped Rule effect is rejected before traps execute", () => {
+  const rule = /** @type {any} */ (validRule("rule.proxy-effect"));
+  const counters = createTrapCounters();
+  rule.effect = countingProxy(rule.effect, counters);
+  const input = makeInput({ rules: [rule] });
+
+  const error = assertBoundaryError(input, "PROXY_INPUT");
+
+  assert.equal(error.path, "$.rules[0].effect");
+  assertZeroTrapCounters(counters);
+});
+
+test("revoked Proxy input is rejected as Proxy input", () => {
+  const revocable = Proxy.revocable(makeInput(), {});
+  revocable.revoke();
+
+  const error = assertBoundaryError(revocable.proxy, "PROXY_INPUT");
+  assert.equal(error.path, "$");
+});
+
+test("Proxy cannot lie about descriptors and supply a different clone value", () => {
+  const input = /** @type {any} */ (makeInput());
+  const counters = createTrapCounters();
+  const malformedObservation = {
+    ...input.observations[0],
+    id: ""
+  };
+  input.observations[0] = new Proxy(malformedObservation, {
+    get(target, property, receiver) {
+      counters.get += 1;
+      if (property === "id") {
+        return "obs.lockfile-present";
+      }
+      return Reflect.get(target, property, receiver);
+    },
+    getPrototypeOf(target) {
+      counters.getPrototypeOf += 1;
+      return Reflect.getPrototypeOf(target);
+    },
+    ownKeys(target) {
+      counters.ownKeys += 1;
+      return Reflect.ownKeys(target);
+    },
+    getOwnPropertyDescriptor(target, property) {
+      counters.getOwnPropertyDescriptor += 1;
+      return Reflect.getOwnPropertyDescriptor(target, property);
+    }
+  });
+
+  const error = assertBoundaryError(input, "PROXY_INPUT");
+
+  assert.equal(error.path, "$.observations[0]");
+  assertZeroTrapCounters(counters);
+});
+
 test("Observation target scope outside the declared evaluation scope is rejected", () => {
   const input = makeInput({
     observationOverrides: {
@@ -402,4 +636,63 @@ function captureBoundaryError(input, label) {
   );
   assert.ok(captured, label);
   return captured;
+}
+
+/**
+ * @typedef {{
+ *   get: number,
+ *   getPrototypeOf: number,
+ *   ownKeys: number,
+ *   getOwnPropertyDescriptor: number
+ * }} TrapCounters
+ */
+
+/**
+ * @returns {TrapCounters}
+ */
+function createTrapCounters() {
+  return {
+    get: 0,
+    getPrototypeOf: 0,
+    ownKeys: 0,
+    getOwnPropertyDescriptor: 0
+  };
+}
+
+/**
+ * @template {object} T
+ * @param {T} target
+ * @param {TrapCounters} counters
+ * @returns {T}
+ */
+function countingProxy(target, counters) {
+  return new Proxy(target, {
+    get(proxyTarget, property, receiver) {
+      counters.get += 1;
+      return Reflect.get(proxyTarget, property, receiver);
+    },
+    getPrototypeOf(proxyTarget) {
+      counters.getPrototypeOf += 1;
+      return Reflect.getPrototypeOf(proxyTarget);
+    },
+    ownKeys(proxyTarget) {
+      counters.ownKeys += 1;
+      return Reflect.ownKeys(proxyTarget);
+    },
+    getOwnPropertyDescriptor(proxyTarget, property) {
+      counters.getOwnPropertyDescriptor += 1;
+      return Reflect.getOwnPropertyDescriptor(proxyTarget, property);
+    }
+  });
+}
+
+/**
+ * @param {TrapCounters} counters
+ * @returns {void}
+ */
+function assertZeroTrapCounters(counters) {
+  assert.equal(counters.get, 0, "get trap execution count");
+  assert.equal(counters.getPrototypeOf, 0, "getPrototypeOf trap execution count");
+  assert.equal(counters.ownKeys, 0, "ownKeys trap execution count");
+  assert.equal(counters.getOwnPropertyDescriptor, 0, "getOwnPropertyDescriptor trap execution count");
 }

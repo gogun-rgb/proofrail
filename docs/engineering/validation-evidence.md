@@ -3509,3 +3509,486 @@ Get-Content -Raw -LiteralPath 'governance\tasks\KERNEL-VS-CONV-001.json'
 Exit status: 0 for each command.
 
 Bounded result summary: The inspected diff contains only KERNEL-VS-CONV-001 task materialization, kernel boundary/reason-code/scope remediation, focused tests, implementation-record status notes, and the convergence Builder review. No Builder-discovered CRITICAL or HIGH findings remained open after this inspection.
+
+## KERNEL-VS-CONV-002 Validation Evidence
+
+Date: 2026-07-08.
+
+Task identity: `KERNEL-VS-CONV-002`.
+
+Review subject preflight:
+
+```text
+git rev-parse --show-toplevel
+C:/Users/zizon/Documents/Codex/2026-07-07/proofrail
+
+git remote -v
+origin https://github.com/gogun-rgb/proofrail.git (fetch)
+origin https://github.com/gogun-rgb/proofrail.git (push)
+
+git status --short
+<no output>
+
+git branch --show-current
+phase1/kernel-vertical-slice-1
+
+git rev-parse HEAD
+dc729211c2dc90ee9d3e1270066d0971c067cb64
+
+git fetch origin --prune
+exit status 0
+
+gh pr view 5 --json state,isDraft,mergeable,baseRefName,headRefName,headRefOid,mergedAt
+{"baseRefName":"main","headRefName":"phase1/kernel-vertical-slice-1","headRefOid":"dc729211c2dc90ee9d3e1270066d0971c067cb64","isDraft":false,"mergeable":"MERGEABLE","mergedAt":null,"state":"OPEN"}
+```
+
+### KVS-BND-002 Boundary Results
+
+Focused tests were added in `packages/kernel/test/boundary-validation.test.js`.
+
+Observed results from `pnpm test:kernel`:
+
+```text
+null-prototype observations Array: KernelBoundaryError INVALID_ARRAY at $.observations
+null-prototype rules Array: KernelBoundaryError INVALID_ARRAY at $.rules
+Array subclass instance: KernelBoundaryError INVALID_ARRAY at $.observations
+Array subclass overriding forEach: KernelBoundaryError INVALID_ARRAY at $.observations
+Array subclass overriding map: KernelBoundaryError INVALID_ARRAY at $.observations
+custom Array prototype skip-validation attempt: KernelBoundaryError INVALID_ARRAY at $.observations
+custom Array prototype clone-substitution attempt: KernelBoundaryError INVALID_ARRAY at $.observations
+nested Evidence Contract requirementIds non-ordinary prototype: KernelBoundaryError INVALID_ARRAY at $.evidenceContracts[0].requirementIds
+nested Observation limitations non-ordinary prototype: KernelBoundaryError INVALID_ARRAY at $.observations[0].limitations
+ordinary dense Array regression: accepted; bundle Verdict ADMISSIBLE
+```
+
+Execution counters:
+
+```text
+overridden forEach execution count: 0
+overridden map execution count: 0
+custom prototype skip-validation forEach execution count: 0
+custom prototype clone-substitution map execution count: 0
+previous accessor-backed numeric-index getter execution count: 0
+```
+
+Implementation observations:
+
+```text
+Authoritative Array container validation rejects direct prototypes other than Array.prototype.
+Safe authoritative Array cloning uses bounded indexed reads over validated dense own data indices.
+Safe authoritative Array cloning does not call value.map(...).
+Semantic validation runs after structural cloning into kernel-owned ordinary Arrays.
+```
+
+### KVS-BND-003 Boundary Results
+
+Focused tests were added in `packages/kernel/test/boundary-validation.test.js`.
+
+Observed results from `pnpm test:kernel`:
+
+```text
+root Proxy: KernelBoundaryError PROXY_INPUT at $
+evaluation Proxy: KernelBoundaryError PROXY_INPUT at $.evaluation
+Observation Proxy: KernelBoundaryError PROXY_INPUT at $.observations[0]
+observations Array Proxy: KernelBoundaryError PROXY_INPUT at $.observations
+nested Observation limitations Proxy: KernelBoundaryError PROXY_INPUT at $.observations[0].limitations
+Rule effect Proxy: KernelBoundaryError PROXY_INPUT at $.rules[0].effect
+revoked Proxy: KernelBoundaryError PROXY_INPUT at $
+descriptor-lie/value-substitution Proxy: KernelBoundaryError PROXY_INPUT at $.observations[0]
+repeated root Proxy rejection: same category PROXY_INPUT and path $
+```
+
+Trap execution counters for early-rejected Proxy regressions:
+
+```text
+get trap execution count: 0
+getPrototypeOf trap execution count: 0
+ownKeys trap execution count: 0
+getOwnPropertyDescriptor trap execution count: 0
+```
+
+Implementation observations:
+
+```text
+Proxy detection uses Node built-in util.types.isProxy.
+The recursive Proxy guard runs before instanceof Date, instanceof Map, instanceof Set, Array.isArray, Object.getPrototypeOf, Object.getOwnPropertyDescriptors, Reflect.ownKeys, or caller property reads inspect a Proxy-backed value.
+PROXY_INPUT is a KernelBoundaryError issue category only; it is not a Proofrail Verdict, Evidence, or product reason code.
+```
+
+### Command Results
+
+Command:
+
+```powershell
+pnpm typecheck:phase1
+```
+
+Initial exit status after implementation edits: 1.
+
+Initial bounded result summary:
+
+```text
+packages/kernel/src/boundary-validation.js direct Record-to-KernelEvaluationInput cast and missing clone helper path JSDoc
+packages/kernel/test/boundary-validation.test.js possibly undefined fixture indexed accesses
+```
+
+Remediation: tightened the root cast through `unknown`, added the clone helper path JSDoc, and cast the two known fixture entries in tests.
+
+Rerun exit status: 0.
+
+Bounded result:
+
+```text
+tsc -p tsconfig.json
+```
+
+Command:
+
+```powershell
+pnpm test:kernel
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+tests 64
+pass 64
+fail 0
+```
+
+Kernel tests were run multiple times after implementation and typecheck remediation. The final observed kernel test count before this evidence update was 64.
+
+Command:
+
+```powershell
+pnpm governance:check
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+```
+
+Command:
+
+```powershell
+pnpm governance:check-json
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Foundation JSON validation output parsed as VALID.
+```
+
+Command:
+
+```powershell
+pnpm test:governance
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+tests 37
+pass 37
+fail 0
+```
+
+Command:
+
+```powershell
+pnpm typecheck:phase1
+```
+
+Final observed exit status before this evidence update: 0.
+
+Bounded result:
+
+```text
+tsc -p tsconfig.json
+```
+
+Command:
+
+```powershell
+pnpm test:kernel
+```
+
+First required rerun exit status: 0.
+
+Bounded result summary:
+
+```text
+tests 64
+pass 64
+fail 0
+```
+
+Command:
+
+```powershell
+pnpm test:kernel
+```
+
+Second required rerun exit status: 0.
+
+Bounded result summary:
+
+```text
+tests 64
+pass 64
+fail 0
+```
+
+Command:
+
+```powershell
+pnpm verify
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+Foundation JSON validation output parsed as VALID.
+governance tests: 37 pass, 0 fail.
+kernel tests: 64 pass, 0 fail.
+git diff --check exit status 0 with Git line-ending conversion warnings for modified text files.
+```
+
+Command:
+
+```powershell
+node scripts/validate-foundation.mjs
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+```
+
+Command:
+
+```powershell
+node scripts/validate-foundation.mjs --format json
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```json
+{
+  "findings": [],
+  "schemaVersion": "1",
+  "status": "VALID"
+}
+```
+
+Command:
+
+```powershell
+node scripts/governance/verify-json-output.mjs
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Foundation JSON validation output parsed as VALID.
+```
+
+Command:
+
+```powershell
+git diff --check
+```
+
+Exit status: 0.
+
+Bounded result summary: Git reported line-ending conversion warnings for modified text files and no whitespace errors.
+
+### Boundary Searches And Scope Inspection
+
+Command:
+
+```powershell
+rg -n "\.forEach\(|\.map\(|\.filter\(|\.find\(|\.sort\(|\.flatMap\(|Symbol\.iterator|\.\.\." packages\kernel\src
+```
+
+Exit status: 0.
+
+Bounded interpretation: relevant `packages/kernel/src/boundary-validation.js` semantic-validation Array method hits occur after `cloneJsonCompatible(input, "$")` creates a kernel-owned clone. `packages/kernel/src/normalization.js`, `evidence-satisfaction.js`, `rule-evaluation.js`, `bundle-finalization.js`, `canonical-json.js`, and `verdict-reduction.js` operate on normalized, finalized, or internally created kernel-owned Arrays. The authoritative clone path no longer contains `value.map(...)`.
+
+Command:
+
+```powershell
+rg -n "assertNotProxyInput|instanceof Date|Array\.isArray|Object\.getPrototypeOf|Object\.getOwnPropertyDescriptors|Reflect\.ownKeys" packages\kernel\src\boundary-validation.js
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+assertNotProxyInput at line 109 before instanceof Date at line 111 and Array.isArray at line 126.
+assertNotProxyInput at line 670 before Array.isArray at line 671 in the safe clone helper.
+Object.getPrototypeOf and Object.getOwnPropertyDescriptors are reached only after the Proxy guard for the current value.
+ownEnumerableStringKeys descriptor inspection is reached only after the caller has already passed recursive scan and clone Proxy guards.
+```
+
+Command:
+
+```powershell
+rg -n "KERNEL_EVIDENCE_REQUIREMENT_MISSING" packages\contracts\src packages\kernel\src
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+packages\kernel\src\kernel-reason-codes.js:3:export const MISSING_EVIDENCE_REASON_CODE = "KERNEL_EVIDENCE_REQUIREMENT_MISSING";
+```
+
+Interpretation: one production literal declaration remains, in the internal kernel reason-code module.
+
+Command:
+
+```powershell
+rg -n "HARN_" packages\contracts\src packages\kernel\src
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+packages\kernel\src\boundary-validation.js:314:  if (reasonCode.startsWith("HARN_")) {
+packages\kernel\src\boundary-validation.js:315:    throwBoundaryError("RESERVED_REASON_CODE_NAMESPACE", `${path}.reasonCode`, "Foundation HARN_ reason codes are not product kernel reason codes");
+```
+
+Interpretation: `HARN_` appears only in Rule reason-code rejection logic.
+
+Command:
+
+```powershell
+rg -n "declaredEvaluationScopeIds|declared evaluation scope|Observation .*target scope" packages\kernel\src\boundary-validation.js packages\kernel\test\boundary-validation.test.js packages\kernel\test\kernel-vertical-slice.test.js
+```
+
+Exit status: 0.
+
+Bounded interpretation: Observation declared-evaluation-scope validation remains present in `packages/kernel/src/boundary-validation.js` and covered by `packages/kernel/test/boundary-validation.test.js`.
+
+Command:
+
+```powershell
+Get-ChildItem -LiteralPath 'packages' -Directory -Force | Select-Object Name
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+contracts
+kernel
+```
+
+Interpretation: no additional production package exists.
+
+Command:
+
+```powershell
+git diff --name-only dc729211c2dc90ee9d3e1270066d0971c067cb64 -- AGENTS.md README.md docs/constitution docs/architecture docs/product docs/protocols docs/quality packages/contracts scripts tests .github package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json governance/generated governance/foundation.config.json governance/foundation.config.schema.json governance/machine-task-contract.schema.json governance/harness-reason-codes.json governance/harness-reason-codes.schema.json governance/tasks/KERNEL-VS-001.json governance/tasks/KERNEL-VS-CONV-001.json
+```
+
+Exit status: 0.
+
+Bounded result: no output.
+
+Interpretation: convergence changes did not alter read-only authority or forbidden paths relative to the exact reviewed head `dc729211c2dc90ee9d3e1270066d0971c067cb64`.
+
+Command:
+
+```powershell
+git status --short
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+ M docs/engineering/kernel-vertical-slice.md
+ M docs/plans/active/phase-1-deterministic-kernel-vertical-slice.md
+ M packages/kernel/src/boundary-validation.js
+ M packages/kernel/test/boundary-validation.test.js
+?? docs/reviews/kernel-vertical-slice-convergence-2-review.md
+?? governance/tasks/KERNEL-VS-CONV-002.json
+```
+
+Interpretation: changed and new files are within `KERNEL-VS-CONV-002` writable scope.
+
+### Final No-Mutation Check
+
+Before the final observed `pnpm verify`, the tracked diff was hashed with:
+
+```powershell
+git diff --binary | git hash-object --stdin
+```
+
+Pre-verify hash:
+
+```text
+85578426dc8599d859c5c5d9d683265947770592
+```
+
+Untracked files before final observed `pnpm verify`:
+
+```text
+docs/reviews/kernel-vertical-slice-convergence-2-review.md
+governance/tasks/KERNEL-VS-CONV-002.json
+```
+
+Command:
+
+```powershell
+pnpm verify
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+Foundation JSON validation output parsed as VALID.
+governance tests: 37 pass, 0 fail.
+kernel tests: 64 pass, 0 fail.
+git diff --check exit status 0 with Git line-ending conversion warnings for modified text files.
+```
+
+After the final observed `pnpm verify`, the same hash command returned:
+
+```text
+85578426dc8599d859c5c5d9d683265947770592
+```
+
+The untracked file list after final observed `pnpm verify` matched the pre-verify list. No additional untracked repository artifact was created by `pnpm verify`.

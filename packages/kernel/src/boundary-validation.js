@@ -1,5 +1,6 @@
 // @ts-check
 
+import { types as nodeUtilTypes } from "node:util";
 import { PHASE1_KERNEL_INPUT_SCHEMA_VERSION } from "@proofrail/contracts";
 import { MISSING_EVIDENCE_REASON_CODE } from "./kernel-reason-codes.js";
 
@@ -37,7 +38,8 @@ export class KernelBoundaryError extends Error {
 export function validateKernelEvaluationInput(input) {
   scanAuthoritativeValue(input, "$", new WeakSet());
 
-  const root = expectPlainObject(input, "$");
+  const clonedInput = cloneJsonCompatible(input, "$");
+  const root = expectPlainObject(clonedInput, "$");
   assertKnownFields(
     root,
     ["schemaVersion", "evaluation", "claims", "evidenceContracts", "evidenceRequirements", "observations", "rules"],
@@ -75,7 +77,7 @@ export function validateKernelEvaluationInput(input) {
 
   validateReferences(root);
 
-  return /** @type {KernelEvaluationInput} */ (cloneJsonCompatible(root));
+  return /** @type {KernelEvaluationInput} */ (/** @type {unknown} */ (root));
 }
 
 /**
@@ -103,6 +105,8 @@ function scanAuthoritativeValue(value, path, stack) {
   if (typeof value !== "object") {
     throwBoundaryError("NON_JSON_VALUE", path, "value is not JSON-compatible");
   }
+
+  assertNotProxyInput(value, path);
 
   if (value instanceof Date) {
     throwBoundaryError("NON_JSON_VALUE", path, "Date is not an authoritative JSON value");
@@ -422,6 +426,10 @@ function validateReferences(root) {
  * @returns {number}
  */
 function validateAuthoritativeArrayContainer(value, path) {
+  if (Object.getPrototypeOf(value) !== Array.prototype) {
+    throwBoundaryError("INVALID_ARRAY", path, "authoritative arrays must use the ordinary Array.prototype");
+  }
+
   const descriptors = /** @type {Record<string | symbol, PropertyDescriptor>} */ (
     /** @type {unknown} */ (Object.getOwnPropertyDescriptors(value))
   );
@@ -646,22 +654,47 @@ function isPlainObject(value) {
 
 /**
  * @param {unknown} value
+ * @param {string} path
  * @returns {unknown}
  */
-function cloneJsonCompatible(value) {
+function cloneJsonCompatible(value, path) {
   if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
     return value;
   }
-  if (Array.isArray(value)) {
-    return value.map((item) => cloneJsonCompatible(item));
+  if (typeof value === "undefined" || typeof value === "bigint" || typeof value === "function" || typeof value === "symbol") {
+    throwBoundaryError("NON_JSON_VALUE", path, `${typeof value} is not JSON-compatible`);
   }
-  const record = expectPlainObject(value, "$");
+  if (typeof value !== "object") {
+    throwBoundaryError("NON_JSON_VALUE", path, "value is not JSON-compatible");
+  }
+  assertNotProxyInput(value, path);
+  if (Array.isArray(value)) {
+    const length = validateAuthoritativeArrayContainer(value, path);
+    /** @type {unknown[]} */
+    const cloned = [];
+    for (let index = 0; index < length; index += 1) {
+      cloned[index] = cloneJsonCompatible(value[index], pathForArrayItem(path, index));
+    }
+    return cloned;
+  }
+  const record = expectPlainObject(value, path);
   /** @type {Record<string, unknown>} */
   const cloned = {};
-  for (const key of ownEnumerableStringKeys(record, "$")) {
-    cloned[key] = cloneJsonCompatible(record[key]);
+  for (const key of ownEnumerableStringKeys(record, path)) {
+    cloned[key] = cloneJsonCompatible(record[key], `${path}.${key}`);
   }
   return cloned;
+}
+
+/**
+ * @param {object} value
+ * @param {string} path
+ * @returns {void}
+ */
+function assertNotProxyInput(value, path) {
+  if (nodeUtilTypes.isProxy(value)) {
+    throwBoundaryError("PROXY_INPUT", path, "Proxy-backed authoritative values are not accepted");
+  }
 }
 
 /**
