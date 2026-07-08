@@ -14,7 +14,9 @@ This repository is now in Phase 1: Deterministic Kernel Vertical Slice.
 
 Phase 1 authorizes a bounded synthetic-input vertical slice through Claim, Evidence Contract, Evidence Requirement, Observation, Evidence satisfaction, Rule, Verdict reduction, and Evidence Bundle. It does not authorize repository inspection, target-code execution, verification execution, adapters, delivery surfaces, model provider integration, or Inference Zone implementation.
 
-Proofrail does not yet have a working product runtime, kernel implementation, or completed Phase 1 vertical slice.
+This repository now contains an initial deterministic synthetic-input kernel vertical slice from `KERNEL-VS-001`. It is pending independent review and is not a claim that Phase 1 is complete or independently accepted.
+
+Proofrail still does not have repository inspection, verification execution, adapters, delivery surfaces, or a complete product runtime.
 
 ## Start Here
 
@@ -59,4 +61,4 @@ The active Phase 1 plan is documented in [docs/plans/active/phase-1-deterministi
 
 Phase 1 Deterministic Kernel Vertical Slice
 
-The next implementation task identity is `KERNEL-VS-001`. It is not implemented in this repository state.
+The first implementation task identity is `KERNEL-VS-001`. Builder implementation exists on `phase1/kernel-vertical-slice-1` and is pending independent review.

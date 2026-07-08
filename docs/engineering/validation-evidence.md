@@ -2442,3 +2442,553 @@ Get-Content -LiteralPath 'governance\tasks\PHASE-TRANS-001.json' -Raw
 Exit status: 0 for each command.
 
 Bounded result summary: The inspected diff and new files record Phase 0 closure, Foundation Gate external PASS boundary, Phase 1 deterministic kernel vertical-slice authorization, authorized initial package layers only, prohibited Phase 1 integrations, unimplemented `KERNEL-VS-001`, independent review evidence limits, Builder review findings, and the materialized Machine Task Contract.
+
+## KERNEL-VS-001 Validation Evidence
+
+All KERNEL-VS-001 commands in this section were run from repository root:
+
+```text
+C:\Users\zizon\Documents\Codex\2026-07-07\proofrail
+```
+
+Starting Phase 1 baseline:
+
+```text
+e2964c726614d67c0e01239463e943b2e21189b2
+```
+
+Task branch:
+
+```text
+phase1/kernel-vertical-slice-1
+```
+
+### Exact Baseline Preflight
+
+Command:
+
+```powershell
+git rev-parse --show-toplevel
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+C:/Users/zizon/Documents/Codex/2026-07-07/proofrail
+```
+
+Command:
+
+```powershell
+git remote -v
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+origin	https://github.com/gogun-rgb/proofrail.git (fetch)
+origin	https://github.com/gogun-rgb/proofrail.git (push)
+```
+
+Command:
+
+```powershell
+git status --short
+```
+
+Exit status: 0.
+
+Bounded result: no output.
+
+Command:
+
+```powershell
+git branch --show-current
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+main
+```
+
+Command:
+
+```powershell
+git rev-parse HEAD
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+e2964c726614d67c0e01239463e943b2e21189b2
+```
+
+Command:
+
+```powershell
+git fetch origin --prune
+```
+
+Initial exit status: 1.
+
+Initial bounded result:
+
+```text
+error: cannot open '.git/FETCH_HEAD': Permission denied
+```
+
+The command was rerun after explicit authorization for Git metadata and network access.
+
+Rerun exit status: 0.
+
+Bounded result: no output.
+
+Command:
+
+```powershell
+git rev-parse origin/main
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+e2964c726614d67c0e01239463e943b2e21189b2
+```
+
+### Branch Creation
+
+Command:
+
+```powershell
+git switch -c phase1/kernel-vertical-slice-1
+```
+
+Initial exit status: 1.
+
+Initial bounded result:
+
+```text
+fatal: cannot lock ref 'refs/heads/phase1/kernel-vertical-slice-1': unable to create directory for .git/refs/heads/phase1/kernel-vertical-slice-1
+```
+
+The command was rerun after explicit authorization for Git metadata access.
+
+Rerun exit status: 0.
+
+Bounded result:
+
+```text
+Switched to a new branch 'phase1/kernel-vertical-slice-1'
+```
+
+### Machine Task Contract Validation
+
+`governance/tasks/KERNEL-VS-001.json` was materialized as the first file edit from the externally supplied Machine Task Contract.
+
+Command:
+
+```powershell
+pnpm governance:check
+```
+
+Exit status after materializing the task contract: 0.
+
+Bounded result:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+```
+
+### Workspace And Dependency Installation
+
+Command:
+
+```powershell
+pnpm install
+```
+
+Initial exit status: 1.
+
+Initial bounded result:
+
+```text
+[ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY] Aborted removal of modules directory due to no TTY
+```
+
+Command:
+
+```powershell
+$env:CI='true'; pnpm install
+```
+
+Exit status: 124.
+
+Bounded result summary: command timed out while recreating `node_modules`.
+
+Command:
+
+```powershell
+$env:CI='true'; pnpm install --offline
+```
+
+Exit status: 124.
+
+Bounded result summary: command timed out after registry access was denied by the sandbox during supply-chain policy checks.
+
+Command:
+
+```powershell
+pnpm install --config.confirmModulesPurge=false
+```
+
+Exit status: 0 after explicit authorization for network and workspace install access.
+
+Bounded result summary:
+
+```text
+Packages: +8
+devDependencies:
++ @types/node 24.13.2 (26.1.0 is available)
++ ajv 8.20.0
++ typescript 5.8.3 (6.0.3 is available)
+Done in 1.1s using pnpm v11.7.0
+```
+
+Final required install command:
+
+```powershell
+pnpm install --config.confirmModulesPurge=false
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Scope: all 3 workspace projects
+Already up to date
+Done in 251ms using pnpm v11.7.0
+```
+
+Dependency additions: `typescript` `5.8.3` and `@types/node` `24.13.2`. Existing `ajv` remains root Foundation governance tooling.
+
+Workspace package identities:
+
+```text
+@proofrail/contracts
+@proofrail/kernel
+```
+
+### Required Verification Commands
+
+Command:
+
+```powershell
+pnpm governance:check
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+```
+
+Command:
+
+```powershell
+pnpm governance:check-json
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Foundation JSON validation output parsed as VALID.
+```
+
+Command:
+
+```powershell
+pnpm test:governance
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+tests 37
+pass 37
+fail 0
+```
+
+Command:
+
+```powershell
+pnpm typecheck:phase1
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+tsc -p tsconfig.json
+```
+
+Command:
+
+```powershell
+pnpm test:kernel
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+tests 32
+pass 32
+fail 0
+```
+
+Kernel tests were run at least twice. Earlier runs passed with 27 tests before read-only reviewer remediations; final runs passed with 32 tests after remediations. Semantic determinism tests directly compare finalized bundle output and deterministic bundle identity.
+
+Command:
+
+```powershell
+pnpm verify
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+Foundation governance check passed.
+Foundation JSON validation output parsed as VALID.
+governance tests: 37 pass, 0 fail.
+kernel tests: 32 pass, 0 fail.
+git diff --check exit status 0.
+```
+
+Command:
+
+```powershell
+node scripts/validate-foundation.mjs
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+```
+
+Command:
+
+```powershell
+node scripts/validate-foundation.mjs --format json
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```json
+{
+  "findings": [],
+  "schemaVersion": "1",
+  "status": "VALID"
+}
+```
+
+Command:
+
+```powershell
+node scripts/governance/verify-json-output.mjs
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Foundation JSON validation output parsed as VALID.
+```
+
+Command:
+
+```powershell
+git diff --check
+```
+
+Exit status: 0.
+
+Bounded result summary: Git reported Windows line-ending conversion warnings for modified text files and no whitespace errors.
+
+### No-Mutation Check
+
+Before the final `pnpm verify`, the tracked diff was hashed with:
+
+```powershell
+git diff --binary | git hash-object --stdin
+```
+
+Pre-verify hash:
+
+```text
+019fa6e22d748cfe496bfead0fddf8edbe9d61cc
+```
+
+Untracked files before final `pnpm verify` were exactly the new KERNEL-VS-001 files under `docs/engineering`, `docs/reviews`, `governance/tasks`, `packages`, plus `pnpm-workspace.yaml` and `tsconfig.json`.
+
+After the final `pnpm verify`, the same hash command returned:
+
+```text
+019fa6e22d748cfe496bfead0fddf8edbe9d61cc
+```
+
+The untracked file list after final `pnpm verify` matched the pre-verify list. No additional untracked runtime artifact was created by `pnpm verify`.
+
+An install-created `.pnpm-store` artifact was removed before no-mutation verification after confirming its resolved path was inside the workspace.
+
+### Boundary Searches And Package Inspection
+
+Command:
+
+```powershell
+rg -n "node:fs|node:child_process|node:http|node:https|node:net|node:dns|fetch\(|axios|octokit|github|openai|anthropic|modelConfidence|Date\.now|Math\.random|randomUUID" packages\contracts\src packages\kernel\src
+```
+
+Exit status: 0.
+
+Bounded result summary: The only production-source hit was `modelConfidence` in `packages/kernel/src/boundary-validation.js`, where it is rejected before evaluation.
+
+Command:
+
+```powershell
+rg -n "HARN_" packages\contracts\src packages\kernel\src
+```
+
+Exit status: 0.
+
+Bounded result summary: Production-source hits are only in `packages/kernel/src/boundary-validation.js`, where `HARN_` Rule reason codes are rejected. No product kernel or contracts reason code uses the Foundation `HARN_` namespace.
+
+Command:
+
+```powershell
+rg -n "\b(PASS|FAIL|APPROVED|DENIED|UNKNOWN)\b" packages\contracts\src packages\kernel\src
+```
+
+Exit status: 1.
+
+Bounded result: no non-canonical Verdict value matches in production source.
+
+Command:
+
+```powershell
+rg -n "ADMISSIBLE|REVISION_REQUIRED|REJECTED|BLOCKED" packages\contracts\src packages\kernel\src
+```
+
+Exit status: 0.
+
+Bounded result summary: Hits are the four canonical Verdict values in contracts and the kernel classification/reduction implementation. No fifth product Verdict was added.
+
+Command:
+
+```powershell
+Get-ChildItem -LiteralPath 'packages' -Directory -Force | Select-Object Name
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+contracts
+kernel
+```
+
+Command:
+
+```powershell
+Get-ChildItem -LiteralPath 'apps','backend','frontend','src','packages\adapters','packages\application','packages\orchestration','packages\cli','packages\api','packages\mcp','packages\web','packages\github','packages\inference' -Force -ErrorAction SilentlyContinue | Select-Object FullName
+```
+
+Exit status: 1.
+
+Bounded result: no output.
+
+Interpretation: No unauthorized production or application layer exists.
+
+Package manifest inspection:
+
+```text
+packages/contracts/package.json: no dependencies.
+packages/kernel/package.json: production dependency only on @proofrail/contracts via workspace:*.
+```
+
+Contracts import inspection:
+
+```powershell
+rg -n "@proofrail/kernel|packages/kernel|\.\./kernel|kernel" packages\contracts
+```
+
+Exit status: 0.
+
+Bounded result summary: Hits are only the string `kernel` inside schema/version names such as `proofrail.kernel.input.phase1.v1` and `kernelEngineVersion`; contracts do not import kernel.
+
+### Scope Boundary Checks
+
+Command:
+
+```powershell
+git diff --exit-code e2964c726614d67c0e01239463e943b2e21189b2 -- AGENTS.md docs\constitution docs\architecture docs\product docs\protocols docs\quality scripts tests .github governance\generated governance\foundation.config.json governance\foundation.config.schema.json governance\machine-task-contract.schema.json governance\harness-reason-codes.json governance\harness-reason-codes.schema.json
+```
+
+Exit status: 0.
+
+Bounded result: no output.
+
+Interpretation: read-only authority and forbidden paths are unchanged from the KERNEL-VS-001 baseline.
+
+Command:
+
+```powershell
+git diff --name-only
+git ls-files --others --exclude-standard
+```
+
+Exit status: 0 for both commands.
+
+Bounded result summary: tracked changes are `README.md`, `docs/plans/active/phase-1-deterministic-kernel-vertical-slice.md`, `docs/engineering/validation-evidence.md`, `package.json`, and `pnpm-lock.yaml`; untracked task files are the new KERNEL-VS-001 engineering record, Builder review, task contract, packages, workspace file, and TypeScript config.
+
+### Builder Review Provenance
+
+The Builder review is recorded in [../reviews/kernel-vertical-slice-builder-review.md](../reviews/kernel-vertical-slice-builder-review.md).
+
+Three read-only reviewers were used because separate bounded reviewer agents were available:
+
+```text
+Reviewer A: 019f4036-0a41-78c1-99b0-06951e2de115
+Reviewer B: 019f4036-39ad-74f1-9a41-6fe264c838ff
+Reviewer C: 019f4036-64e6-78d0-9d01-973227b67da6
+```
+
+Their findings were Builder-internal review input, not independent acceptance. All CRITICAL and HIGH Builder/reviewer findings within KERNEL-VS-001 scope were fixed. Remaining open LOW finding: Builder review is not independent acceptance.

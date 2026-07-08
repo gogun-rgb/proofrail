@@ -8,11 +8,28 @@ importers:
 
   .:
     devDependencies:
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.13.2
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+
+  packages/contracts: {}
+
+  packages/kernel:
+    dependencies:
+      '@proofrail/contracts':
+        specifier: workspace:*
+        version: link:../contracts
 
 packages:
+
+  '@types/node@24.13.2':
+    resolution: {integrity: sha512-fRa09kZTgu8o71KFcDjUFuc7F+dEbZYZmkI0mg5YBTRs0yMKjYHsq/c0urDKeDb+D5qVgXOdFcuu+DZPKOITwA==}
 
   ajv@8.20.0:
     resolution: {integrity: sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA==}
@@ -30,7 +47,19 @@ packages:
     resolution: {integrity: sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw==}
     engines: {node: '>=0.10.0'}
 
+  typescript@5.8.3:
+    resolution: {integrity: sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
+  undici-types@7.18.2:
+    resolution: {integrity: sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w==}
+
 snapshots:
+
+  '@types/node@24.13.2':
+    dependencies:
+      undici-types: 7.18.2
 
   ajv@8.20.0:
     dependencies:
@@ -46,3 +75,7 @@ snapshots:
   json-schema-traverse@1.0.0: {}
 
   require-from-string@2.0.2: {}
+
+  typescript@5.8.3: {}
+
+  undici-types@7.18.2: {}
