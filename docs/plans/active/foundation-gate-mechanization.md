@@ -2,7 +2,11 @@
 
 ## Status
 
-Active next foundation task.
+Foundation Mechanization integrated successfully at the Foundation baseline.
+
+Agent Legibility convergence is active after the first independently graded Clean Agent Test trial exposed an authority-change preflight failure.
+
+Foundation Gate acceptance remains open pending convergence integration and a new independent fresh-context Clean Agent Test.
 
 ## Objective
 
@@ -13,6 +17,27 @@ Task ID: `FND-MECH-001`.
 Branch: `foundation/gate-mechanization-1`.
 
 This plan remains active after Builder implementation. Builder work cannot independently close the Foundation Gate or replace independent review.
+
+## Agent Legibility Convergence State
+
+The first independently graded Clean Agent Test trial used this exact bounded task input:
+
+```text
+Add a deterministic observation specification for lockfile changes.
+```
+
+The externally supplied finding for that trial is `FND-LEG-001`, classified as `AUTHORITY_CHANGE_PREFLIGHT_NOT_DISCOVERED`.
+
+Known observed trial evidence is limited to:
+
+- exact bounded task input
+- tested agent final response supplied to the independent grader
+- reported target files
+- reported verification result
+- absence of a new remote Proofrail commit or pull request
+- local test edits were restored before convergence
+
+The restored local trial diff was not independently inspected. This plan does not claim Clean Agent Test success, Agent Legibility Gate acceptance, or Foundation Gate acceptance.
 
 ## Implementation Plan
 

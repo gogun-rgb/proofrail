@@ -1460,3 +1460,545 @@ The GitHub Actions workflow was inspected after modification. It preserves `pnpm
 The Builder final convergence review for these remediations is recorded in [../reviews/foundation-gate-mechanization-final-convergence-review.md](../reviews/foundation-gate-mechanization-final-convergence-review.md).
 
 It is not independent acceptance, not a Proofrail product Verdict, and not Foundation Gate acceptance.
+
+## FND-LEG-001 Validation Evidence
+
+All FND-LEG-001 commands in this section were run from repository root:
+
+```text
+C:\Users\zizon\Documents\Codex\2026-07-07\proofrail
+```
+
+Starting Foundation baseline SHA:
+
+```text
+4d6fb48c8d2e479ab2db1f3ca3e8fdb357ffb3d3
+```
+
+Task branch:
+
+```text
+foundation/agent-legibility-convergence-1
+```
+
+This Builder session did not run or grade a Clean Agent Test. This evidence does not claim Agent Legibility Gate acceptance or Foundation Gate acceptance.
+
+### Exact Baseline Preflight
+
+Command:
+
+```powershell
+git rev-parse --show-toplevel
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+C:/Users/zizon/Documents/Codex/2026-07-07/proofrail
+```
+
+Command:
+
+```powershell
+git remote -v
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+origin	https://github.com/gogun-rgb/proofrail.git (fetch)
+origin	https://github.com/gogun-rgb/proofrail.git (push)
+```
+
+Command:
+
+```powershell
+git status --short
+```
+
+Exit status: 0.
+
+Bounded result: no output.
+
+Command:
+
+```powershell
+git branch --show-current
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+main
+```
+
+Command:
+
+```powershell
+git rev-parse HEAD
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+4d6fb48c8d2e479ab2db1f3ca3e8fdb357ffb3d3
+```
+
+Command:
+
+```powershell
+git fetch origin --prune
+```
+
+Initial exit status: 1.
+
+Initial bounded result:
+
+```text
+error: cannot open '.git/FETCH_HEAD': Permission denied
+```
+
+The command was rerun after explicit authorization for Git metadata access.
+
+Rerun exit status: 0.
+
+Rerun bounded result:
+
+```text
+From https://github.com/gogun-rgb/proofrail
+ - [deleted]         (none)     -> origin/foundation/gate-mechanization-1
+```
+
+Command:
+
+```powershell
+git rev-parse origin/main
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+4d6fb48c8d2e479ab2db1f3ca3e8fdb357ffb3d3
+```
+
+Command:
+
+```powershell
+git pull --ff-only origin main
+```
+
+Exit status: 0 after explicit authorization for Git metadata access.
+
+Bounded result:
+
+```text
+Already up to date.
+From https://github.com/gogun-rgb/proofrail
+ * branch            main       -> FETCH_HEAD
+```
+
+Command:
+
+```powershell
+git status --short
+```
+
+Exit status: 0.
+
+Bounded result: no output.
+
+Command:
+
+```powershell
+git rev-parse HEAD
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+4d6fb48c8d2e479ab2db1f3ca3e8fdb357ffb3d3
+```
+
+### Branch Creation
+
+Command:
+
+```powershell
+git branch --list foundation/agent-legibility-convergence-1
+```
+
+Exit status: 0.
+
+Bounded result: no output.
+
+Command:
+
+```powershell
+git switch -c foundation/agent-legibility-convergence-1
+```
+
+Exit status: 0 after explicit authorization for Git metadata access.
+
+Bounded result:
+
+```text
+Switched to a new branch 'foundation/agent-legibility-convergence-1'
+```
+
+Command:
+
+```powershell
+git branch --show-current
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+foundation/agent-legibility-convergence-1
+```
+
+Command:
+
+```powershell
+git rev-parse HEAD
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+4d6fb48c8d2e479ab2db1f3ca3e8fdb357ffb3d3
+```
+
+### Task Contract Validation
+
+Command:
+
+```powershell
+pnpm governance:check
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+```
+
+Interpretation: The externally supplied `governance/tasks/FND-LEG-001.json` contract was accepted by the existing governance validator. This does not claim independent acceptance.
+
+### Required Verification Commands
+
+Command:
+
+```powershell
+pnpm governance:check
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+```
+
+Command:
+
+```powershell
+pnpm governance:check-json
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Foundation JSON validation output parsed as VALID.
+```
+
+Command:
+
+```powershell
+pnpm test:governance
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+tests 37
+pass 37
+fail 0
+```
+
+Command:
+
+```powershell
+pnpm verify
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+Foundation JSON validation output parsed as VALID.
+tests 37
+pass 37
+fail 0
+git diff --check exit status 0
+```
+
+Git reported Windows line-ending conversion warnings for modified text files and no whitespace errors.
+
+Command:
+
+```powershell
+node scripts/validate-foundation.mjs
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+```
+
+Command:
+
+```powershell
+node scripts/validate-foundation.mjs --format json
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```json
+{
+  "findings": [],
+  "schemaVersion": "1",
+  "status": "VALID"
+}
+```
+
+Command:
+
+```powershell
+node scripts/governance/verify-json-output.mjs
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Foundation JSON validation output parsed as VALID.
+```
+
+Command:
+
+```powershell
+git diff --check
+```
+
+Exit status: 0.
+
+Bounded result summary: Git reported Windows line-ending conversion warnings for modified text files and no whitespace errors.
+
+### Scope-Boundary Diff Checks
+
+Command:
+
+```powershell
+git status --short
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+ M AGENTS.md
+ M docs/engineering/clean-agent-test.md
+ M docs/engineering/machine-task-contract.md
+ M docs/engineering/validation-evidence.md
+ M docs/plans/active/foundation-gate-mechanization.md
+ M docs/quality/foundation-gate.md
+ M governance/clean-agent-test.json
+?? docs/reviews/agent-legibility-convergence-builder-review.md
+?? governance/tasks/FND-LEG-001.json
+```
+
+Command:
+
+```powershell
+git diff --name-only
+```
+
+Exit status: 0.
+
+Bounded tracked result:
+
+```text
+AGENTS.md
+docs/engineering/clean-agent-test.md
+docs/engineering/machine-task-contract.md
+docs/engineering/validation-evidence.md
+docs/plans/active/foundation-gate-mechanization.md
+docs/quality/foundation-gate.md
+governance/clean-agent-test.json
+```
+
+Command:
+
+```powershell
+git ls-files --others --exclude-standard
+```
+
+Exit status: 0.
+
+Bounded untracked result:
+
+```text
+docs/reviews/agent-legibility-convergence-builder-review.md
+governance/tasks/FND-LEG-001.json
+```
+
+Command:
+
+```powershell
+git diff --name-only 4d6fb48c8d2e479ab2db1f3ca3e8fdb357ffb3d3 -- docs/protocols docs/constitution docs/architecture docs/product scripts tests packages apps backend frontend src .github package.json pnpm-lock.yaml governance/machine-task-contract.schema.json governance/foundation.config.json governance/foundation.config.schema.json governance/harness-reason-codes.json governance/harness-reason-codes.schema.json governance/generated
+```
+
+Exit status: 0.
+
+Bounded result: no output.
+
+Command:
+
+```powershell
+git diff --exit-code 4d6fb48c8d2e479ab2db1f3ca3e8fdb357ffb3d3 -- docs/protocols/evidence-schema.md
+```
+
+Exit status: 0.
+
+Bounded result: no output.
+
+Interpretation: `docs/protocols/evidence-schema.md` is unchanged from the Foundation baseline.
+
+Command:
+
+```powershell
+git diff --exit-code 4d6fb48c8d2e479ab2db1f3ca3e8fdb357ffb3d3 -- docs/constitution docs/architecture docs/product
+```
+
+Exit status: 0.
+
+Bounded result: no output.
+
+Interpretation: `docs/constitution`, `docs/architecture`, and `docs/product` are unchanged from the Foundation baseline.
+
+Command:
+
+```powershell
+git diff --exit-code 4d6fb48c8d2e479ab2db1f3ca3e8fdb357ffb3d3 -- scripts tests package.json pnpm-lock.yaml .github
+```
+
+Exit status: 0.
+
+Bounded result: no output.
+
+Interpretation: `scripts`, `tests`, `package.json`, `pnpm-lock.yaml`, and `.github` are unchanged from the Foundation baseline.
+
+Command:
+
+```powershell
+git diff --exit-code 4d6fb48c8d2e479ab2db1f3ca3e8fdb357ffb3d3 -- governance/machine-task-contract.schema.json governance/foundation.config.json governance/foundation.config.schema.json governance/harness-reason-codes.json governance/harness-reason-codes.schema.json governance/generated
+```
+
+Exit status: 0.
+
+Bounded result: no output.
+
+Interpretation: forbidden governance schemas, the Foundation config, the harness reason-code registry, and generated governance projections are unchanged from the Foundation baseline.
+
+Command:
+
+```powershell
+Get-ChildItem -LiteralPath 'packages','apps','backend','frontend','src' -Force -ErrorAction SilentlyContinue | Select-Object FullName
+```
+
+Exit status: 1.
+
+Bounded result: no output.
+
+Interpretation: No Proofrail product runtime package directories were introduced.
+
+### Authority and Overclaim Searches
+
+Command:
+
+```powershell
+rg -n "mayChangeAuthority" AGENTS.md docs governance
+```
+
+Exit status: 0.
+
+Bounded result summary: Hits are in the new authority-change preflight guidance, existing Machine Task Contract schema and examples, committed task contracts, Builder review text, and prior validation evidence. The new normative uses require `authority.mayChangeAuthority` to be explicit and exactly `true` before an authority-bearing edit.
+
+Command:
+
+```powershell
+rg -n "plain request|plain imperative|authority-change|authority bearing|authority-bearing|self-author|self-grant|retroactive" AGENTS.md docs governance
+```
+
+Exit status: 0.
+
+Bounded result summary: Hits show generic authority-change guidance in AGENTS.md, Machine Task Contract guidance, Clean Agent Test protocol, Foundation Gate, the machine-readable Clean Agent Test specification, the FND-LEG-001 task contract, and Builder review. The guidance is not lockfile-only.
+
+Command:
+
+```powershell
+rg -n "Clean Agent Test passed|Foundation Gate passed|Foundation Gate acceptance" AGENTS.md docs governance
+```
+
+Exit status: 0.
+
+Bounded result summary: No hit claimed that the Clean Agent Test passed or that the Foundation Gate passed. `Foundation Gate acceptance` hits are non-acceptance language such as "not independent Foundation Gate acceptance" and "acceptance remains open".
+
+Command:
+
+```powershell
+rg -n "Agent Legibility Gate acceptance|Clean Agent Test success|This PR does not claim|does not claim the Clean Agent Test|cannot grade|not independent" AGENTS.md docs governance
+```
+
+Exit status: 0.
+
+Bounded result summary: Hits are boundary and non-acceptance statements. The changed documents do not claim Clean Agent Test success, Agent Legibility Gate acceptance, or Foundation Gate acceptance.
+
+### Builder Convergence Review
+
+The Builder convergence review for FND-LEG-001 is recorded in [../reviews/agent-legibility-convergence-builder-review.md](../reviews/agent-legibility-convergence-builder-review.md).
+
+It records the external finding as externally supplied, fixes all Builder-discovered HIGH findings within scope, leaves the inherent independent-review limitation open as LOW, and does not claim independent acceptance.

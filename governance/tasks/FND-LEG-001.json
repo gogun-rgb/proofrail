@@ -1,0 +1,168 @@
+{
+  "task": {
+    "id": "FND-LEG-001",
+    "class": "convergence",
+    "objective": "Make authority-change preflight discoverable to a fresh-context agent so that locating an authoritative document is not confused with permission to modify that authority."
+  },
+  "scope": {
+    "write": [
+      "AGENTS.md",
+      "docs/engineering/machine-task-contract.md",
+      "docs/engineering/clean-agent-test.md",
+      "docs/engineering/validation-evidence.md",
+      "docs/quality/foundation-gate.md",
+      "docs/plans/active/foundation-gate-mechanization.md",
+      "docs/reviews/**",
+      "governance/clean-agent-test.json",
+      "governance/tasks/FND-LEG-001.json"
+    ],
+    "read_only_authority": [
+      "docs/constitution/product-constitution.md",
+      "docs/constitution/terminology.md",
+      "docs/constitution/trust-model.md",
+      "docs/architecture/domain-map.md",
+      "docs/architecture/dependency-rules.md",
+      "docs/architecture/data-flow.md",
+      "docs/architecture/inference-boundary.md",
+      "docs/architecture/execution-boundary.md",
+      "docs/product/verdict-semantics.md",
+      "docs/protocols/evidence-schema.md",
+      "docs/protocols/adapter-protocol.md",
+      "docs/protocols/policy-schema.md",
+      "docs/protocols/bundle-format.md"
+    ],
+    "forbidden": [
+      "docs/protocols/**",
+      "docs/constitution/**",
+      "docs/architecture/**",
+      "docs/product/**",
+      "packages/**",
+      "apps/**",
+      "backend/**",
+      "frontend/**",
+      "src/**",
+      "scripts/**",
+      "tests/**",
+      "package.json",
+      "pnpm-lock.yaml",
+      ".github/**",
+      "governance/machine-task-contract.schema.json",
+      "governance/foundation.config.json",
+      "governance/foundation.config.schema.json",
+      "governance/harness-reason-codes.json",
+      "governance/harness-reason-codes.schema.json",
+      "governance/generated/**",
+      "Proofrail product runtime implementation",
+      "product kernel implementation",
+      "protocol semantic redesign",
+      "canonical terminology changes",
+      "canonical Verdict semantic changes",
+      "Evidence authority class changes",
+      "Trust semantic changes",
+      "new validator mechanization",
+      "new external dependency"
+    ]
+  },
+  "authority": {
+    "read": [
+      "AGENTS.md",
+      "docs/constitution/product-constitution.md",
+      "docs/constitution/terminology.md",
+      "docs/constitution/trust-model.md",
+      "docs/protocols/evidence-schema.md",
+      "docs/quality/foundation-gate.md",
+      "docs/engineering/machine-task-contract.md",
+      "docs/engineering/clean-agent-test.md",
+      "governance/clean-agent-test.json"
+    ],
+    "mayChangeAuthority": true,
+    "mayChangeProductSemantics": false
+  },
+  "acceptance": {
+    "requirements": [
+      "Preserve all canonical Proofrail product semantics. This task improves repository engineering authority legibility and does not change Evidence, Observation, Verification Receipt, Policy, Rule, Verdict, Evidence Bundle, Evidence Lineage, or trust semantics.",
+      "Create governance/tasks/FND-LEG-001.json to faithfully represent this convergence task.",
+      "The task contract must explicitly contain authority.mayChangeAuthority = true and authority.mayChangeProductSemantics = false.",
+      "Add a clearly discoverable Authority-Change Preflight to AGENTS.md before ordinary task-routing instructions or in an equally prominent position.",
+      "State explicitly that locating or reading an authoritative document does not grant permission to modify it.",
+      "State explicitly that a plain imperative request such as 'Add a deterministic observation specification for lockfile changes.' is bounded task input but is not, by itself, an authority-change grant, and state the rule generically for authority-bearing repository changes rather than only lockfiles.",
+      "Define authority-bearing targets for repository engineering purposes as including at minimum documents that declare themselves authoritative, documents selected by the Product Constitution Documentation Authority Index as authoritative locations, and authority-bearing governance schemas when applicable.",
+      "Require a clean agent to perform an explicit authority-change preflight before editing an authority-bearing target.",
+      "The authority-change preflight must answer the target path, why the target is authority-bearing, the current Machine Task Contract, scope.write authorization, scope.read_only_authority exclusion, scope.forbidden exclusion, whether authority.mayChangeAuthority is exactly true, and whether the task objective or acceptance scope covers the authority-bearing change.",
+      "Require stopping before editing an authority-bearing target when no current Machine Task Contract is explicitly identified, the contract cannot be resolved, the contract is invalid, the target is not writable under scope.write, the target is read-only authority, the target is forbidden, mayChangeAuthority is false, authority is ambiguous, or the requested change exceeds the task objective or acceptance scope.",
+      "State that this stop is a repository engineering task status; an agent may report BLOCKED according to existing engineering stop guidance but must not present that status as an authoritative Proofrail product Verdict.",
+      "State explicitly that successful verification cannot retroactively grant missing authority and that pnpm verify exit 0 does not authorize an edit that lacked authority before the edit occurred.",
+      "State explicitly that recording validation evidence does not convert an unauthorized authority change into an authorized change.",
+      "Prevent self-granted authority: a clean agent must not take a plain natural-language request, invent a new Machine Task Contract for itself, set mayChangeAuthority to true, and treat that self-authored contract as authority to modify authoritative documents.",
+      "State that authority-changing work may proceed only when an applicable committed Machine Task Contract already identifies the task and grants the required authority, or when external task input explicitly supplies a complete Machine Task Contract with task identity, scope, authority, acceptance, verification, stop conditions, and independent review boundary.",
+      "State that when external task input explicitly supplies a complete Machine Task Contract, the Builder may materialize that supplied contract as the first task artifact before other authorized edits; materializing externally supplied authority is not the same as inventing or widening authority.",
+      "State that the agent must not widen scope.write, remove read-only authority, weaken forbidden scope, or change mayChangeAuthority from false to true merely to make a requested edit possible.",
+      "Update docs/engineering/machine-task-contract.md so Machine Task Contract authority-use governance is explicit and authoritative while preserving that Machine Task Contracts are Proofrail repository engineering governance only and never product runtime authority.",
+      "Update docs/engineering/clean-agent-test.md so authority-change preflight is an explicit expected clean-agent behavior and distinguish intended-layer discovery from edit-authority discovery.",
+      "Update governance/clean-agent-test.json with a machine-readable authority-change-preflight expectation requiring the tested agent to determine whether an authority-bearing edit is authorized before making the edit.",
+      "Do not claim that the Clean Agent Test is mechanically executable or has passed, and preserve the independent grading boundary.",
+      "Update docs/quality/foundation-gate.md so Agent Legibility Gate and Clean Agent Test criteria explicitly include authority-change preflight.",
+      "For the existing bounded lockfile Observation example, document the expected behavior clearly: when adding the requested specification requires modifying authoritative protocol direction and no applicable authority-changing Machine Task Contract is supplied, the clean agent stops before editing.",
+      "Do not delete the existing bounded task example, replace it with an easier task, or add the answer to a future clean-agent test prompt.",
+      "Update the active Foundation plan honestly to record that Foundation Mechanization integrated successfully but the first independently graded Clean Agent Test trial exposed an Agent Legibility authority-preflight failure.",
+      "Record that Foundation Gate acceptance remains open pending convergence, integration, and a new independent fresh-context Clean Agent Test.",
+      "Do not claim the first trial's lost local diff was independently inspected, and preserve evidence limitations for the observed trial evidence.",
+      "Do not rewrite the externally supplied Clean Agent Test grading as a Builder-discovered finding."
+    ]
+  },
+  "verification": {
+    "commands": [
+      "pnpm governance:check",
+      "pnpm governance:check-json",
+      "pnpm test:governance",
+      "pnpm verify",
+      "node scripts/validate-foundation.mjs",
+      "node scripts/validate-foundation.mjs --format json",
+      "node scripts/governance/verify-json-output.mjs",
+      "git diff --check"
+    ],
+    "requiredInvariants": [
+      "docs/protocols/evidence-schema.md is unchanged from 4d6fb48c8d2e479ab2db1f3ca3e8fdb357ffb3d3.",
+      "docs/constitution, docs/architecture, and docs/product are unchanged from the Foundation baseline.",
+      "No product runtime package or execution path is introduced.",
+      "No validator, CI, package dependency, or governance test implementation is changed.",
+      "AGENTS.md distinguishes authority discovery from modification authority.",
+      "A plain request is not described as authority to edit an authoritative target.",
+      "A clean agent is told to stop before unauthorized authority-bearing edits.",
+      "A clean agent cannot self-author mayChangeAuthority=true from a plain request and treat it as valid authority.",
+      "Successful pnpm verify is not described as retroactive authority.",
+      "Clean Agent Test success is not claimed.",
+      "Foundation Gate acceptance is not claimed."
+    ]
+  },
+  "requiredArtifacts": [
+    "governance/tasks/FND-LEG-001.json",
+    "AGENTS.md Authority-Change Preflight",
+    "explicit Machine Task Contract authority-use rules",
+    "updated Clean Agent Test protocol",
+    "updated machine-readable Clean Agent Test specification",
+    "updated Foundation Gate Agent Legibility criteria",
+    "updated active Foundation plan",
+    "FND-LEG-001 validation evidence",
+    "Agent Legibility convergence Builder review"
+  ],
+  "stopConditions": [
+    "canonical Proofrail terminology must change",
+    "Proofrail product semantics must change",
+    "Evidence authority classes must change",
+    "Trust semantics must change",
+    "Verdict semantics must change",
+    "protocol direction must be edited",
+    "product runtime implementation is required",
+    "validator or CI mechanization is required",
+    "a new external dependency is required",
+    "the clean-agent failure cannot be addressed without weakening independent review",
+    "the task would require teaching the next test through its prompt instead of repository documents",
+    "a security exception is required",
+    "Foundation baseline identity differs from preflight"
+  ],
+  "review": {
+    "expectation": "independent_review_required",
+    "reviewerMustNotRelyOnBuilderClaim": true
+  }
+}

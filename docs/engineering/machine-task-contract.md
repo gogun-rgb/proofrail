@@ -10,6 +10,46 @@ A Machine Task Contract makes task scope, authority, verification, and stop cond
 
 It is an engineering harness governance artifact for work on the Proofrail repository. It is not Proofrail product runtime authority.
 
+## Authority-Change Use
+
+For repository engineering work, locating the correct authoritative document is not permission to modify it. A task that touches an authority-bearing target needs edit authority before the edit occurs.
+
+Authority-bearing targets include at minimum:
+
+- documents that declare themselves authoritative
+- documents selected by the Product Constitution Documentation Authority Index as authoritative locations
+- authority-bearing governance schemas when applicable
+
+A plain imperative request, such as asking to add a deterministic observation specification, is bounded task input. It is not, by itself, an authority-change grant.
+
+Before editing an authority-bearing target, an agent MUST perform an authority-change preflight and answer:
+
+1. What is the target path?
+2. Why is the target authority-bearing?
+3. What Machine Task Contract identifies the current task?
+4. Does `scope.write` authorize the target path?
+5. Is the target excluded by `scope.read_only_authority`?
+6. Is the target excluded by `scope.forbidden`?
+7. Is `authority.mayChangeAuthority` exactly `true`?
+8. Does the task objective or acceptance scope actually cover the authority-bearing change?
+
+An agent MUST stop before editing an authority-bearing target when no current Machine Task Contract is explicitly identified, the contract cannot be resolved, the contract is invalid, the target is not writable under `scope.write`, the target is read-only authority, the target is forbidden, `authority.mayChangeAuthority` is `false`, authority is ambiguous, or the requested authority change exceeds the task objective or acceptance scope.
+
+The stop is a repository engineering task status. The agent may report `BLOCKED` according to repository engineering stop guidance, but the status MUST NOT be presented as an authoritative Proofrail product Verdict.
+
+Successful verification cannot retroactively grant missing authority. A later `pnpm verify` exit 0, a passing governance check, or recorded validation evidence does not authorize an edit that lacked authority before it was made.
+
+An agent MUST NOT self-author authority by turning a plain natural-language request into a new permissive Machine Task Contract, setting `authority.mayChangeAuthority` to `true`, and then treating that self-authored contract as authority to modify authoritative documents.
+
+Authority-changing work may proceed only when one of these is true:
+
+- an applicable committed Machine Task Contract already identifies the task and grants the required authority
+- external task input explicitly supplies a complete Machine Task Contract, including task identity, scope, authority, acceptance, verification, stop conditions, and independent review boundary
+
+When external task input explicitly supplies a complete Machine Task Contract, the Builder may materialize that supplied contract as the first task artifact before other authorized edits. Materializing externally supplied authority is not the same as inventing or widening authority.
+
+An agent MUST NOT widen `scope.write`, remove read-only authority, weaken `scope.forbidden`, or change `authority.mayChangeAuthority` from `false` to `true` merely to make a requested edit possible.
+
 ## Format Direction
 
 Machine Task Contracts should be authored as YAML or JSON using the same structural fields. The schema artifact in [../../governance/machine-task-contract.schema.json](../../governance/machine-task-contract.schema.json) captures the Phase 0 draft shape.

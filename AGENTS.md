@@ -26,6 +26,52 @@ Core principle: Claim is not evidence. Verify it.
 - Repository engineering task contracts: [docs/engineering/machine-task-contract.md](docs/engineering/machine-task-contract.md)
 - Fixture strategy: [docs/engineering/fixture-strategy.md](docs/engineering/fixture-strategy.md)
 
+## Authority-Change Preflight
+
+Locating or reading an authoritative document does not grant permission to modify it.
+
+For repository engineering purposes, authority-bearing targets include at minimum:
+
+- documents that declare themselves authoritative
+- documents selected by the Product Constitution Documentation Authority Index as authoritative locations
+- authority-bearing governance schemas when applicable
+
+A plain imperative request such as:
+
+```text
+Add a deterministic observation specification for lockfile changes.
+```
+
+is bounded task input. It is not, by itself, an authority-change grant. This rule applies generically to authority-bearing repository changes and is not limited to lockfiles.
+
+Before editing an authority-bearing target, perform an explicit authority-change preflight and answer:
+
+1. What is the target path?
+2. Why is the target authority-bearing?
+3. What Machine Task Contract identifies the current task?
+4. Does `scope.write` authorize the target path?
+5. Is the target excluded by `scope.read_only_authority`?
+6. Is the target excluded by `scope.forbidden`?
+7. Is `authority.mayChangeAuthority` exactly `true`?
+8. Does the task objective or acceptance scope actually cover the authority-bearing change?
+
+Stop before editing an authority-bearing target when no current Machine Task Contract is explicitly identified, the contract cannot be resolved, the contract is invalid, the target is not writable under `scope.write`, the target is read-only authority, the target is forbidden, `authority.mayChangeAuthority` is `false`, authority to change the target is ambiguous, or the requested authority change exceeds the task objective or acceptance scope.
+
+That stop is a repository engineering task status. An agent may report `BLOCKED` according to this file's engineering stop guidance, but MUST NOT present that task status as an authoritative Proofrail product Verdict.
+
+Successful verification cannot retroactively grant missing authority. `pnpm verify` exit 0 does not authorize an edit that lacked authority before the edit occurred. Recording validation evidence does not convert an unauthorized authority change into an authorized change.
+
+Do not self-grant authority. A clean agent MUST NOT take a plain natural-language request, invent a new Machine Task Contract for itself, set `authority.mayChangeAuthority` to `true`, and then treat that self-authored contract as authority to modify authoritative documents.
+
+Authority-changing work may proceed only when one of these is true:
+
+- an applicable committed Machine Task Contract already identifies the task and grants the required authority
+- external task input explicitly supplies a complete Machine Task Contract, including task identity, scope, authority, acceptance, verification, stop conditions, and independent review boundary
+
+When external task input explicitly supplies a complete Machine Task Contract, the Builder may materialize that supplied contract as the first task artifact before other authorized edits. Materializing externally supplied authority is not the same as inventing or widening authority.
+
+An agent MUST NOT widen `scope.write`, remove read-only authority, weaken forbidden scope, or change `authority.mayChangeAuthority` from `false` to `true` merely to make a requested edit possible.
+
 ## Task Routing
 
 - Product wording or identity: read the constitution first.
