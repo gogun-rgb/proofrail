@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "1",
+  "artifact": "architecture-check-preparation",
+  "authority": "docs/architecture/dependency-rules.md",
+  "enforcementState": "prepared_not_enforced",
+  "productionPackageLayout": "absent",
+  "scopeBoundary": "This artifact prepares future architecture checks for repository governance only. It does not redefine authoritative dependency edges and does not enforce package imports in Phase 0.",
+  "futureCheckClasses": [
+    {
+      "id": "package_layer_direction",
+      "description": "Future package-boundary checks should verify that later layers depend only on allowed earlier layers."
+    },
+    {
+      "id": "kernel_forbidden_imports",
+      "description": "Future checks should reject kernel imports from delivery frameworks, model providers, network services, GitHub-specific code, MCP-specific code, orchestration, language parsers, and target build tools."
+    },
+    {
+      "id": "contracts_no_runtime_imports",
+      "description": "Future checks should reject contracts importing kernel, orchestration, delivery, adapter, or inference implementations."
+    },
+    {
+      "id": "inference_isolation",
+      "description": "Future checks should verify that inference packages are not imported by kernel, policy evaluation, evidence satisfaction, or bundle finalization paths."
+    },
+    {
+      "id": "delivery_no_private_domain_definitions",
+      "description": "Future checks should detect delivery surfaces defining private Verdict, Evidence, Evidence Requirement, Policy, Rule, or Evidence Bundle concepts."
+    }
+  ],
+  "nonEnforcementStatement": "No production package layout currently exists, so FND-MECH-001 does not implement package import dependency enforcement."
+}

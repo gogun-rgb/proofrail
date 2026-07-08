@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://proofrail.dev/schemas/foundation.config.schema.json",
+  "title": "Proofrail Foundation Governance Config",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "phase",
+    "project",
+    "requiredDocuments",
+    "canonicalTerms",
+    "canonicalVerdicts",
+    "machineTaskContractSchema",
+    "activeNextFoundationTask",
+    "harnessReasonCodeRegistry",
+    "generatedProjections",
+    "cleanAgentTestSpecification",
+    "architectureCheckPreparation"
+  ],
+  "properties": {
+    "$schema": { "type": "string", "minLength": 1 },
+    "phase": { "const": "0" },
+    "project": { "const": "Proofrail" },
+    "requiredDocuments": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "canonicalTerms": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "canonicalVerdicts": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "machineTaskContractSchema": { "type": "string", "minLength": 1 },
+    "activeNextFoundationTask": { "type": "string", "minLength": 1 },
+    "harnessReasonCodeRegistry": { "type": "string", "minLength": 1 },
+    "generatedProjections": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canonicalTerminology",
+        "canonicalVerdicts",
+        "documentationAuthorityIndex"
+      ],
+      "properties": {
+        "canonicalTerminology": { "const": "governance/generated/canonical-terminology.json" },
+        "canonicalVerdicts": { "const": "governance/generated/canonical-verdicts.json" },
+        "documentationAuthorityIndex": { "const": "governance/generated/documentation-authority-index.json" }
+      }
+    },
+    "cleanAgentTestSpecification": { "type": "string", "minLength": 1 },
+    "architectureCheckPreparation": { "type": "string", "minLength": 1 }
+  }
+}

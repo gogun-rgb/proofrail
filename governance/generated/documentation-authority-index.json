@@ -1,0 +1,176 @@
+{
+  "authorityNotice": "Generated projection for mechanical governance checks only. Authoritative Markdown remains the source of authority.",
+  "projection": "documentation-authority-index",
+  "schemaVersion": "1",
+  "sourceDigest": "sha256:8e4b63d1d9debedf93532bcb423c36047446f98443ae5071c1c348e27dfc9fcd",
+  "sourceDocument": "docs/constitution/product-constitution.md",
+  "sourceSection": "Documentation Authority Index",
+  "topics": [
+    {
+      "authoritativeLocation": "This document",
+      "notes": "Other documents may quote or summarize only.",
+      "targets": [
+        {
+          "label": "This document",
+          "path": "docs/constitution/product-constitution.md"
+        }
+      ],
+      "topic": "Product identity"
+    },
+    {
+      "authoritativeLocation": "[core-beliefs.md](core-beliefs.md)",
+      "notes": "Philosophical basis, not protocol syntax.",
+      "targets": [
+        {
+          "label": "core-beliefs.md",
+          "path": "docs/constitution/core-beliefs.md"
+        }
+      ],
+      "topic": "Core beliefs"
+    },
+    {
+      "authoritativeLocation": "[non-goals.md](non-goals.md)",
+      "notes": "Authoritative exclusions and overclaim controls.",
+      "targets": [
+        {
+          "label": "non-goals.md",
+          "path": "docs/constitution/non-goals.md"
+        }
+      ],
+      "topic": "Non-goals"
+    },
+    {
+      "authoritativeLocation": "[terminology.md](terminology.md)",
+      "notes": "New normative terms must be added there first.",
+      "targets": [
+        {
+          "label": "terminology.md",
+          "path": "docs/constitution/terminology.md"
+        }
+      ],
+      "topic": "Canonical terminology"
+    },
+    {
+      "authoritativeLocation": "[trust-model.md](trust-model.md)",
+      "notes": "Authority classes and trust boundaries.",
+      "targets": [
+        {
+          "label": "trust-model.md",
+          "path": "docs/constitution/trust-model.md"
+        }
+      ],
+      "topic": "Trust semantics"
+    },
+    {
+      "authoritativeLocation": "[../product/verdict-semantics.md](../product/verdict-semantics.md)",
+      "notes": "Deterministic outcome semantics and transitions.",
+      "targets": [
+        {
+          "label": "../product/verdict-semantics.md",
+          "path": "docs/product/verdict-semantics.md"
+        }
+      ],
+      "topic": "Verdict semantics"
+    },
+    {
+      "authoritativeLocation": "[../architecture/dependency-rules.md](../architecture/dependency-rules.md)",
+      "notes": "Allowed and forbidden dependency directions.",
+      "targets": [
+        {
+          "label": "../architecture/dependency-rules.md",
+          "path": "docs/architecture/dependency-rules.md"
+        }
+      ],
+      "topic": "Dependency rules"
+    },
+    {
+      "authoritativeLocation": "[../architecture/inference-boundary.md](../architecture/inference-boundary.md)",
+      "notes": "Isolated inference boundary.",
+      "targets": [
+        {
+          "label": "../architecture/inference-boundary.md",
+          "path": "docs/architecture/inference-boundary.md"
+        }
+      ],
+      "topic": "Inference authority"
+    },
+    {
+      "authoritativeLocation": "[../architecture/execution-boundary.md](../architecture/execution-boundary.md)",
+      "notes": "Verification environment and execution controls.",
+      "targets": [
+        {
+          "label": "../architecture/execution-boundary.md",
+          "path": "docs/architecture/execution-boundary.md"
+        }
+      ],
+      "topic": "Execution authority"
+    },
+    {
+      "authoritativeLocation": "[../protocols/evidence-schema.md](../protocols/evidence-schema.md), [../protocols/adapter-protocol.md](../protocols/adapter-protocol.md), [../protocols/policy-schema.md](../protocols/policy-schema.md), [../protocols/bundle-format.md](../protocols/bundle-format.md)",
+      "notes": "Design foundation only in Phase 0.",
+      "targets": [
+        {
+          "label": "../protocols/evidence-schema.md",
+          "path": "docs/protocols/evidence-schema.md"
+        },
+        {
+          "label": "../protocols/adapter-protocol.md",
+          "path": "docs/protocols/adapter-protocol.md"
+        },
+        {
+          "label": "../protocols/policy-schema.md",
+          "path": "docs/protocols/policy-schema.md"
+        },
+        {
+          "label": "../protocols/bundle-format.md",
+          "path": "docs/protocols/bundle-format.md"
+        }
+      ],
+      "topic": "Protocol direction"
+    },
+    {
+      "authoritativeLocation": "[../quality/foundation-gate.md](../quality/foundation-gate.md)",
+      "notes": "Review criteria and future Clean Agent Test.",
+      "targets": [
+        {
+          "label": "../quality/foundation-gate.md",
+          "path": "docs/quality/foundation-gate.md"
+        }
+      ],
+      "topic": "Quality gates"
+    },
+    {
+      "authoritativeLocation": "[../engineering/machine-task-contract.md](../engineering/machine-task-contract.md)",
+      "notes": "Bounded repository engineering task format; not product runtime authority.",
+      "targets": [
+        {
+          "label": "../engineering/machine-task-contract.md",
+          "path": "docs/engineering/machine-task-contract.md"
+        }
+      ],
+      "topic": "Machine Task Contracts"
+    },
+    {
+      "authoritativeLocation": "[../engineering/fixture-strategy.md](../engineering/fixture-strategy.md)",
+      "notes": "Phase 0 harness fixture strategy; no fixtures are implemented.",
+      "targets": [
+        {
+          "label": "../engineering/fixture-strategy.md",
+          "path": "docs/engineering/fixture-strategy.md"
+        }
+      ],
+      "topic": "Fixture strategy"
+    },
+    {
+      "authoritativeLocation": "[../engineering/donor-archaeology.md](../engineering/donor-archaeology.md)",
+      "notes": "Process only in Phase 0.",
+      "targets": [
+        {
+          "label": "../engineering/donor-archaeology.md",
+          "path": "docs/engineering/donor-archaeology.md"
+        }
+      ],
+      "topic": "Donor Archaeology"
+    }
+  ]
+}

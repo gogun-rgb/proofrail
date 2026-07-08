@@ -37,13 +37,27 @@ Core principle: Claim is not evidence. Verify it.
 - Donor work: read donor archaeology and only inspect donors named by a Machine Task Contract.
 - Harness or fixture work: read fixture strategy, Foundation Gate, reliability, and Machine Task Contract.
 
+## Foundation Governance Mechanics
+
+- Mechanization guide: [docs/engineering/foundation-mechanization.md](docs/engineering/foundation-mechanization.md)
+- Fixture strategy: [docs/engineering/fixture-strategy.md](docs/engineering/fixture-strategy.md)
+- Machine Task Contract format: [docs/engineering/machine-task-contract.md](docs/engineering/machine-task-contract.md)
+- Clean Agent Test protocol: [docs/engineering/clean-agent-test.md](docs/engineering/clean-agent-test.md)
+- Active Foundation Gate state: [docs/quality/foundation-gate.md](docs/quality/foundation-gate.md), [docs/plans/active/foundation-gate-mechanization.md](docs/plans/active/foundation-gate-mechanization.md)
+- Harness reason codes: [governance/harness-reason-codes.json](governance/harness-reason-codes.json)
+- Generated governance projections: [governance/generated](governance/generated)
+
+These mechanics are repository engineering harness controls. They are not Proofrail product runtime authority.
+
 ## Verification Expectations
 
 Run:
 
 ```bash
-node scripts/validate-foundation.mjs
+pnpm verify
 ```
+
+The root validator remains available as `node scripts/validate-foundation.mjs`, with machine-readable output via `node scripts/validate-foundation.mjs --format json`.
 
 Record meaningful evidence in [docs/engineering/validation-evidence.md](docs/engineering/validation-evidence.md). Builder self-checks are provisional only.
 

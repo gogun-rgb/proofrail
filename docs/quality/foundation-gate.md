@@ -34,7 +34,7 @@ This document is authoritative for Phase 0 foundation review criteria. The Build
 
 - Machine Task Contract format exists.
 - Governance validation strategy exists.
-- Reason-code registry strategy exists.
+- Foundation engineering harness reason-code registry exists under `governance/harness-reason-codes.json`.
 - Fixture strategy exists in [../engineering/fixture-strategy.md](../engineering/fixture-strategy.md).
 - Adversarial fixture strategy exists in [../engineering/fixture-strategy.md#adversarial-fixture-classes](../engineering/fixture-strategy.md#adversarial-fixture-classes).
 
@@ -66,14 +66,22 @@ The Builder cannot grade this test. It requires an independent fresh-context age
 
 ## Gate Classification
 
-Mechanically verifiable gate:
+Mechanically verified gate:
 
 - required document existence
 - local Markdown reference validity
-- governance configuration shape
-- canonical terminology anchors
-- Machine Task Contract schema artifact presence
+- local Markdown anchor validity
+- governance configuration schema validity
+- canonical terminology exact-set drift
+- canonical Verdict exact-set drift
+- Machine Task Contract schema review constants
+- committed JSON Machine Task Contract validation
+- HARN_ harness reason-code registry validation
+- validator emitted reason-code registration
 - repository identity hygiene checks
+- generated governance projection freshness
+- Documentation Authority Index structural checks
+- declared AGENTS.md authority-route checks
 
 Independently reviewable gate:
 
@@ -82,11 +90,23 @@ Independently reviewable gate:
 - hidden AI authority
 - architecture leakage risk
 - legibility for clean agents
+- Clean Agent Test grading
+- Foundation Gate acceptance
 
 Future executable gate:
 
 - architecture dependency checks
-- reason-code registry validation
+- product runtime reason-code registry validation
 - fixture and adversarial fixture checks derived from the documented fixture strategy
 - protocol schema compatibility checks
 - Clean Agent Test protocol execution
+
+## Mechanization Boundary
+
+The current mechanization distinguishes:
+
+- Mechanically verified: deterministic repository governance checks run by `pnpm verify`.
+- Independently reviewable: conceptual and authority judgments that require a reviewer other than the Builder.
+- Future executable: checks that require future product layout, fixture corpus, protocol schemas, or independent Clean Agent Test execution.
+
+The validator must not claim hidden AI authority absence, conceptual coherence, architecture quality, Clean Agent Test success, Foundation Gate acceptance, or product fixture maturity.

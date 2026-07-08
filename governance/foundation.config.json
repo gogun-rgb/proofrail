@@ -1,4 +1,5 @@
 {
+  "$schema": "./foundation.config.schema.json",
   "phase": "0",
   "project": "Proofrail",
   "requiredDocuments": [
@@ -6,6 +7,9 @@
     "README.md",
     "CONTRIBUTING.md",
     "SECURITY.md",
+    ".github/workflows/foundation-governance.yml",
+    "package.json",
+    "pnpm-lock.yaml",
     "docs/constitution/product-constitution.md",
     "docs/constitution/core-beliefs.md",
     "docs/constitution/non-goals.md",
@@ -33,11 +37,32 @@
     "docs/engineering/donor-archaeology.md",
     "docs/engineering/fixture-strategy.md",
     "docs/engineering/validation-evidence.md",
+    "docs/engineering/foundation-mechanization.md",
+    "docs/engineering/clean-agent-test.md",
     "docs/plans/active/foundation-gate-mechanization.md",
     "docs/plans/completed/README.md",
     "docs/plans/debt.md",
     "docs/reviews/phase-0-builder-self-review.md",
-    "docs/reviews/phase-0-convergence-builder-review.md"
+    "docs/reviews/phase-0-convergence-builder-review.md",
+    "docs/reviews/foundation-gate-mechanization-builder-review.md",
+    "docs/reviews/foundation-gate-mechanization-convergence-review.md",
+    "docs/reviews/foundation-gate-mechanization-final-convergence-review.md",
+    "governance/foundation.config.schema.json",
+    "governance/harness-reason-codes.json",
+    "governance/harness-reason-codes.schema.json",
+    "governance/tasks/FND-MECH-001.json",
+    "governance/tasks/FND-MECH-CONV-001.json",
+    "governance/tasks/FND-MECH-CONV-002.json",
+    "governance/generated/canonical-terminology.json",
+    "governance/generated/canonical-verdicts.json",
+    "governance/generated/documentation-authority-index.json",
+    "governance/clean-agent-test.json",
+    "governance/architecture-check-preparation.json",
+    "scripts/governance/generate.mjs",
+    "scripts/governance/check-committed-whitespace.mjs",
+    "scripts/governance/verify-json-output.mjs",
+    "tests/governance/committed-whitespace.test.mjs",
+    "tests/governance/foundation-validator.test.mjs"
   ],
   "canonicalTerms": [
     "Claim",
@@ -61,5 +86,13 @@
     "BLOCKED"
   ],
   "machineTaskContractSchema": "governance/machine-task-contract.schema.json",
-  "activeNextFoundationTask": "FOUNDATION GATE MECHANIZATION"
+  "activeNextFoundationTask": "FOUNDATION GATE MECHANIZATION",
+  "harnessReasonCodeRegistry": "governance/harness-reason-codes.json",
+  "generatedProjections": {
+    "canonicalTerminology": "governance/generated/canonical-terminology.json",
+    "canonicalVerdicts": "governance/generated/canonical-verdicts.json",
+    "documentationAuthorityIndex": "governance/generated/documentation-authority-index.json"
+  },
+  "cleanAgentTestSpecification": "governance/clean-agent-test.json",
+  "architectureCheckPreparation": "governance/architecture-check-preparation.json"
 }

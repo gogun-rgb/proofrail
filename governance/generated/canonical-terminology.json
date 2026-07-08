@@ -1,0 +1,62 @@
+{
+  "authorityNotice": "Generated projection for mechanical governance checks only. Authoritative Markdown remains the source of authority.",
+  "projection": "canonical-terminology",
+  "schemaVersion": "1",
+  "sourceDigest": "sha256:4c78cc56f415d4bbbf9a5fd7b1cd5f4a057be16b0f5bada2e6637f7dda41ead1",
+  "sourceDocument": "docs/constitution/terminology.md",
+  "sourceSection": "Canonical Terms",
+  "terms": [
+    {
+      "anchor": "claim",
+      "term": "Claim"
+    },
+    {
+      "anchor": "observation",
+      "term": "Observation"
+    },
+    {
+      "anchor": "evidence",
+      "term": "Evidence"
+    },
+    {
+      "anchor": "evidence-requirement",
+      "term": "Evidence Requirement"
+    },
+    {
+      "anchor": "evidence-contract",
+      "term": "Evidence Contract"
+    },
+    {
+      "anchor": "verification-receipt",
+      "term": "Verification Receipt"
+    },
+    {
+      "anchor": "policy",
+      "term": "Policy"
+    },
+    {
+      "anchor": "rule",
+      "term": "Rule"
+    },
+    {
+      "anchor": "verdict",
+      "term": "Verdict"
+    },
+    {
+      "anchor": "evidence-bundle",
+      "term": "Evidence Bundle"
+    },
+    {
+      "anchor": "evidence-lineage",
+      "term": "Evidence Lineage"
+    },
+    {
+      "anchor": "adapter-capability",
+      "term": "Adapter Capability"
+    },
+    {
+      "anchor": "inference-proposal",
+      "term": "Inference Proposal"
+    }
+  ]
+}

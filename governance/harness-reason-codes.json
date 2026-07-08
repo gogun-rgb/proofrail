@@ -1,0 +1,144 @@
+{
+  "$schema": "./harness-reason-codes.schema.json",
+  "schemaVersion": "1",
+  "namespace": "Proofrail Foundation engineering harness",
+  "prefix": "HARN_",
+  "separation": "HARN_ reason codes identify repository governance harness findings only. They are not Proofrail product Verdict reason codes, Evidence Bundle reason codes, API reason codes, or product Policy reason codes.",
+  "codes": [
+    {
+      "code": "HARN_ACTIVE_PLAN_MISSING_TASK",
+      "summary": "The active Foundation plan does not name the configured next task.",
+      "remediation": "Update the active plan or governance config so the next task is explicit."
+    },
+    {
+      "code": "HARN_AGENTS_AUTHORITY_ROUTE_INVALID",
+      "summary": "AGENTS.md declares an authority route that is not declared by the Documentation Authority Index projection.",
+      "remediation": "Route AGENTS.md to an indexed authoritative document or update the Product Constitution authority index."
+    },
+    {
+      "code": "HARN_AUTHORITY_REFERENCE_MALFORMED",
+      "summary": "A Documentation Authority Index reference is malformed.",
+      "remediation": "Use This document or a local Markdown link in the authoritative location column."
+    },
+    {
+      "code": "HARN_AUTHORITY_TARGET_MISSING",
+      "summary": "A Documentation Authority Index target does not exist.",
+      "remediation": "Fix the authority link or restore the referenced local document."
+    },
+    {
+      "code": "HARN_AUTHORITY_TOPIC_DUPLICATE",
+      "summary": "The Documentation Authority Index contains duplicate topics.",
+      "remediation": "Keep one authority row per topic."
+    },
+    {
+      "code": "HARN_CANONICAL_TERM_AUTHORITY_MISSING_CONFIG",
+      "summary": "An authoritative canonical term is missing from the governance config projection input.",
+      "remediation": "Update governance/foundation.config.json or remove the unauthorized terminology heading."
+    },
+    {
+      "code": "HARN_CANONICAL_TERM_CONFIG_MISSING_AUTHORITY",
+      "summary": "A configured canonical term is missing from the terminology authority.",
+      "remediation": "Update the terminology authority or remove the stale configured term."
+    },
+    {
+      "code": "HARN_CANONICAL_TERM_DUPLICATE",
+      "summary": "The terminology authority contains duplicate canonical term headings.",
+      "remediation": "Merge or rename duplicate canonical term headings through authorized terminology work."
+    },
+    {
+      "code": "HARN_CANONICAL_VERDICT_AUTHORITY_MISMATCH",
+      "summary": "The authoritative Verdict section differs from the allowed canonical Verdict set.",
+      "remediation": "Restore the canonical Verdict headings or stop for external authority review."
+    },
+    {
+      "code": "HARN_CANONICAL_VERDICT_CONFIG_MISMATCH",
+      "summary": "The configured canonical Verdict set differs from the allowed canonical Verdict set.",
+      "remediation": "Restore governance/foundation.config.json to the canonical Verdict vocabulary."
+    },
+    {
+      "code": "HARN_CANONICAL_VERDICT_DUPLICATE",
+      "summary": "The Verdict authority contains duplicate canonical Verdict headings.",
+      "remediation": "Remove duplicate Verdict headings without changing Verdict semantics."
+    },
+    {
+      "code": "HARN_CONFIG_PATH_INVALID",
+      "summary": "The Foundation governance config contains a repository path that cannot be safely resolved inside the repository.",
+      "remediation": "Use a non-empty relative repository path without absolute roots, traversal, or null bytes."
+    },
+    {
+      "code": "HARN_CONFIG_SCHEMA_INVALID",
+      "summary": "The Foundation governance config does not satisfy its JSON Schema.",
+      "remediation": "Update governance/foundation.config.json to match governance/foundation.config.schema.json."
+    },
+    {
+      "code": "HARN_EMITTED_REASON_CODE_UNKNOWN",
+      "summary": "The validator emitted an unregistered finding code or could not safely trust the registry during final normalization.",
+      "remediation": "Register emitted HARN_ codes and restore a usable registry with exactly one reserved bootstrap normalization diagnostic entry."
+    },
+    {
+      "code": "HARN_IDENTITY_CONTAMINATION",
+      "summary": "The repository contains inherited identity text from an unrelated project.",
+      "remediation": "Replace inherited identity text with Proofrail identity."
+    },
+    {
+      "code": "HARN_JSON_READ_FAILED",
+      "summary": "A required JSON file could not be read and parsed.",
+      "remediation": "Restore valid JSON at the referenced path."
+    },
+    {
+      "code": "HARN_MARKDOWN_ANCHOR_MISSING",
+      "summary": "A local Markdown link references a missing anchor.",
+      "remediation": "Fix the anchor or restore the referenced heading."
+    },
+    {
+      "code": "HARN_MARKDOWN_LINK_BROKEN",
+      "summary": "A local Markdown link references a missing file.",
+      "remediation": "Fix the link target or restore the referenced file."
+    },
+    {
+      "code": "HARN_MTC_INSTANCE_INVALID",
+      "summary": "A committed Machine Task Contract JSON instance does not satisfy the schema.",
+      "remediation": "Update the task contract to satisfy governance/machine-task-contract.schema.json."
+    },
+    {
+      "code": "HARN_MTC_REVIEW_EXPECTATION_INVALID",
+      "summary": "A Machine Task Contract does not require independent review.",
+      "remediation": "Set review.expectation to independent_review_required."
+    },
+    {
+      "code": "HARN_MTC_REVIEWER_CLAIM_INVALID",
+      "summary": "A Machine Task Contract allows reviewer reliance on Builder claim.",
+      "remediation": "Set review.reviewerMustNotRelyOnBuilderClaim to true."
+    },
+    {
+      "code": "HARN_MTC_SCHEMA_CONSTANT_INVALID",
+      "summary": "The Machine Task Contract schema does not enforce required review constants.",
+      "remediation": "Restore const validation for independent review and Builder-claim separation."
+    },
+    {
+      "code": "HARN_PROJECTION_STALE",
+      "summary": "A committed generated governance projection differs from the authoritative source.",
+      "remediation": "Run pnpm governance:generate and review the generated artifact."
+    },
+    {
+      "code": "HARN_REASON_CODE_DUPLICATE",
+      "summary": "The harness reason-code registry contains duplicate codes.",
+      "remediation": "Keep each HARN_ code unique."
+    },
+    {
+      "code": "HARN_REASON_CODE_MALFORMED",
+      "summary": "The harness reason-code registry contains a malformed entry.",
+      "remediation": "Provide code, summary, and remediation strings for each registry entry."
+    },
+    {
+      "code": "HARN_REASON_CODE_PREFIX_INVALID",
+      "summary": "The harness reason-code registry contains a code outside the HARN_ namespace.",
+      "remediation": "Use the HARN_ prefix for Foundation engineering harness findings only."
+    },
+    {
+      "code": "HARN_REQUIRED_DOCUMENT_MISSING",
+      "summary": "A required Foundation document or governance artifact is missing.",
+      "remediation": "Restore the required path or update governance config with authority."
+    }
+  ]
+}

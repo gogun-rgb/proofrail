@@ -1,0 +1,146 @@
+{
+  "task": {
+    "id": "FND-MECH-CONV-001",
+    "class": "convergence",
+    "objective": "Remediate the second independent governor review findings for Proofrail Foundation Gate Mechanization without widening product scope or changing canonical Proofrail product semantics."
+  },
+  "scope": {
+    "write": [
+      "docs/engineering/**",
+      "docs/quality/**",
+      "docs/plans/**",
+      "docs/reviews/**",
+      "governance/**",
+      "scripts/**",
+      "tests/governance/**",
+      "package.json",
+      "pnpm-lock.yaml"
+    ],
+    "read_only_authority": [
+      "docs/constitution/product-constitution.md",
+      "docs/constitution/terminology.md",
+      "docs/constitution/trust-model.md",
+      "docs/architecture/domain-map.md",
+      "docs/architecture/dependency-rules.md",
+      "docs/architecture/data-flow.md",
+      "docs/architecture/inference-boundary.md",
+      "docs/architecture/execution-boundary.md",
+      "docs/product/verdict-semantics.md",
+      "docs/protocols/evidence-schema.md",
+      "docs/protocols/adapter-protocol.md",
+      "docs/protocols/policy-schema.md",
+      "docs/protocols/bundle-format.md"
+    ],
+    "forbidden": [
+      "packages/**",
+      "apps/**",
+      "backend/**",
+      "frontend/**",
+      "src/**",
+      "Proofrail product runtime implementation",
+      "product kernel implementation",
+      "repository inspection implementation",
+      "semantic change observation implementation",
+      "verification execution implementation",
+      "Policy evaluation implementation",
+      "Evidence satisfaction runtime implementation",
+      "Verdict runtime implementation",
+      "Evidence Bundle runtime implementation",
+      "language adapter implementation",
+      "CLI implementation",
+      "API implementation",
+      "MCP implementation",
+      "web implementation",
+      "GitHub product integration implementation",
+      "model provider integration",
+      "Inference Zone implementation",
+      "canonical Proofrail product terminology changes",
+      "canonical Verdict semantic changes",
+      "Evidence authority class changes",
+      "Trust semantic changes"
+    ]
+  },
+  "authority": {
+    "read": [
+      "AGENTS.md",
+      "docs/engineering/foundation-mechanization.md",
+      "docs/engineering/machine-task-contract.md",
+      "docs/engineering/validation-evidence.md",
+      "docs/quality/foundation-gate.md",
+      "docs/reviews/foundation-gate-mechanization-builder-review.md",
+      "governance/foundation.config.json",
+      "governance/foundation.config.schema.json",
+      "governance/harness-reason-codes.json",
+      "governance/machine-task-contract.schema.json",
+      "governance/tasks/FND-MECH-001.json",
+      "scripts/governance/lib/findings.mjs",
+      "scripts/governance/lib/path-utils.mjs",
+      "scripts/governance/lib/projections.mjs",
+      "scripts/governance/lib/schema-validation.mjs",
+      "scripts/governance/lib/validator.mjs",
+      "scripts/governance/lib/markdown.mjs",
+      "tests/governance/foundation-validator.test.mjs"
+    ],
+    "mayChangeAuthority": true,
+    "mayChangeProductSemantics": false
+  },
+  "acceptance": {
+    "requirements": [
+      "Final validator output must replace unregistered emitted finding codes with registered governance diagnostics when a valid non-empty harness reason-code registry is available.",
+      "Unsafe repository paths accepted from Foundation governance config must produce deterministic registered HARN_ findings rather than uncaught exceptions.",
+      "Machine Task Contract authority semantics must require both mayChangeAuthority and mayChangeProductSemantics.",
+      "Generated projection sourceDigest must represent the normalized raw authoritative source section while structural extraction continues ignoring fenced fake headings.",
+      "Focused negative governance tests must cover the governor findings without weakening existing Foundation governance behavior."
+    ]
+  },
+  "verification": {
+    "commands": [
+      "pnpm governance:generate",
+      "pnpm governance:check",
+      "pnpm governance:check-json",
+      "pnpm test:governance",
+      "pnpm verify",
+      "node scripts/validate-foundation.mjs",
+      "node scripts/validate-foundation.mjs --format json",
+      "node scripts/governance/verify-json-output.mjs",
+      "git diff --check"
+    ],
+    "requiredInvariants": [
+      "Every final validator finding code is registered when the valid harness registry is available.",
+      "Injected unknown finding codes do not survive into final validator output.",
+      "Unsafe config repository paths cannot crash the validator.",
+      "Malformed path JSON validation output remains parseable JSON.",
+      "Both Machine Task Contract authority booleans are required.",
+      "Fenced fake headings do not change canonical set extraction.",
+      "Fenced authoritative source content changes affect sourceDigest.",
+      "No Proofrail product runtime package or execution path is introduced."
+    ]
+  },
+  "requiredArtifacts": [
+    "governance/tasks/FND-MECH-CONV-001.json",
+    "hardened final reason-code normalization",
+    "safe governance config path handling",
+    "explicit Machine Task Contract authority schema",
+    "updated FND-MECH-001 task contract authority",
+    "corrected authoritative source-section digest behavior",
+    "focused negative governance tests",
+    "regenerated governance projections",
+    "updated validation evidence",
+    "focused convergence Builder review"
+  ],
+  "stopConditions": [
+    "resolving a finding requires Proofrail product runtime implementation",
+    "canonical terminology must change",
+    "canonical Verdict semantics must change",
+    "Evidence authority classes must change",
+    "Trust semantics must change",
+    "Machine Task Contract must gain product runtime authority",
+    "an external dependency other than the already authorized Ajv 8.x is required",
+    "a security exception is required",
+    "the reviewed PR #2 branch or repository identity no longer matches preflight"
+  ],
+  "review": {
+    "expectation": "independent_review_required",
+    "reviewerMustNotRelyOnBuilderClaim": true
+  }
+}

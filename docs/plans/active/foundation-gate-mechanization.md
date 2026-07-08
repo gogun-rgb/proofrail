@@ -8,6 +8,26 @@ Active next foundation task.
 
 Convert mechanically verifiable parts of the Foundation Gate into repository checks and CI-ready validation without claiming that conceptual quality can be fully automated.
 
+Task ID: `FND-MECH-001`.
+
+Branch: `foundation/gate-mechanization-1`.
+
+This plan remains active after Builder implementation. Builder work cannot independently close the Foundation Gate or replace independent review.
+
+## Implementation Plan
+
+1. Create the committed Machine Task Contract instance, Foundation config schema, and HARN_ harness reason-code registry.
+2. Refactor `scripts/validate-foundation.mjs` into modular governance validation while keeping the root command stable.
+3. Add Ajv-backed JSON Schema validation for Foundation config and committed JSON Machine Task Contracts.
+4. Generate deterministic governance projections for canonical terminology, canonical Verdict values, and the Documentation Authority Index.
+5. Fail governance checks when committed generated projections are stale.
+6. Add exact-set canonical terminology and canonical Verdict drift checks from authoritative document structure.
+7. Add Documentation Authority Index and AGENTS.md authority-route validation without creating a second hand-maintained authority map.
+8. Add synthetic Node `node:test` governance tests for deterministic output and required negative cases.
+9. Add Clean Agent Test protocol artifacts and architecture-check preparation artifacts without claiming execution or enforcement.
+10. Synchronize Foundation Gate, verification guidance, validation evidence, known debt, and Builder review documentation.
+11. Run the required verification commands, confirm no-mutation invariants, commit, push, and open a PR for independent review.
+
 ## Mechanically Verifiable Gate
 
 Expected future work includes:
