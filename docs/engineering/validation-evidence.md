@@ -3393,6 +3393,369 @@ ca70d542d3291b86c2575cac7b081d821f2bd6b9
 
 The untracked file list after final observed `pnpm verify` matched the pre-verify list. No additional untracked repository artifact was created by `pnpm verify`.
 
+## KERNEL-ASSURE-001 Validation Evidence
+
+Task identity: `KERNEL-ASSURE-001`.
+
+Branch:
+
+```text
+phase1/kernel-assurance-campaign-1
+```
+
+This section records Builder validation for the deterministic kernel assurance campaign. It is not independent acceptance, does not claim Phase 1 completion, and is not a Proofrail product Verdict.
+
+### Authority Read
+
+The Builder read `governance/tasks/KERNEL-ASSURE-001.json` and every path listed in `authority.read` before implementation:
+
+```text
+AGENTS.md
+docs/constitution/terminology.md
+docs/constitution/trust-model.md
+docs/architecture/data-flow.md
+docs/architecture/dependency-rules.md
+docs/architecture/inference-boundary.md
+docs/product/verdict-semantics.md
+docs/protocols/evidence-schema.md
+docs/protocols/policy-schema.md
+docs/protocols/bundle-format.md
+docs/engineering/kernel-vertical-slice.md
+docs/engineering/machine-task-contract.md
+docs/plans/active/phase-1-deterministic-kernel-vertical-slice.md
+packages/contracts/src/index.d.ts
+packages/contracts/src/index.js
+packages/kernel/src/index.js
+packages/kernel/src/boundary-validation.js
+packages/kernel/src/normalization.js
+packages/kernel/src/canonical-json.js
+packages/kernel/src/evidence-satisfaction.js
+packages/kernel/src/rule-evaluation.js
+packages/kernel/src/verdict-reduction.js
+packages/kernel/src/bundle-finalization.js
+packages/kernel/src/deep-freeze.js
+packages/kernel/src/kernel-reason-codes.js
+packages/kernel/test/boundary-validation.test.js
+packages/kernel/test/kernel-vertical-slice.test.js
+packages/kernel/test/verdict-reduction.test.js
+packages/kernel/test/immutability.test.js
+```
+
+### Campaign Case Count
+
+The deterministic campaign manifest in `packages/kernel/test/kernel-assurance-campaign.test.js` contains 400 stable identified assurance cases. The manifest asserts unique identities, lexicographically stable order, at least 256 cases, and non-empty family coverage.
+
+Case family counts:
+
+```text
+primitive distinction: 144
+permutation and repeated evaluation: 16
+Rule denial matrix: 16
+Verdict reference model: 15
+boundary shape and executable wrapper: 198
+lineage, isolation, immutability, Observation scope, Claim boundary, identity: 8
+canonical serialization: 3
+```
+
+### Builder Findings And Remediation
+
+Finding `KASS-BR-001` was discovered during the first campaign dry run. The Rule matrix generated a third Evidence Requirement while calculating expected results for a two-requirement matrix.
+
+Remediation: added a requirement-set-specific input builder and calculated missing candidates and reason-code expectations from the exact generated input.
+
+Finding `KASS-BR-002` was discovered by typecheck. The new tests intentionally mutate caller-owned synthetic inputs while imported contract types expose readonly shapes.
+
+Remediation: added explicit local mutable casts around synthetic test fixture mutation points only.
+
+No production kernel defect was discovered by this campaign, so no production source remediation was required.
+
+### Initial Failure Evidence
+
+Command:
+
+```powershell
+pnpm test:kernel
+```
+
+Initial exit status: 1.
+
+Bounded result summary:
+
+```text
+17 Rule matrix subcases failed because the test harness expected two requirements while the generated input contained a third requirement.
+```
+
+Command:
+
+```powershell
+pnpm typecheck:phase1
+```
+
+Initial exit status after the harness correction: 1.
+
+Bounded result summary:
+
+```text
+Typecheck reported readonly contract-shape errors at local test fixture mutation sites in packages/kernel/test/kernel-assurance-campaign.test.js.
+```
+
+### Verification Commands
+
+Command:
+
+```powershell
+pnpm governance:check
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+```
+
+Command:
+
+```powershell
+pnpm governance:check-json
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Foundation JSON validation output parsed as VALID.
+```
+
+Command:
+
+```powershell
+pnpm test:governance
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+tests 37
+pass 37
+fail 0
+```
+
+Command:
+
+```powershell
+pnpm typecheck:phase1
+```
+
+Exit status after remediation: 0.
+
+Bounded result:
+
+```text
+tsc -p tsconfig.json
+```
+
+Command:
+
+```powershell
+pnpm test:kernel
+```
+
+First required rerun exit status: 0.
+
+Bounded result summary:
+
+```text
+tests 474
+pass 474
+fail 0
+```
+
+Command:
+
+```powershell
+pnpm test:kernel
+```
+
+Second required rerun exit status: 0.
+
+Bounded result summary:
+
+```text
+tests 474
+pass 474
+fail 0
+```
+
+Command:
+
+```powershell
+pnpm verify
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+Foundation JSON validation output parsed as VALID.
+governance tests: 37 pass, 0 fail.
+kernel tests: 474 pass, 0 fail.
+git diff --check exit status 0.
+```
+
+Command:
+
+```powershell
+node scripts/validate-foundation.mjs
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+```
+
+Command:
+
+```powershell
+node scripts/validate-foundation.mjs --format json
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```json
+{
+  "findings": [],
+  "schemaVersion": "1",
+  "status": "VALID"
+}
+```
+
+Command:
+
+```powershell
+node scripts/governance/verify-json-output.mjs
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Foundation JSON validation output parsed as VALID.
+```
+
+Command:
+
+```powershell
+git diff --check
+```
+
+Exit status: 0.
+
+Bounded result: no whitespace errors.
+
+### Scope And Forbidden Surface Inspection
+
+Command:
+
+```powershell
+Get-ChildItem -LiteralPath 'packages' -Directory -Force | Select-Object Name
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+contracts
+kernel
+```
+
+Interpretation: no production package outside `packages/contracts` and `packages/kernel` exists.
+
+Command:
+
+```powershell
+rg -n "node:fs|node:child_process|node:http|node:https|node:net|node:dns|fetch\(|axios|octokit|github|openai|anthropic|Date\.now|Math\.random|randomUUID|crypto\.randomUUID" packages/kernel/src packages/contracts/src
+```
+
+Exit status: 1.
+
+Bounded result: no matches.
+
+Interpretation: production source did not introduce repository inspection, target-code execution, verification execution, network, provider, time, random, or UUID authority paths.
+
+Command:
+
+```powershell
+rg -n "test\.skip|test\.todo|\.skip\(|\.todo\(|assert\.doesNotThrow|no throw|does not throw" packages/kernel/test
+```
+
+Exit status: 1.
+
+Bounded result: no matches.
+
+Interpretation: the kernel test tree contains no skipped/todo tests and no no-throw-only assertion pattern.
+
+Command:
+
+```powershell
+rg -n "modelConfidence|inferenceProposal|proposedContent|KERNEL_EVIDENCE_REQUIREMENT_MISSING|HARN_" packages/kernel/test/kernel-assurance-campaign.test.js packages/kernel/src
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+The campaign includes representative rejection cases for modelConfidence, inferenceProposal, and proposedContent.
+KERNEL_EVIDENCE_REQUIREMENT_MISSING has one production literal declaration in packages/kernel/src/kernel-reason-codes.js.
+HARN_ appears in production only in Rule reason-code rejection logic.
+```
+
+### Changed File Set
+
+Command:
+
+```powershell
+git status -sb
+```
+
+Observed bounded result before this evidence update:
+
+```text
+## phase1/kernel-assurance-campaign-1...origin/phase1/kernel-assurance-campaign-1
+?? docs/engineering/kernel-assurance-campaign.md
+?? docs/reviews/kernel-assurance-campaign-builder-review.md
+?? packages/kernel/test/kernel-assurance-campaign.test.js
+```
+
+After this evidence update, `docs/engineering/validation-evidence.md` is also part of the task-local changed file set.
+
+All changed paths are within `KERNEL-ASSURE-001` `scope.write`.
+
+### Verify No-Mutation Observation
+
+The observed `pnpm verify` run completed after the campaign and review documents were created and before this validation-evidence section was appended.
+
+Bounded result summary:
+
+```text
+pnpm verify exit status 0.
+No generated or build-output artifact appeared in the worktree during the observed verification sequence.
+```
+
 ## KERNEL-VS-CONV-003 Validation Evidence
 
 Date: 2026-07-08.
