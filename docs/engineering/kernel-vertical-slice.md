@@ -23,6 +23,14 @@ The Phase 1 synthetic kernel boundary models already-authorized inputs. It does 
 
 The boundary accepts only synthetic in-memory domain input supplied directly to the kernel. The kernel rejects authority-shaped fields such as `modelConfidence`, `inferenceProposal`, and `proposedContent` before evaluation.
 
+## Array Container Boundary Validation
+
+`KERNEL-VS-CONV-001` hardens authoritative Array handling at the public kernel boundary. Array containers are descriptor-inspected before element values are read.
+
+The boundary rejects sparse arrays, accessor-backed array indices, symbol-keyed array properties, unexpected string-keyed array properties, custom non-enumerable array properties, and array-attached authority-shaped fields such as `modelConfidence`, `inferenceProposal`, and `proposedContent`.
+
+This applies recursively to top-level kernel arrays and nested modeled arrays such as Evidence Contract `requirementIds` and Observation `limitations`.
+
 ## Evidence Contract Selection Provenance
 
 Evidence Contract selection provenance is modeled only as already authorized selection provenance for deterministic evaluation.
@@ -64,6 +72,12 @@ An Observation satisfies an Evidence Requirement only when all modeled fields ma
 
 There is no fuzzy matching, natural-language interpretation, model confidence, coercive equality, Verification Receipt ingestion, or Claim-to-Evidence shortcut. The number `1` and the string `"1"` are different values.
 
+## Evaluation Scope Consistency
+
+`KERNEL-VS-CONV-001` rejects Observations whose `targetScopeId` is outside the declared evaluation scope covered by Claims and selected Evidence Contracts after existing Claim/Contract consistency validation.
+
+An Observation in the declared evaluation scope remains valid boundary input even when it does not satisfy an Evidence Requirement because observer identity, observer version, fact key, fact value, or limitations differ.
+
 ## Rule Evaluation
 
 Rules are evaluated after Evidence satisfaction. The vertical slice implements only narrow predicates:
@@ -72,6 +86,8 @@ Rules are evaluated after Evidence satisfaction. The vertical slice implements o
 - `EVIDENCE_ABSENT`
 
 The only implemented Rule effect is deterministic denial. A triggered denial creates a `REJECTED` candidate Verdict, retains the Rule reason code, and preserves the Rule identity in Evidence Lineage. Rule reason codes beginning with `HARN_` are rejected so Foundation harness reason codes do not leak into product kernel reason codes.
+
+The kernel-owned missing Evidence Requirement condition reason code `KERNEL_EVIDENCE_REQUIREMENT_MISSING` remains internal to `packages/kernel` and is reserved from Rule-supplied reason codes. This is a narrow reservation, not a general product reason-code registry and not a reservation of every `KERNEL_` prefix.
 
 ## Deterministic Normalization
 

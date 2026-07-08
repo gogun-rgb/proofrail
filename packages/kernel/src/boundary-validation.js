@@ -1,6 +1,7 @@
 // @ts-check
 
 import { PHASE1_KERNEL_INPUT_SCHEMA_VERSION } from "@proofrail/contracts";
+import { MISSING_EVIDENCE_REASON_CODE } from "./kernel-reason-codes.js";
 
 /** @typedef {import("@proofrail/contracts").KernelEvaluationInput} KernelEvaluationInput */
 
@@ -12,6 +13,8 @@ const FORBIDDEN_AUTHORITY_FIELDS = new Set([
 
 const STABLE_IDENTITY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const REASON_CODE_PATTERN = /^[A-Z][A-Z0-9_]*$/;
+const ARRAY_INDEX_PATTERN = /^(0|[1-9][0-9]*)$/;
+const MAX_ARRAY_INDEX = 4294967294;
 
 export class KernelBoundaryError extends Error {
   /**
@@ -117,7 +120,10 @@ function scanAuthoritativeValue(value, path, stack) {
   stack.add(value);
 
   if (Array.isArray(value)) {
-    value.forEach((item, index) => scanAuthoritativeValue(item, pathForArrayItem(path, index), stack));
+    const length = validateAuthoritativeArrayContainer(value, path);
+    for (let index = 0; index < length; index += 1) {
+      scanAuthoritativeValue(value[index], pathForArrayItem(path, index), stack);
+    }
     stack.delete(value);
     return;
   }
@@ -304,6 +310,9 @@ function validateRuleEffect(value, path) {
   if (reasonCode.startsWith("HARN_")) {
     throwBoundaryError("RESERVED_REASON_CODE_NAMESPACE", `${path}.reasonCode`, "Foundation HARN_ reason codes are not product kernel reason codes");
   }
+  if (reasonCode === MISSING_EVIDENCE_REASON_CODE) {
+    throwBoundaryError("RESERVED_KERNEL_REASON_CODE", `${path}.reasonCode`, "kernel-owned condition reason code is not a Rule reason code");
+  }
 }
 
 /**
@@ -337,6 +346,7 @@ function validateReferences(root) {
   const claims = /** @type {Record<string, unknown>[]} */ (root.claims);
   const evidenceContracts = /** @type {Record<string, unknown>[]} */ (root.evidenceContracts);
   const evidenceRequirements = /** @type {Record<string, unknown>[]} */ (root.evidenceRequirements);
+  const observations = /** @type {Record<string, unknown>[]} */ (root.observations);
   const rules = /** @type {Record<string, unknown>[]} */ (root.rules);
 
   const claimScopeIds = new Set(claims.map((claim) => String(claim.targetScopeId)));
@@ -385,6 +395,18 @@ function validateReferences(root) {
     }
   }
 
+  const declaredEvaluationScopeIds = new Set(evidenceContracts.map((contract) => String(contract.targetScopeId)));
+  observations.forEach((observation, index) => {
+    const observationScopeId = String(observation.targetScopeId);
+    if (!declaredEvaluationScopeIds.has(observationScopeId)) {
+      throwBoundaryError(
+        "TARGET_SCOPE_MISMATCH",
+        `${pathForArrayItem("$.observations", index)}.targetScopeId`,
+        `Observation ${String(observation.id)} target scope is outside the declared evaluation scope`
+      );
+    }
+  });
+
   for (const rule of rules) {
     const predicate = /** @type {Record<string, unknown>} */ (rule.predicate);
     const requirementId = String(predicate.evidenceRequirementId);
@@ -392,6 +414,75 @@ function validateReferences(root) {
       throwBoundaryError("INVALID_REFERENCE", "$.rules", `Rule ${String(rule.id)} references unknown Evidence Requirement ${requirementId}`);
     }
   }
+}
+
+/**
+ * @param {unknown[]} value
+ * @param {string} path
+ * @returns {number}
+ */
+function validateAuthoritativeArrayContainer(value, path) {
+  const descriptors = /** @type {Record<string | symbol, PropertyDescriptor>} */ (
+    /** @type {unknown} */ (Object.getOwnPropertyDescriptors(value))
+  );
+  const lengthDescriptor = descriptors.length;
+  if (
+    lengthDescriptor === undefined ||
+    lengthDescriptor.get !== undefined ||
+    lengthDescriptor.set !== undefined ||
+    typeof lengthDescriptor.value !== "number" ||
+    !Number.isInteger(lengthDescriptor.value) ||
+    lengthDescriptor.value < 0 ||
+    lengthDescriptor.enumerable
+  ) {
+    throwBoundaryError("INVALID_ARRAY", `${path}.length`, "authoritative array length must be the ordinary Array length property");
+  }
+
+  const length = lengthDescriptor.value;
+  let indexPropertyCount = 0;
+
+  for (const key of Reflect.ownKeys(descriptors)) {
+    if (typeof key === "symbol") {
+      throwBoundaryError("SYMBOL_KEY", path, "symbol-keyed authoritative array properties are not accepted");
+    }
+
+    const descriptor = descriptors[key];
+    if (descriptor === undefined) {
+      throwBoundaryError("UNEXPECTED_FIELD", `${path}.${key}`, "unknown authoritative array property");
+    }
+
+    if (key === "length") {
+      continue;
+    }
+
+    const propertyPath = pathForArrayProperty(path, key);
+    if (FORBIDDEN_AUTHORITY_FIELDS.has(key)) {
+      throwBoundaryError("FORBIDDEN_AUTHORITY_FIELD", propertyPath, `${key} is not accepted by the kernel boundary`);
+    }
+    if (descriptor.get !== undefined || descriptor.set !== undefined) {
+      throwBoundaryError("ACCESSOR_FIELD", propertyPath, "accessor-backed authoritative array properties are not accepted");
+    }
+    if (!descriptor.enumerable) {
+      throwBoundaryError("NON_ENUMERABLE_FIELD", propertyPath, "non-enumerable authoritative array properties are not accepted");
+    }
+
+    const index = canonicalArrayIndexFromKey(key);
+    if (index === undefined || index >= length) {
+      throwBoundaryError("UNEXPECTED_FIELD", propertyPath, "unexpected authoritative array property");
+    }
+    indexPropertyCount += 1;
+  }
+
+  if (indexPropertyCount !== length) {
+    for (let index = 0; index < length; index += 1) {
+      if (!Object.hasOwn(descriptors, String(index))) {
+        throwBoundaryError("INVALID_ARRAY", pathForArrayItem(path, index), "sparse authoritative arrays are not accepted");
+      }
+    }
+    throwBoundaryError("INVALID_ARRAY", path, "authoritative array properties must cover every index");
+  }
+
+  return length;
 }
 
 /**
@@ -608,6 +699,31 @@ function ownEnumerableStringKeys(record, path) {
  */
 function pathForArrayItem(arrayPath, index) {
   return `${arrayPath}[${index}]`;
+}
+
+/**
+ * @param {string} arrayPath
+ * @param {string} key
+ * @returns {string}
+ */
+function pathForArrayProperty(arrayPath, key) {
+  const index = canonicalArrayIndexFromKey(key);
+  return index === undefined ? `${arrayPath}.${key}` : pathForArrayItem(arrayPath, index);
+}
+
+/**
+ * @param {string} key
+ * @returns {number | undefined}
+ */
+function canonicalArrayIndexFromKey(key) {
+  if (!ARRAY_INDEX_PATTERN.test(key)) {
+    return undefined;
+  }
+  const index = Number(key);
+  if (!Number.isSafeInteger(index) || index > MAX_ARRAY_INDEX || String(index) !== key) {
+    return undefined;
+  }
+  return index;
 }
 
 /**

@@ -78,6 +78,32 @@ test("Rule reason code beginning with HARN_ is rejected", () => {
   assertBoundaryError(input, "RESERVED_REASON_CODE_NAMESPACE");
 });
 
+test("Rule reason code reserved for missing Evidence Requirement is rejected", () => {
+  const input = makeInput({
+    rules: [
+      {
+        ...validRule("rule.reserved-missing-evidence"),
+        effect: {
+          kind: "DENY",
+          reasonCode: "KERNEL_EVIDENCE_REQUIREMENT_MISSING"
+        }
+      }
+    ]
+  });
+
+  const error = assertBoundaryError(input, "RESERVED_KERNEL_REASON_CODE");
+  assert.equal(error.path, "$.rules[0].effect.reasonCode");
+});
+
+test("normal KERNEL_ Rule reason code remains valid", () => {
+  const bundle = evaluateKernel(makeInput({
+    rules: [validRule("rule.normal-kernel-code")]
+  }));
+
+  assert.equal(bundle.verdict, "REJECTED");
+  assert.deepEqual(bundle.reasonCodes, ["KERNEL_SYNTHETIC_DENIAL"]);
+});
+
 test("invalid JSON values are rejected deterministically", () => {
   const cyclic = /** @type {any} */ (makeInput());
   cyclic.claims[0].statement = "cycle carrier";
@@ -177,6 +203,140 @@ test("accessor, symbol-keyed, and non-enumerable authoritative fields are reject
   assertBoundaryError(nonEnumerableInput, "NON_ENUMERABLE_FIELD");
 });
 
+test("modelConfidence attached to observations Array is rejected before evaluation", () => {
+  const input = /** @type {any} */ (makeInput());
+  input.observations.modelConfidence = 0.99;
+
+  const error = assertBoundaryError(input, "FORBIDDEN_AUTHORITY_FIELD");
+  assert.equal(error.path, "$.observations.modelConfidence");
+});
+
+test("inferenceProposal attached to rules Array is rejected before evaluation", () => {
+  const input = /** @type {any} */ (makeInput());
+  input.rules.inferenceProposal = { verdict: "ADMISSIBLE" };
+
+  const error = assertBoundaryError(input, "FORBIDDEN_AUTHORITY_FIELD");
+  assert.equal(error.path, "$.rules.inferenceProposal");
+});
+
+test("symbol-keyed property attached to an authoritative Array is rejected", () => {
+  const input = /** @type {any} */ (makeInput());
+  input.observations[Symbol("authority")] = "hidden";
+
+  const error = assertBoundaryError(input, "SYMBOL_KEY");
+  assert.equal(error.path, "$.observations");
+});
+
+test("non-enumerable custom property attached to an authoritative Array is rejected", () => {
+  const input = makeInput();
+  Object.defineProperty(input.observations, "hidden", {
+    enumerable: false,
+    value: "not-json-shape"
+  });
+
+  const error = assertBoundaryError(input, "NON_ENUMERABLE_FIELD");
+  assert.equal(error.path, "$.observations.hidden");
+});
+
+test("accessor-backed numeric Array index is rejected without executing the getter", () => {
+  const input = makeInput();
+  let getterExecutionCount = 0;
+  Object.defineProperty(input.observations, "0", {
+    configurable: true,
+    enumerable: true,
+    get() {
+      getterExecutionCount += 1;
+      return makeInput().observations[0];
+    }
+  });
+
+  const error = assertBoundaryError(input, "ACCESSOR_FIELD");
+  assert.equal(error.path, "$.observations[0]");
+  assert.equal(getterExecutionCount, 0);
+});
+
+test("sparse observations Array is rejected before normalization", () => {
+  const input = /** @type {any} */ (makeInput());
+  delete input.observations[0];
+
+  const error = assertBoundaryError(input, "INVALID_ARRAY");
+  assert.equal(error.path, "$.observations[0]");
+});
+
+test("sparse rules Array is rejected before Rule evaluation", () => {
+  const input = /** @type {any} */ (makeInput());
+  input.rules.length = 1;
+
+  const error = assertBoundaryError(input, "INVALID_ARRAY");
+  assert.equal(error.path, "$.rules[0]");
+});
+
+test("unexpected ordinary string-keyed Array property is rejected", () => {
+  const input = /** @type {any} */ (makeInput());
+  input.observations.extra = "unexpected";
+
+  const error = assertBoundaryError(input, "UNEXPECTED_FIELD");
+  assert.equal(error.path, "$.observations.extra");
+});
+
+test("nested sparse Evidence Contract requirementIds Array is rejected", () => {
+  const input = /** @type {any} */ (makeInput());
+  delete input.evidenceContracts[0].requirementIds[0];
+
+  const error = assertBoundaryError(input, "INVALID_ARRAY");
+  assert.equal(error.path, "$.evidenceContracts[0].requirementIds[0]");
+});
+
+test("nested accessor-backed Observation limitations Array is rejected without executing the getter", () => {
+  const input = makeInput({
+    observationOverrides: {
+      limitations: ["SYNTHETIC_LIMITATION"]
+    }
+  });
+  const observation = /** @type {any} */ (input.observations[0]);
+  let getterExecutionCount = 0;
+  Object.defineProperty(observation.limitations, "0", {
+    configurable: true,
+    enumerable: true,
+    get() {
+      getterExecutionCount += 1;
+      return "SYNTHETIC_LIMITATION";
+    }
+  });
+
+  const error = assertBoundaryError(input, "ACCESSOR_FIELD");
+  assert.equal(error.path, "$.observations[0].limitations[0]");
+  assert.equal(getterExecutionCount, 0);
+});
+
+test("repeated malformed Array validation reports the same category and path", () => {
+  const input = /** @type {any} */ (makeInput());
+  delete input.observations[0];
+
+  const first = assertBoundaryError(input, "INVALID_ARRAY");
+  const second = assertBoundaryError(input, "INVALID_ARRAY");
+
+  assert.equal(first.issueCategory, second.issueCategory);
+  assert.equal(first.path, second.path);
+});
+
+test("ordinary dense JSON-compatible Arrays remain accepted", () => {
+  const bundle = evaluateKernel(makeInput());
+
+  assert.equal(bundle.verdict, "ADMISSIBLE");
+});
+
+test("Observation target scope outside the declared evaluation scope is rejected", () => {
+  const input = makeInput({
+    observationOverrides: {
+      targetScopeId: "scope.other"
+    }
+  });
+
+  const error = assertBoundaryError(input, "TARGET_SCOPE_MISMATCH");
+  assert.equal(error.path, "$.observations[0].targetScopeId");
+});
+
 test("path-shaped and URL-shaped stable identities are rejected", () => {
   const pathInput = makeInput();
   const mutablePathInput = /** @type {any} */ (pathInput);
@@ -216,16 +376,30 @@ function validRule(id) {
  * @param {unknown} input
  * @param {string} issueCategory
  * @param {string} [label]
- * @returns {void}
+ * @returns {KernelBoundaryError}
  */
 function assertBoundaryError(input, issueCategory, label = issueCategory) {
+  const error = captureBoundaryError(input, label);
+  assert.equal(error.issueCategory, issueCategory, label);
+  return error;
+}
+
+/**
+ * @param {unknown} input
+ * @param {string} label
+ * @returns {KernelBoundaryError}
+ */
+function captureBoundaryError(input, label) {
+  /** @type {KernelBoundaryError | undefined} */
+  let captured;
   assert.throws(
     () => evaluateKernel(input),
     (error) => {
       assert.equal(error instanceof KernelBoundaryError, true, label);
-      const boundaryError = /** @type {{ issueCategory: unknown }} */ (error);
-      assert.equal(boundaryError.issueCategory, issueCategory, label);
+      captured = /** @type {KernelBoundaryError} */ (error);
       return true;
     }
   );
+  assert.ok(captured, label);
+  return captured;
 }

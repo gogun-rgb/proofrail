@@ -2,8 +2,7 @@
 
 import { EVIDENCE_SATISFACTION_KIND } from "@proofrail/contracts";
 import { canonicalJson, derivedIdentity } from "./canonical-json.js";
-
-export const MISSING_EVIDENCE_REASON_CODE = "KERNEL_EVIDENCE_REQUIREMENT_MISSING";
+import { MISSING_EVIDENCE_REASON_CODE } from "./kernel-reason-codes.js";
 
 /**
  * @typedef {import("@proofrail/contracts").Evidence} Evidence

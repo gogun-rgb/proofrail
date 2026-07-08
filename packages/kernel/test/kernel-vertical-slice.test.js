@@ -50,6 +50,7 @@ test("observer identity mismatch does not satisfy requirement", () => {
 
   assert.equal(bundle.verdict, "REVISION_REQUIRED");
   assert.equal(bundle.evidence.length, 0);
+  assert.deepEqual(bundle.reasonCodes, ["KERNEL_EVIDENCE_REQUIREMENT_MISSING"]);
 });
 
 test("observer version mismatch does not satisfy requirement", () => {
@@ -63,15 +64,16 @@ test("observer version mismatch does not satisfy requirement", () => {
   assert.equal(bundle.evidence.length, 0);
 });
 
-test("scope mismatch does not satisfy requirement", () => {
+test("wrong fact key in a valid target scope does not satisfy requirement", () => {
   const bundle = evaluateKernel(makeInput({
     observationOverrides: {
-      targetScopeId: "scope.other"
+      factKey: "lockfile.unrelated"
     }
   }));
 
   assert.equal(bundle.verdict, "REVISION_REQUIRED");
   assert.equal(bundle.evidence.length, 0);
+  assert.deepEqual(bundle.reasonCodes, ["KERNEL_EVIDENCE_REQUIREMENT_MISSING"]);
 });
 
 test("primitive type difference is not coerced", () => {
@@ -82,6 +84,7 @@ test("primitive type difference is not coerced", () => {
 
   assert.equal(bundle.verdict, "REVISION_REQUIRED");
   assert.equal(bundle.evidence.length, 0);
+  assert.deepEqual(bundle.reasonCodes, ["KERNEL_EVIDENCE_REQUIREMENT_MISSING"]);
 });
 
 test("Observation with limitations does not silently satisfy requirement", () => {

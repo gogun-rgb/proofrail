@@ -2,7 +2,7 @@
 
 ## Status
 
-Active Phase 1 plan. `KERNEL-VS-001` Builder implementation exists on the task branch and is pending independent review.
+Active Phase 1 plan. `KERNEL-VS-001` Builder implementation exists on the task branch. The independent governor returned `REVISION_REQUIRED` for reviewed head `ee7b348868ab8ab342bb2ea6eb57f4b2477516b2`, and `KERNEL-VS-CONV-001` Builder convergence remediation is pending independent review.
 
 This status does not close Phase 1, claim Phase 1 PASS, claim product readiness, or claim independent acceptance.
 
@@ -121,4 +121,4 @@ The reviewer should confirm that the vertical slice preserves canonical terms, V
 
 First implementation task identity: `KERNEL-VS-001`.
 
-`KERNEL-VS-001` Builder implementation exists on the task branch and is pending independent review.
+`KERNEL-VS-001` Builder implementation exists on the task branch. `KERNEL-VS-CONV-001` convergence remediation is pending independent review.
