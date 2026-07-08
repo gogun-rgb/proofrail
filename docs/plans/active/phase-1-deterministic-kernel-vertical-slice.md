@@ -2,7 +2,9 @@
 
 ## Status
 
-Active Phase 1 plan. This plan authorizes planning for `KERNEL-VS-001`; it does not implement `KERNEL-VS-001`.
+Active Phase 1 plan. `KERNEL-VS-001` Builder implementation exists on the task branch. The independent governor returned `REVISION_REQUIRED` for reviewed head `5d05fe7e89f576860912afb35a102b2cc9f529ac`, independently confirmed the prior `KVS-BND-001`, `KVS-RSN-001`, `KVS-SCOPE-001`, `KVS-BND-002`, and `KVS-BND-003` remediations at that reviewed head, and supplied `KVS-BND-004` for a third convergence pass. `KERNEL-VS-CONV-003` Builder convergence remediation is pending independent review.
+
+This status does not close Phase 1, claim Phase 1 PASS, claim product readiness, or claim independent acceptance.
 
 ## Objective
 
@@ -38,7 +40,7 @@ Authorized initial production package layers:
 
 No other production package or application layer is authorized by this transition task.
 
-This plan does not create package directories. Package creation requires a later valid Machine Task Contract, expected first as `KERNEL-VS-001`.
+`KERNEL-VS-001` materializes the first authorized package directories for the deterministic kernel vertical slice. Further package creation requires a later valid Machine Task Contract.
 
 ## Prohibited Integrations
 
@@ -117,6 +119,6 @@ The reviewer should confirm that the vertical slice preserves canonical terms, V
 
 ## Next Implementation Task
 
-Next implementation task identity: `KERNEL-VS-001`.
+First implementation task identity: `KERNEL-VS-001`.
 
-`KERNEL-VS-001` is not implemented by this phase-transition task.
+`KERNEL-VS-001` Builder implementation exists on the task branch. `KERNEL-VS-CONV-003` convergence remediation is pending independent review and does not claim Phase 1 completion or independent acceptance.

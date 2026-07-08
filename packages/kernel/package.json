@@ -1,0 +1,15 @@
+{
+  "name": "@proofrail/kernel",
+  "version": "0.1.0-phase1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    }
+  },
+  "dependencies": {
+    "@proofrail/contracts": "workspace:*"
+  },
+  "sideEffects": false
+}
