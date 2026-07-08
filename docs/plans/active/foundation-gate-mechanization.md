@@ -2,11 +2,15 @@
 
 ## Status
 
+Historical completed Foundation work retained at this path because current governance validation still requires this active-plan artifact.
+
 Foundation Mechanization integrated successfully at the Foundation baseline.
 
-Agent Legibility convergence is active after the first independently graded Clean Agent Test trial exposed an authority-change preflight failure.
+Agent Legibility convergence completed through `FND-LEG-001` and PR #3 after the first independently graded Clean Agent Test trial exposed an authority-change preflight failure.
 
-Foundation Gate acceptance remains open pending convergence integration and a new independent fresh-context Clean Agent Test.
+External independent review reported Agent Legibility Gate PASS, Clean Agent Test PASS, and Foundation Gate PASS for baseline `7865ea299f98b3fd0158d1486272f73468b345ac`.
+
+Foundation Gate PASS is a repository engineering review decision, not a Proofrail product Verdict.
 
 ## Objective
 
@@ -16,7 +20,7 @@ Task ID: `FND-MECH-001`.
 
 Branch: `foundation/gate-mechanization-1`.
 
-This plan remains active after Builder implementation. Builder work cannot independently close the Foundation Gate or replace independent review.
+This plan is retained as historical completed Foundation provenance. Builder work did not independently close the Foundation Gate or replace independent review.
 
 ## Agent Legibility Convergence State
 
@@ -37,9 +41,25 @@ Known observed trial evidence is limited to:
 - absence of a new remote Proofrail commit or pull request
 - local test edits were restored before convergence
 
-The restored local trial diff was not independently inspected. This plan does not claim Clean Agent Test success, Agent Legibility Gate acceptance, or Foundation Gate acceptance.
+The restored local trial diff was not independently inspected.
 
-## Implementation Plan
+The second independently graded Clean Agent Test trial used the same bounded input and passed after the tested agent:
+
+- identified the intended protocol layer
+- identified authority-bearing protocol targets
+- identified that no exact-task Machine Task Contract was supplied
+- inspected nearest committed contract `FND-MECH-001`
+- determined writable scope was insufficient
+- determined protocol targets were read-only authority
+- determined objective and acceptance scope did not authorize the requested protocol change
+- treated `authority.mayChangeAuthority: true` as insufficient by itself
+- stopped before editing
+- made no file changes
+- did not use verification or validation evidence as retroactive authority
+
+The external independent decision, not Builder claim, closed Foundation Gate acceptance for the exact baseline above.
+
+## Historical Implementation Plan
 
 1. Create the committed Machine Task Contract instance, Foundation config schema, and HARN_ harness reason-code registry.
 2. Refactor `scripts/validate-foundation.mjs` into modular governance validation while keeping the root command stable.

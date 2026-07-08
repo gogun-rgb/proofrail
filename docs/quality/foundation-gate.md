@@ -2,7 +2,21 @@
 
 ## Authority
 
-This document is authoritative for Phase 0 foundation review criteria. The Builder cannot grade its own foundation acceptance.
+This document is authoritative for Phase 0 foundation review criteria and current Foundation Gate state. The Builder cannot grade its own foundation acceptance.
+
+## Current Gate State
+
+Foundation Gate state: PASS by external independent repository engineering review.
+
+Decision scope: Phase 0 Foundation Gate.
+
+Decision baseline: `7865ea299f98b3fd0158d1486272f73468b345ac`, the exact Foundation baseline ending in PR #3 integration.
+
+Decision boundary: Foundation Gate PASS is a repository engineering review decision. It is not the Proofrail product Verdict ADMISSIBLE and does not claim a product runtime, kernel, repository inspection, verification execution, adapters, delivery surfaces, GitHub integration, or Phase 1 vertical slice exists.
+
+Review record: [../reviews/phase-0-foundation-gate-independent-review.md](../reviews/phase-0-foundation-gate-independent-review.md).
+
+Historical criteria remain below. This state update does not rewrite those criteria as though the gate had always passed and does not collapse mechanically verified checks into independently reviewable acceptance.
 
 ## Domain Gate
 
