@@ -45,6 +45,14 @@ Proxy rejection happens before trap-capable inspection such as `instanceof Date`
 
 `PROXY_INPUT` is a kernel boundary shape issue. It is not Evidence, not a Proofrail Verdict, and not a product reason code.
 
+## Plain Object Clone Boundary
+
+`KERNEL-VS-CONV-003` hardens authoritative plain-object cloning. After recursive structural scanning, plain records are cloned into null-prototype kernel-owned records with each scanned own enumerable string key materialized through explicit own data-property definition.
+
+The clone preserves caller-owned keys such as `__proto__` as ordinary own data properties until exact semantic known-field validation accepts or rejects them. Unknown own enumerable `__proto__` fields are rejected with `KernelBoundaryError` as `UNEXPECTED_FIELD` at their relative input path rather than disappearing through inherited prototype-setter behavior.
+
+The change does not add a serialization framework, dependency, protocol authority, or product runtime surface.
+
 ## Evidence Contract Selection Provenance
 
 Evidence Contract selection provenance is modeled only as already authorized selection provenance for deterministic evaluation.

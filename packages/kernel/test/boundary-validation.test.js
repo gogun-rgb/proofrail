@@ -203,6 +203,89 @@ test("accessor, symbol-keyed, and non-enumerable authoritative fields are reject
   assertBoundaryError(nonEnumerableInput, "NON_ENUMERABLE_FIELD");
 });
 
+test("root own enumerable __proto__ string field is rejected as unknown", () => {
+  const input = withOwnEnumerableDataProperty(makeInput(), "__proto__", "proto-string");
+
+  const first = assertBoundaryError(input, "UNEXPECTED_FIELD");
+  const second = assertBoundaryError(input, "UNEXPECTED_FIELD");
+
+  assert.equal(first.path, "$.__proto__");
+  assert.equal(second.issueCategory, first.issueCategory);
+  assert.equal(second.path, first.path);
+  assert.equal(Object.hasOwn(input, "__proto__"), true);
+  assert.equal(Object.isFrozen(input), false);
+});
+
+test("root own enumerable __proto__ null field is rejected as unknown", () => {
+  const input = withOwnEnumerableDataProperty(makeInput(), "__proto__", null);
+
+  const error = assertBoundaryError(input, "UNEXPECTED_FIELD");
+
+  assert.equal(error.path, "$.__proto__");
+  assert.equal(Object.hasOwn(input, "__proto__"), true);
+  assert.equal(Object.getPrototypeOf(input), Object.prototype);
+});
+
+test("JSON.parse-compatible __proto__ data property is rejected as unknown", () => {
+  const input = Object.assign(JSON.parse("{\"__proto__\":\"json-data\"}"), makeInput());
+
+  const error = assertBoundaryError(input, "UNEXPECTED_FIELD");
+
+  assert.equal(error.path, "$.__proto__");
+  assert.equal(Object.hasOwn(input, "__proto__"), true);
+  assert.equal(Object.getOwnPropertyDescriptor(input, "__proto__")?.value, "json-data");
+});
+
+test("evaluation own enumerable __proto__ field is rejected as unknown", () => {
+  const input = makeInput();
+  withOwnEnumerableDataProperty(input.evaluation, "__proto__", "proto-evaluation");
+
+  const error = assertBoundaryError(input, "UNEXPECTED_FIELD");
+
+  assert.equal(error.path, "$.evaluation.__proto__");
+});
+
+test("Observation own enumerable __proto__ field is rejected as unknown", () => {
+  const input = makeInput();
+  withOwnEnumerableDataProperty(/** @type {object} */ (input.observations[0]), "__proto__", "proto-observation");
+
+  const error = assertBoundaryError(input, "UNEXPECTED_FIELD");
+
+  assert.equal(error.path, "$.observations[0].__proto__");
+});
+
+test("Rule effect own enumerable __proto__ field is rejected as unknown", () => {
+  const rule = validRule("rule.proto-effect");
+  withOwnEnumerableDataProperty(rule.effect, "__proto__", "proto-effect");
+  const input = makeInput({
+    rules: [rule]
+  });
+
+  const error = assertBoundaryError(input, "UNEXPECTED_FIELD");
+
+  assert.equal(error.path, "$.rules[0].effect.__proto__");
+});
+
+test("Evidence Contract selection provenance own enumerable __proto__ field is rejected as unknown", () => {
+  const input = makeInput();
+  const contract = /** @type {import("@proofrail/contracts").EvidenceContract} */ (input.evidenceContracts[0]);
+  withOwnEnumerableDataProperty(contract.selectionProvenance, "__proto__", "proto-provenance");
+
+  const error = assertBoundaryError(input, "UNEXPECTED_FIELD");
+
+  assert.equal(error.path, "$.evidenceContracts[0].selectionProvenance.__proto__");
+});
+
+test("valid null-prototype plain root record remains accepted", () => {
+  const input = nullPrototypeCopy(makeInput());
+
+  const bundle = evaluateKernel(input);
+
+  assert.equal(bundle.verdict, "ADMISSIBLE");
+  assert.equal(Object.getPrototypeOf(input), null);
+  assert.equal(Object.isFrozen(input), false);
+});
+
 test("modelConfidence attached to observations Array is rejected before evaluation", () => {
   const input = /** @type {any} */ (makeInput());
   input.observations.modelConfidence = 0.99;
@@ -582,6 +665,41 @@ test("path-shaped and URL-shaped stable identities are rejected", () => {
   mutableUrlInput.observations[0].sourceInputId = "https://example.invalid/source";
   assertBoundaryError(urlInput, "INVALID_STABLE_IDENTITY");
 });
+
+/**
+ * @template {object} T
+ * @param {T} target
+ * @param {string} key
+ * @param {unknown} value
+ * @returns {T}
+ */
+function withOwnEnumerableDataProperty(target, key, value) {
+  Object.defineProperty(target, key, {
+    value,
+    enumerable: true,
+    configurable: true,
+    writable: true
+  });
+  return target;
+}
+
+/**
+ * @template {object} T
+ * @param {T} record
+ * @returns {T}
+ */
+function nullPrototypeCopy(record) {
+  const copy = Object.create(null);
+  for (const key of Object.keys(record)) {
+    Object.defineProperty(copy, key, {
+      value: /** @type {Record<string, unknown>} */ (record)[key],
+      enumerable: true,
+      configurable: true,
+      writable: true
+    });
+  }
+  return /** @type {T} */ (copy);
+}
 
 /**
  * @param {string} id

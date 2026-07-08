@@ -679,9 +679,14 @@ function cloneJsonCompatible(value, path) {
   }
   const record = expectPlainObject(value, path);
   /** @type {Record<string, unknown>} */
-  const cloned = {};
+  const cloned = Object.create(null);
   for (const key of ownEnumerableStringKeys(record, path)) {
-    cloned[key] = cloneJsonCompatible(record[key], `${path}.${key}`);
+    Object.defineProperty(cloned, key, {
+      value: cloneJsonCompatible(record[key], `${path}.${key}`),
+      enumerable: true,
+      configurable: true,
+      writable: true
+    });
   }
   return cloned;
 }
