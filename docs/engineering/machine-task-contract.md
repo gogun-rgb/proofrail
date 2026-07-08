@@ -10,6 +10,16 @@ A Machine Task Contract makes task scope, authority, verification, and stop cond
 
 It is an engineering harness governance artifact for work on the Proofrail repository. It is not Proofrail product runtime authority.
 
+## Autonomous Execution Default
+
+A valid Machine Task Contract is a boundary and acceptance artifact, not an implementation script. It defines trust, scope, authority, acceptance, verification, required artifacts, stop conditions, and independent review expectations for repository engineering work.
+
+Within granted authority, agents SHOULD autonomously choose work order, writable files within `scope.write`, implementation strategy, test design, verification sequencing, failure diagnosis, retry, rollback of task-local reversible changes, and remediation. Agents SHOULD NOT request human approval for ordinary reversible implementation choices that the contract already authorizes.
+
+When Builder findings or independent review findings require remediation, agents SHOULD prefer autonomous convergence loops if an applicable convergence contract grants the needed scope and authority. Human escalation is reserved for product-direction ambiguity, irreversible external actions, material cost or resource commitment, security exceptions, authority conflicts, or repeated autonomous-loop deadlock.
+
+Higher risk SHOULD normally increase evidence requirements and independent review depth before reducing agent autonomy. Autonomous execution does not weaken authority-change preflight, self-grant prevention, independent review requirements, or product runtime authority separation. Agent action is not an approved change, an approved repository change is not a trusted release, and autonomous remediation does not grant release or acceptance authority.
+
 ## Authority-Change Use
 
 For repository engineering work, locating the correct authoritative document is not permission to modify it. A task that touches an authority-bearing target needs edit authority before the edit occurs.

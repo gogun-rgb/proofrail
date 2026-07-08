@@ -3393,6 +3393,209 @@ ca70d542d3291b86c2575cac7b081d821f2bd6b9
 
 The untracked file list after final observed `pnpm verify` matched the pre-verify list. No additional untracked repository artifact was created by `pnpm verify`.
 
+## OPS-AUTO-001 Validation Evidence
+
+Date: 2026-07-08.
+
+Task identity: `OPS-AUTO-001`.
+
+Builder status: `BUILDER_READY_FOR_REVIEW`. This is not independent acceptance, not a trusted release decision, and not a Proofrail product Verdict.
+
+### Branch And Authority Preflight
+
+Command:
+
+```powershell
+git fetch origin
+```
+
+Exit status: 0 after explicit user-requested remote refresh and escalated network access.
+
+Bounded result summary:
+
+```text
+origin/governance/autonomous-execution-defaults-1 was fetched.
+```
+
+Command:
+
+```powershell
+git switch --track origin/governance/autonomous-execution-defaults-1
+```
+
+Exit status: 0 after escalated Git metadata access.
+
+Bounded result:
+
+```text
+branch 'governance/autonomous-execution-defaults-1' set up to track 'origin/governance/autonomous-execution-defaults-1'.
+Switched to a new branch 'governance/autonomous-execution-defaults-1'
+```
+
+Required authority documents read before edits:
+
+```text
+AGENTS.md
+docs/engineering/machine-task-contract.md
+docs/engineering/clean-agent-test.md
+docs/constitution/product-constitution.md
+docs/constitution/trust-model.md
+docs/architecture/dependency-rules.md
+docs/plans/active/phase-1-deterministic-kernel-vertical-slice.md
+```
+
+Authority-change preflight result:
+
+```text
+Current Machine Task Contract: governance/tasks/OPS-AUTO-001.json.
+Target authority-bearing paths edited: AGENTS.md and docs/engineering/machine-task-contract.md.
+Both targets are authorized by scope.write.
+Neither target is listed in scope.read_only_authority or scope.forbidden.
+authority.mayChangeAuthority is exactly true.
+The task objective and acceptance requirements cover autonomous execution guidance and Machine Task Contract interpretation guidance.
+```
+
+### Required Verification Commands
+
+Command:
+
+```powershell
+pnpm governance:check
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+```
+
+Command:
+
+```powershell
+pnpm governance:check-json
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Foundation JSON validation output parsed as VALID.
+```
+
+Command:
+
+```powershell
+pnpm test:governance
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+tests 37
+pass 37
+fail 0
+```
+
+Command:
+
+```powershell
+pnpm verify
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+Foundation JSON validation output parsed as VALID.
+governance tests: 37 pass, 0 fail.
+kernel tests: 72 pass, 0 fail.
+git diff --check exit status 0 with Git line-ending conversion warnings for modified text files.
+```
+
+Command:
+
+```powershell
+node scripts/validate-foundation.mjs --format json
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```json
+{
+  "findings": [],
+  "schemaVersion": "1",
+  "status": "VALID"
+}
+```
+
+Command:
+
+```powershell
+git diff --check
+```
+
+Exit status: 0.
+
+Bounded result summary: Git reported line-ending conversion warnings for modified text files and no whitespace errors.
+
+### Scope And Invariant Checks
+
+Command:
+
+```powershell
+git status --short
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+ M AGENTS.md
+ M docs/engineering/machine-task-contract.md
+ M docs/engineering/validation-evidence.md
+?? docs/reviews/autonomous-execution-defaults-builder-review.md
+```
+
+Interpretation: the changed and new files are within `OPS-AUTO-001` writable scope.
+
+Command:
+
+```powershell
+git diff --name-only -- README.md docs/constitution docs/architecture docs/product docs/protocols docs/quality packages scripts tests .github package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json governance/generated governance/foundation.config.json governance/foundation.config.schema.json governance/machine-task-contract.schema.json governance/harness-reason-codes.json governance/harness-reason-codes.schema.json
+```
+
+Exit status: 0.
+
+Bounded result: no output.
+
+Interpretation: no forbidden path or read-only authority path was changed by the tracked diff at the time of inspection.
+
+Command:
+
+```powershell
+rg -n "not an implementation script|not a prescribed step-by-step implementation procedure|ordinary reversible implementation choices|Higher risk SHOULD normally increase evidence requirements|does not weaken authority-change preflight|does not grant acceptance|not a Proofrail product Verdict|not independent acceptance" AGENTS.md docs/engineering/machine-task-contract.md docs/reviews/autonomous-execution-defaults-builder-review.md
+```
+
+Exit status: 0.
+
+Bounded result summary: Matches show autonomous execution is framed as contract-bounded, not procedural; ordinary reversible choices are autonomous inside granted authority; higher risk increases evidence and review depth before reducing autonomy; autonomous execution does not weaken authority-change preflight or grant acceptance; and Builder review does not claim independent acceptance or a product Verdict.
+
+### Builder Review
+
+Builder review is recorded in [../reviews/autonomous-execution-defaults-builder-review.md](../reviews/autonomous-execution-defaults-builder-review.md).
+
+Open Builder risk: independent review must inspect the exact pull request head. Builder review, local verification, and Builder claim do not replace independent acceptance.
+
 ## KERNEL-VS-CONV-003 Validation Evidence
 
 Date: 2026-07-08.

@@ -38,6 +38,16 @@ The authorized Phase 1 vertical slice is bounded to synthetic in-memory domain i
 
 Phase 1 work MUST NOT present Proofrail as having a working product runtime, repository inspection, verification execution, adapters, delivery surfaces, GitHub integration, or Inference Zone implementation until separately authorized and implemented.
 
+## Autonomous Execution Default
+
+Within a valid Machine Task Contract, repository engineering agents SHOULD execute autonomously toward the task acceptance requirements. The contract defines trust, scope, authority, writable and forbidden targets, acceptance, verification, required artifacts, stop conditions, and independent review boundaries. It is not a prescribed step-by-step implementation procedure.
+
+After the Authority-Change Preflight authorizes the affected targets, an agent MAY autonomously choose work order, writable files within `scope.write`, implementation strategy, test design, verification sequencing, failure diagnosis, retry, rollback of task-local reversible changes, and remediation. Do not ask for human approval for ordinary reversible implementation choices that are already inside granted authority.
+
+Prefer autonomous convergence loops for Builder findings and independent review findings when an applicable convergence contract grants the needed scope and authority. Reserve human escalation for product-direction ambiguity, irreversible external actions, material cost or resource commitment, security exceptions, authority conflicts, or repeated autonomous-loop deadlock.
+
+Higher risk SHOULD normally increase evidence requirements and independent review depth before it reduces agent autonomy. Agent action is not an approved change. An approved repository change is not a trusted release. Autonomous remediation does not grant acceptance, release, independent review authority, or an authoritative Proofrail product Verdict.
+
 ## Authority-Change Preflight
 
 Locating or reading an authoritative document does not grant permission to modify it.
