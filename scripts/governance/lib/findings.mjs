@@ -1,5 +1,7 @@
 import { stableStringify } from "./json-utils.mjs";
 
+export const BOOTSTRAP_UNKNOWN_REASON_CODE = "HARN_EMITTED_REASON_CODE_UNKNOWN";
+
 function compareStrings(left, right) {
   if (left < right) return -1;
   if (left > right) return 1;
@@ -73,17 +75,25 @@ export function renderJson(result) {
   return stableStringify(result);
 }
 
-export function normalizeRegisteredFindings(findings, registeredCodes) {
-  if (!registeredCodes || registeredCodes.size === 0 || !registeredCodes.has("HARN_EMITTED_REASON_CODE_UNKNOWN")) {
-    return sortFindings(findings);
+export function normalizeRegisteredFindings(findings, registryState) {
+  if (!registryState?.usable) {
+    return sortFindings([
+      createFinding(
+        BOOTSTRAP_UNKNOWN_REASON_CODE,
+        registryState?.registryPath ?? "governance/harness-reason-codes.json",
+        "Harness reason-code registry is unavailable or unusable, so final finding normalization cannot safely trust emitted codes.",
+        "Restore a usable Foundation harness reason-code registry containing exactly one HARN_EMITTED_REASON_CODE_UNKNOWN entry.",
+      ),
+    ]);
   }
 
+  const registeredCodes = registryState.registeredCodes;
   const unknownCodes = [...new Set(findings.map((finding) => finding.code).filter((code) => !registeredCodes.has(code)))].sort();
   const registeredFindings = findings.filter((finding) => registeredCodes.has(finding.code));
   const unknownDiagnostics = unknownCodes.map((code) =>
     createFinding(
-      "HARN_EMITTED_REASON_CODE_UNKNOWN",
-      "governance/harness-reason-codes.json",
+      BOOTSTRAP_UNKNOWN_REASON_CODE,
+      registryState.registryPath,
       `Validator emitted unregistered finding code ${code}.`,
       "Register the HARN_ code or correct the validator to emit an existing registered code.",
     ),

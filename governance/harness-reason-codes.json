@@ -1,4 +1,5 @@
 {
+  "$schema": "./harness-reason-codes.schema.json",
   "schemaVersion": "1",
   "namespace": "Proofrail Foundation engineering harness",
   "prefix": "HARN_",
@@ -71,8 +72,8 @@
     },
     {
       "code": "HARN_EMITTED_REASON_CODE_UNKNOWN",
-      "summary": "The validator emitted a finding code not registered in the HARN_ registry.",
-      "remediation": "Register the HARN_ code or correct the validator to emit a registered code."
+      "summary": "The validator emitted an unregistered finding code or could not safely trust the registry during final normalization.",
+      "remediation": "Register emitted HARN_ codes and restore a usable registry with exactly one reserved bootstrap normalization diagnostic entry."
     },
     {
       "code": "HARN_IDENTITY_CONTAMINATION",

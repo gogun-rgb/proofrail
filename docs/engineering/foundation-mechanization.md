@@ -18,6 +18,19 @@ pnpm test:governance
 pnpm verify
 ```
 
+`pnpm verify` is repository and workspace governance verification. It runs the non-mutating governance validator, JSON-output parse check, governance tests, and a local no-argument `git diff --check` workspace-diff check.
+
+No-argument `git diff --check` checks the current worktree and index diff. It does not prove that committed pull request changes were checked against their reviewed base/head range.
+
+Committed change-range whitespace validation is separate. The governance helper is:
+
+```bash
+node scripts/governance/check-committed-whitespace.mjs --mode merge-base <base-ref> <head-ref>
+node scripts/governance/check-committed-whitespace.mjs --mode direct <base-ref> <head-ref>
+```
+
+The helper invokes Git with `shell: false`, requires explicit base and head refs or SHAs, and forwards the `git diff --check` exit status without rewriting files or executing target repository code.
+
 The root Foundation validator command remains:
 
 ```bash
@@ -47,7 +60,7 @@ The Foundation governance validator mechanically checks:
 - Repository identity hygiene for inherited project names.
 - Machine Task Contract schema review constants.
 - Every committed JSON Machine Task Contract under `governance/tasks`.
-- Harness reason-code registry shape, duplicate codes, and `HARN_` prefixes.
+- Harness reason-code registry schema, top-level metadata, duplicate codes, `HARN_` prefixes, and explicit usability for final finding normalization.
 - Unknown validator-emitted reason codes.
 - Exact-set canonical terminology drift from `docs/constitution/terminology.md`.
 - Exact-set canonical Verdict drift from `docs/product/verdict-semantics.md`.
@@ -60,6 +73,30 @@ The Foundation governance validator mechanically checks:
 Foundation governance findings use `HARN_` codes from `governance/harness-reason-codes.json`.
 
 `HARN_` codes are structurally separate from future Proofrail product runtime reason codes. They must not be presented as Proofrail product Verdict reason codes, Evidence Bundle reason codes, API reason codes, or product Policy reason codes.
+
+`HARN_EMITTED_REASON_CODE_UNKNOWN` is a validator-reserved bootstrap normalization diagnostic. Every usable committed harness reason-code registry must mirror it exactly once.
+
+When the registry is usable, final normalization preserves registered findings, suppresses raw unregistered finding codes, and emits one `HARN_EMITTED_REASON_CODE_UNKNOWN` diagnostic per unique unregistered code. When the registry is unavailable or unusable, final normalization fails closed with deterministic `INVALID` output using only the reserved bootstrap diagnostic needed to report that the registry cannot safely be trusted.
+
+This bootstrap behavior is Foundation engineering harness behavior only. It is not a Proofrail product runtime reason code.
+
+## CI Whitespace Semantics
+
+The GitHub Actions workflow runs committed change-range whitespace validation as an explicit step before `pnpm verify`.
+
+Pull request events validate the reviewed pull request range using the event base SHA and head SHA with merge-base diff semantics equivalent to:
+
+```bash
+git diff --check <pull-request-base-sha>...<pull-request-head-sha>
+```
+
+Push events use event-specific semantics:
+
+- `main` pushes with a non-zero `before` SHA validate the direct pushed range from `before` to the pushed `head`.
+- new `main` history with an all-zero `before` SHA validates from the empty tree to the pushed `head`.
+- `foundation/**` branch pushes validate `origin/main...head` after fetching the `origin/main` baseline.
+
+The workflow checks out enough history for explicit range comparison and preserves frozen-lockfile installation and `pnpm verify`.
 
 ## Generated Projections
 

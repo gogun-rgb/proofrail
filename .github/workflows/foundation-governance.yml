@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -24,6 +26,27 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Validate pull request committed whitespace range
+        if: github.event_name == 'pull_request'
+        run: node scripts/governance/check-committed-whitespace.mjs --mode merge-base "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
+
+      - name: Validate main push committed whitespace range
+        if: github.event_name == 'push' && github.ref_name == 'main' && github.event.before != '0000000000000000000000000000000000000000'
+        run: node scripts/governance/check-committed-whitespace.mjs --mode direct "${{ github.event.before }}" "${{ github.sha }}"
+
+      - name: Validate new main history whitespace range
+        if: github.event_name == 'push' && github.ref_name == 'main' && github.event.before == '0000000000000000000000000000000000000000'
+        shell: bash
+        run: |
+          empty_tree="$(git hash-object -t tree /dev/null)"
+          node scripts/governance/check-committed-whitespace.mjs --mode direct "$empty_tree" "${{ github.sha }}"
+
+      - name: Validate foundation branch committed whitespace range
+        if: github.event_name == 'push' && startsWith(github.ref_name, 'foundation/')
+        run: |
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          node scripts/governance/check-committed-whitespace.mjs --mode merge-base origin/main "${{ github.sha }}"
 
       - name: Verify Foundation governance
         run: pnpm verify

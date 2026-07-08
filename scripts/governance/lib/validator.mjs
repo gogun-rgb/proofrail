@@ -19,6 +19,7 @@ import { isSafeRelativeRepoPath, relativeRepoPath, resolveRepoPath } from "./pat
 
 const CONFIG_PATH = "governance/foundation.config.json";
 const DEFAULT_REASON_CODE_REGISTRY_PATH = "governance/harness-reason-codes.json";
+const REASON_CODE_REGISTRY_SCHEMA_PATH = "governance/harness-reason-codes.schema.json";
 
 function configPathLocation(selector) {
   return `${CONFIG_PATH}#${selector}`;
@@ -132,7 +133,13 @@ export function validateFoundation({ root = process.cwd(), additionalFindings = 
       ? config.harnessReasonCodeRegistry
       : DEFAULT_REASON_CODE_REGISTRY_PATH;
   const registry = readJsonFile(root, registryPath, collector);
-  const registeredCodes = registry ? validateReasonCodeRegistry(registry, registryPath, collector) : new Set();
+  const registrySchema = readJsonFile(root, REASON_CODE_REGISTRY_SCHEMA_PATH, collector);
+  const registryState = validateReasonCodeRegistry({
+    registry,
+    registryPath,
+    registrySchema,
+    collector,
+  });
 
   if (config && configValid) {
     validateRequiredDocuments(root, config, collector, invalidConfigPaths);
@@ -158,5 +165,5 @@ export function validateFoundation({ root = process.cwd(), additionalFindings = 
   validateIdentityHygiene(root, collector);
   collector.addMany(additionalFindings);
 
-  return resultFromFindings(normalizeRegisteredFindings(collector.list(), registeredCodes));
+  return resultFromFindings(normalizeRegisteredFindings(collector.list(), registryState));
 }

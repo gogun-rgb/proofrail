@@ -5,7 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { renderJson, sortFindings } from "../../scripts/governance/lib/findings.mjs";
+import { BOOTSTRAP_UNKNOWN_REASON_CODE, renderJson, sortFindings } from "../../scripts/governance/lib/findings.mjs";
 import { stableStringify } from "../../scripts/governance/lib/json-utils.mjs";
 import { canonicalTerminologyProjection, writeExpectedProjections } from "../../scripts/governance/lib/projections.mjs";
 import { validateFoundation } from "../../scripts/governance/lib/validator.mjs";
@@ -62,6 +62,10 @@ function codeRegistry() {
   return readRepoJson("governance/harness-reason-codes.json");
 }
 
+function codeRegistrySchema() {
+  return readRepoJson("governance/harness-reason-codes.schema.json");
+}
+
 function config() {
   return {
     $schema: "./foundation.config.schema.json",
@@ -76,6 +80,7 @@ function config() {
       "docs/plans/active/foundation-gate-mechanization.md",
       "governance/foundation.config.schema.json",
       "governance/harness-reason-codes.json",
+      "governance/harness-reason-codes.schema.json",
       "governance/machine-task-contract.schema.json",
       "governance/tasks/SYN-001.json",
       "governance/generated/canonical-terminology.json",
@@ -178,6 +183,7 @@ ${CANONICAL_VERDICTS.map((verdict) => `### ${verdict}\n\nMeaning: synthetic ${ve
   writeJson(root, "governance/foundation.config.json", config());
   writeJson(root, "governance/foundation.config.schema.json", foundationConfigSchema());
   writeJson(root, "governance/harness-reason-codes.json", codeRegistry());
+  writeJson(root, "governance/harness-reason-codes.schema.json", codeRegistrySchema());
   writeJson(root, "governance/machine-task-contract.schema.json", machineTaskContractSchema());
   writeJson(root, "governance/tasks/SYN-001.json", taskContract());
   writeExpectedProjections(root, config());
@@ -198,6 +204,32 @@ function assertFindingCodesRegistered(root, result) {
   for (const code of codes(result)) {
     assert.ok(registered.has(code), `${code} is not registered`);
   }
+}
+
+function assertNoStackTraceOrHostPath(output, root) {
+  assert.equal(output.includes(root), false);
+  assert.equal(output.includes("Error:"), false);
+  assert.equal(output.includes(" at "), false);
+}
+
+function assertUnusableRegistryFailsClosed(root) {
+  const additionalFindings = [
+    {
+      code: "HARN_SYNTHETIC_UNKNOWN",
+      path: "synthetic/path",
+      message: "Synthetic unknown code.",
+      remediation: "Register it.",
+    },
+  ];
+  const first = renderJson(validateFoundation({ root, additionalFindings }));
+  const second = renderJson(validateFoundation({ root, additionalFindings }));
+  assert.equal(first, second);
+
+  const parsed = JSON.parse(first);
+  assert.equal(parsed.status, "INVALID");
+  assert.deepEqual(codes(parsed), [BOOTSTRAP_UNKNOWN_REASON_CODE]);
+  assert.equal(codes(parsed).includes("HARN_SYNTHETIC_UNKNOWN"), false);
+  assertNoStackTraceOrHostPath(first, root);
 }
 
 test("sorts findings deterministically by code, path, and message", () => {
@@ -241,20 +273,61 @@ test("detects unknown emitted harness reason codes", (t) => {
   assertFindingCodesRegistered(root, result);
 });
 
-test("rejects duplicate harness reason codes", (t) => {
+test("fails closed when reserved bootstrap diagnostic is removed from registry", (t) => {
+  const root = createSyntheticRepo(t);
+  mutateJson(root, "governance/harness-reason-codes.json", (registry) => {
+    registry.codes = registry.codes.filter((entry) => entry.code !== BOOTSTRAP_UNKNOWN_REASON_CODE);
+  });
+  assertUnusableRegistryFailsClosed(root);
+});
+
+test("fails closed when harness reason-code registry codes array is empty", (t) => {
+  const root = createSyntheticRepo(t);
+  mutateJson(root, "governance/harness-reason-codes.json", (registry) => {
+    registry.codes = [];
+  });
+  assertUnusableRegistryFailsClosed(root);
+});
+
+test("fails closed when reserved bootstrap diagnostic is duplicated", (t) => {
+  const root = createSyntheticRepo(t);
+  mutateJson(root, "governance/harness-reason-codes.json", (registry) => {
+    const bootstrapEntry = registry.codes.find((entry) => entry.code === BOOTSTRAP_UNKNOWN_REASON_CODE);
+    registry.codes.push({ ...bootstrapEntry });
+  });
+  assertUnusableRegistryFailsClosed(root);
+});
+
+test("fails closed when harness reason-code registry top-level metadata is malformed", (t) => {
+  const root = createSyntheticRepo(t);
+  mutateJson(root, "governance/harness-reason-codes.json", (registry) => {
+    delete registry.schemaVersion;
+  });
+  assertUnusableRegistryFailsClosed(root);
+});
+
+test("does not pass raw unknown finding through while registry is unusable", (t) => {
+  const root = createSyntheticRepo(t);
+  mutateJson(root, "governance/harness-reason-codes.json", (registry) => {
+    registry.codes = [];
+  });
+  assertUnusableRegistryFailsClosed(root);
+});
+
+test("fails closed for duplicate harness reason codes", (t) => {
   const root = createSyntheticRepo(t);
   mutateJson(root, "governance/harness-reason-codes.json", (registry) => {
     registry.codes.push({ ...registry.codes[0] });
   });
-  assert.ok(codes(validateFoundation({ root })).includes("HARN_REASON_CODE_DUPLICATE"));
+  assertUnusableRegistryFailsClosed(root);
 });
 
-test("rejects invalid harness reason-code prefixes", (t) => {
+test("fails closed for invalid harness reason-code prefixes", (t) => {
   const root = createSyntheticRepo(t);
   mutateJson(root, "governance/harness-reason-codes.json", (registry) => {
     registry.codes[0].code = "SYNTHETIC_BAD_PREFIX";
   });
-  assert.ok(codes(validateFoundation({ root })).includes("HARN_REASON_CODE_PREFIX_INVALID"));
+  assertUnusableRegistryFailsClosed(root);
 });
 
 test("detects a missing required document", (t) => {
@@ -277,9 +350,7 @@ test("reports unsafe required-document config paths as registered parseable JSON
     assert.equal(parsed.status, "INVALID");
     assert.ok(codes(parsed).includes("HARN_CONFIG_PATH_INVALID"));
     assertFindingCodesRegistered(root, parsed);
-    assert.equal(output.includes(root), false);
-    assert.equal(output.includes("Error:"), false);
-    assert.equal(output.includes(" at "), false);
+    assertNoStackTraceOrHostPath(output, root);
   }
 });
 

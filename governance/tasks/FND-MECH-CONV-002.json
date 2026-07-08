@@ -1,0 +1,164 @@
+{
+  "task": {
+    "id": "FND-MECH-CONV-002",
+    "class": "convergence",
+    "objective": "Close the remaining Foundation Gate Mechanization failure-path and CI verification-semantic gaps without changing Proofrail product semantics or widening into product runtime implementation."
+  },
+  "scope": {
+    "write": [
+      "README.md",
+      "CONTRIBUTING.md",
+      "docs/engineering/**",
+      "docs/quality/**",
+      "docs/plans/**",
+      "docs/reviews/**",
+      "governance/**",
+      "scripts/**",
+      "tests/governance/**",
+      "package.json",
+      "pnpm-lock.yaml",
+      ".github/workflows/foundation-governance.yml"
+    ],
+    "read_only_authority": [
+      "docs/constitution/product-constitution.md",
+      "docs/constitution/terminology.md",
+      "docs/constitution/trust-model.md",
+      "docs/architecture/domain-map.md",
+      "docs/architecture/dependency-rules.md",
+      "docs/architecture/data-flow.md",
+      "docs/architecture/inference-boundary.md",
+      "docs/architecture/execution-boundary.md",
+      "docs/product/verdict-semantics.md",
+      "docs/protocols/evidence-schema.md",
+      "docs/protocols/adapter-protocol.md",
+      "docs/protocols/policy-schema.md",
+      "docs/protocols/bundle-format.md"
+    ],
+    "forbidden": [
+      "packages/**",
+      "apps/**",
+      "backend/**",
+      "frontend/**",
+      "src/**",
+      "Proofrail product runtime implementation",
+      "product kernel implementation",
+      "repository inspection implementation",
+      "semantic change observation implementation",
+      "verification execution implementation",
+      "Policy evaluation implementation",
+      "Evidence satisfaction runtime implementation",
+      "Verdict runtime implementation",
+      "Evidence Bundle runtime implementation",
+      "language adapter implementation",
+      "CLI implementation",
+      "API implementation",
+      "MCP implementation",
+      "web implementation",
+      "GitHub product integration implementation",
+      "model provider integration",
+      "Inference Zone implementation",
+      "canonical terminology changes",
+      "canonical Verdict semantic changes",
+      "Evidence authority class changes",
+      "Trust semantic changes"
+    ]
+  },
+  "authority": {
+    "read": [
+      "AGENTS.md",
+      "README.md",
+      "docs/engineering/foundation-mechanization.md",
+      "docs/engineering/machine-task-contract.md",
+      "docs/engineering/validation-evidence.md",
+      "docs/quality/foundation-gate.md",
+      "docs/reviews/foundation-gate-mechanization-builder-review.md",
+      "docs/reviews/foundation-gate-mechanization-convergence-review.md",
+      "governance/foundation.config.json",
+      "governance/harness-reason-codes.json",
+      "governance/machine-task-contract.schema.json",
+      "governance/tasks/FND-MECH-001.json",
+      "governance/tasks/FND-MECH-CONV-001.json",
+      "scripts/governance/lib/findings.mjs",
+      "scripts/governance/lib/registry.mjs",
+      "scripts/governance/lib/validator.mjs",
+      "scripts/governance/lib/path-utils.mjs",
+      "tests/governance/foundation-validator.test.mjs",
+      "package.json",
+      ".github/workflows/foundation-governance.yml"
+    ],
+    "mayChangeAuthority": true,
+    "mayChangeProductSemantics": false
+  },
+  "acceptance": {
+    "requirements": [
+      "Resolve FND-MECH-REG-002 by designating HARN_EMITTED_REASON_CODE_UNKNOWN as the reserved bootstrap normalization diagnostic and requiring exactly one such entry in every usable committed Foundation harness reason-code registry.",
+      "Validate harness reason-code registry top-level metadata, supported schemaVersion, HARN_ prefix, non-empty codes array, structurally valid entries, duplicate codes, and reserved bootstrap diagnostic cardinality before treating the registry as usable for final finding normalization.",
+      "Final finding normalization must never return raw unknown finding codes. With a usable registry it must preserve registered findings, suppress raw unknown findings, emit one HARN_EMITTED_REASON_CODE_UNKNOWN diagnostic per unique unknown code, and sort deterministically.",
+      "When the reason-code registry is unavailable or unusable, final validator output must fail closed as deterministic INVALID output using only the reserved bootstrap diagnostic needed to report that normalization cannot safely trust the registry.",
+      "Document that HARN_EMITTED_REASON_CODE_UNKNOWN is Foundation engineering harness bootstrap behavior, is mirrored exactly once in the committed registry, and is not a Proofrail product runtime reason code.",
+      "Add focused negative tests for removed HARN_EMITTED_REASON_CODE_UNKNOWN, an empty codes array, duplicate HARN_EMITTED_REASON_CODE_UNKNOWN, malformed top-level registry metadata, and injected raw unknown findings while the registry is unusable.",
+      "Resolve FND-MECH-CI-001 by distinguishing local workspace diff whitespace validation from explicit committed change-range whitespace validation in CI and documentation.",
+      "GitHub Actions pull_request verification must validate git diff --check semantics over the explicit pull request base SHA and head SHA, with sufficient fetch history, without relying on the synthetic pull request merge ref as the reviewed range.",
+      "Push-event whitespace validation must define separate deterministic committed range semantics for main branch pushes, foundation branch pushes, and newly created branch fallback behavior.",
+      "If a committed change-range whitespace helper is introduced, it must use shell: false for Git execution, accept explicit base and head refs or SHAs, reject missing arguments, surface git diff --check exit status, not execute target repository code, and not rewrite files.",
+      "Add governance tests for committed change-range whitespace validation covering clean committed range success, committed trailing-whitespace failure, unrelated uncommitted worktree isolation, and missing argument failure.",
+      "Update README, Foundation mechanization documentation, validation evidence, and Builder final convergence review without claiming Foundation Gate acceptance."
+    ]
+  },
+  "verification": {
+    "commands": [
+      "pnpm governance:generate",
+      "pnpm governance:check",
+      "pnpm governance:check-json",
+      "pnpm test:governance",
+      "pnpm verify",
+      "node scripts/validate-foundation.mjs",
+      "node scripts/validate-foundation.mjs --format json",
+      "node scripts/governance/verify-json-output.mjs",
+      "git diff --check"
+    ],
+    "requiredInvariants": [
+      "Raw unregistered findings never survive final Foundation validator output.",
+      "Removing HARN_EMITTED_REASON_CODE_UNKNOWN from the committed registry cannot cause raw unknown finding pass-through.",
+      "An unusable reason-code registry fails closed deterministically.",
+      "Repeated unusable-registry validation produces byte-identical JSON.",
+      "Valid registry final findings use registered HARN_ codes only.",
+      "Reserved bootstrap behavior remains Foundation harness-only.",
+      "Pull request CI validates an explicit committed base/head change range for whitespace errors.",
+      "CI does not represent a clean worktree-only git diff --check result as committed PR range validation.",
+      "CI still installs with a frozen lockfile.",
+      "pnpm verify remains deterministic and non-mutating.",
+      "No Proofrail product runtime package or execution path is introduced."
+    ]
+  },
+  "requiredArtifacts": [
+    "governance/tasks/FND-MECH-CONV-002.json",
+    "explicit reason-code registry usability model",
+    "reserved bootstrap normalization diagnostic handling",
+    "reason-code registry top-level validation",
+    "focused unusable-registry negative tests",
+    "explicit committed change-range whitespace verification",
+    "updated GitHub Actions workflow",
+    "committed-range whitespace negative tests",
+    "updated Foundation mechanization documentation",
+    "updated README verification semantics",
+    "updated validation evidence",
+    "final mechanization convergence Builder review"
+  ],
+  "stopConditions": [
+    "resolving a finding requires Proofrail product runtime implementation",
+    "canonical terminology must change",
+    "canonical Verdict semantics must change",
+    "Evidence authority classes must change",
+    "Trust semantics must change",
+    "Machine Task Contract must gain product runtime authority",
+    "a new external dependency is required",
+    "a security exception is required",
+    "PR #2 head or repository identity no longer matches the reviewed preflight subject",
+    "committed change-range semantics cannot be made explicit without a product-level architecture decision"
+  ],
+  "review": {
+    "expectation": "independent_review_required",
+    "reviewerMustNotRelyOnBuilderClaim": true
+  }
+}

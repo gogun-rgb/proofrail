@@ -1080,3 +1080,383 @@ Interpretation: No Proofrail product runtime package directories were introduced
 The Builder convergence review for these remediations is recorded in [../reviews/foundation-gate-mechanization-convergence-review.md](../reviews/foundation-gate-mechanization-convergence-review.md).
 
 It is not independent acceptance, not a Proofrail product Verdict, and not Foundation Gate acceptance.
+
+## FND-MECH-CONV-002 Validation Evidence
+
+All FND-MECH-CONV-002 commands in this section were run from repository root:
+
+```text
+C:\Users\zizon\Documents\Codex\2026-07-07\proofrail
+```
+
+Branch:
+
+```text
+foundation/gate-mechanization-1
+```
+
+Reviewed starting head:
+
+```text
+28c718951757dc5030762333570fb43b52f0f952
+```
+
+### Preflight
+
+Command:
+
+```powershell
+git rev-parse --show-toplevel
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+C:/Users/zizon/Documents/Codex/2026-07-07/proofrail
+```
+
+Command:
+
+```powershell
+git remote -v
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+origin	https://github.com/gogun-rgb/proofrail.git (fetch)
+origin	https://github.com/gogun-rgb/proofrail.git (push)
+```
+
+Command:
+
+```powershell
+git status --short
+```
+
+Exit status: 0.
+
+Bounded result: no output.
+
+Command:
+
+```powershell
+git branch --show-current
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+foundation/gate-mechanization-1
+```
+
+Command:
+
+```powershell
+git rev-parse HEAD
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+28c718951757dc5030762333570fb43b52f0f952
+```
+
+Command:
+
+```powershell
+git fetch origin --prune
+```
+
+Exit status: 0 after explicit authorization for Git metadata access.
+
+Bounded result: no output.
+
+Command:
+
+```powershell
+gh pr view 2 --json state,isDraft,mergeable,baseRefName,headRefName,headRefOid,mergedAt
+```
+
+Exit status: 0 after explicit authorization for GitHub CLI network access.
+
+Bounded result:
+
+```json
+{"baseRefName":"main","headRefName":"foundation/gate-mechanization-1","headRefOid":"28c718951757dc5030762333570fb43b52f0f952","isDraft":false,"mergeable":"MERGEABLE","mergedAt":null,"state":"OPEN"}
+```
+
+### Registry Bootstrap Behavior
+
+Command:
+
+```powershell
+pnpm test:governance
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+tests 37
+pass 37
+fail 0
+```
+
+Focused registry behavior covered by synthetic governance tests:
+
+- valid registry unknown-code case: `detects unknown emitted harness reason codes` injects `HARN_SYNTHETIC_UNKNOWN`, asserts `HARN_EMITTED_REASON_CODE_UNKNOWN` is present, asserts `HARN_SYNTHETIC_UNKNOWN` is absent, and asserts every final finding code is registered in the valid registry.
+- removed bootstrap diagnostic case: `fails closed when reserved bootstrap diagnostic is removed from registry`.
+- empty registry case: `fails closed when harness reason-code registry codes array is empty`.
+- duplicate bootstrap diagnostic case: `fails closed when reserved bootstrap diagnostic is duplicated`.
+- malformed top-level registry metadata case: `fails closed when harness reason-code registry top-level metadata is malformed`.
+- injected raw unknown while registry unusable: `does not pass raw unknown finding through while registry is unusable`.
+
+The unusable-registry test helper parses validator JSON with `JSON.parse`, asserts status `INVALID`, asserts the final code list is exactly `HARN_EMITTED_REASON_CODE_UNKNOWN`, asserts the injected raw unknown code is absent, asserts no JavaScript stack marker appears, asserts the synthetic host root is absent, and compares repeated `renderJson(validateFoundation(...))` output for byte-identical deterministic JSON.
+
+### Committed Change-Range Whitespace
+
+Exact CI range semantics after remediation:
+
+- pull request events run `node scripts/governance/check-committed-whitespace.mjs --mode merge-base <pull_request.base.sha> <pull_request.head.sha>`, equivalent to `git diff --check <base-sha>...<head-sha>`.
+- `main` push events with a non-zero `before` SHA run direct diff semantics from `before` to `github.sha`.
+- new `main` history with an all-zero `before` SHA uses the deterministic empty-tree fallback to `github.sha`.
+- `foundation/**` branch push events fetch `origin/main` and run merge-base diff semantics over `origin/main...github.sha`.
+- checkout uses `fetch-depth: 0`.
+- dependency installation remains `pnpm install --frozen-lockfile`.
+- `pnpm verify` remains a separate later step and still includes the local no-argument `git diff --check` workspace-diff check.
+
+Local synthetic committed-range helper tests from `pnpm test:governance`:
+
+- clean range result: `committed whitespace helper accepts a clean committed range`.
+- committed trailing-whitespace failure result: `committed whitespace helper detects a committed trailing-whitespace defect`.
+- unrelated uncommitted worktree isolation result: `committed whitespace helper ignores unrelated uncommitted worktree defects`.
+- missing argument result: `committed whitespace helper rejects missing base or head arguments deterministically`.
+
+### Generated Projection Idempotence
+
+Command:
+
+```powershell
+pnpm governance:generate
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Generated Foundation governance projections.
+```
+
+First-run hashes:
+
+```text
+canonical-terminology.json                 6EAFE0A593F800365BF53363EB169E6EF8564214C76B94F0F9A876136D3A104A
+canonical-verdicts.json                    5AE43CFE3954295BFF06204949203EC863B1F92A8A3B8909FFFF1C5DF9E289EF
+documentation-authority-index.json         E0A01E004CDC248A1E5D4629B20FCBE45C2FA108FE4A485DC3C21260B208AC58
+```
+
+Command:
+
+```powershell
+pnpm governance:generate
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Generated Foundation governance projections.
+```
+
+Second-run hashes:
+
+```text
+canonical-terminology.json                 6EAFE0A593F800365BF53363EB169E6EF8564214C76B94F0F9A876136D3A104A
+canonical-verdicts.json                    5AE43CFE3954295BFF06204949203EC863B1F92A8A3B8909FFFF1C5DF9E289EF
+documentation-authority-index.json         E0A01E004CDC248A1E5D4629B20FCBE45C2FA108FE4A485DC3C21260B208AC58
+```
+
+Interpretation: The second generation produced byte-identical generated projection files by SHA256 hash comparison.
+
+### Required Verification Commands
+
+Command:
+
+```powershell
+pnpm governance:check
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+```
+
+Command:
+
+```powershell
+pnpm governance:check-json
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Foundation JSON validation output parsed as VALID.
+```
+
+Command:
+
+```powershell
+pnpm test:governance
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+tests 37
+pass 37
+fail 0
+```
+
+Command:
+
+```powershell
+pnpm verify
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+Foundation JSON validation output parsed as VALID.
+tests 37
+pass 37
+fail 0
+git diff --check exit status 0
+```
+
+Git reported Windows line-ending conversion warnings for modified text files and no whitespace errors.
+
+Command:
+
+```powershell
+node scripts/validate-foundation.mjs
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+```
+
+Command:
+
+```powershell
+node scripts/validate-foundation.mjs --format json
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```json
+{
+  "findings": [],
+  "schemaVersion": "1",
+  "status": "VALID"
+}
+```
+
+Command:
+
+```powershell
+node scripts/governance/verify-json-output.mjs
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Foundation JSON validation output parsed as VALID.
+```
+
+Command:
+
+```powershell
+git diff --check
+```
+
+Exit status: 0.
+
+Bounded result summary: Git reported Windows line-ending conversion warnings for modified text files and no whitespace errors.
+
+### Additional Invariant Checks
+
+Command:
+
+```powershell
+$registry = (Get-Content -Raw -LiteralPath 'governance\harness-reason-codes.json' | ConvertFrom-Json).codes.code; $emitted = @(rg --only-matching --no-filename 'HARN_[A-Z0-9_]+' scripts | Sort-Object -Unique); $unknown = @($emitted | Where-Object { $_ -notin $registry }); if ($unknown.Count -eq 0) { 'all script-emitted HARN_ codes are registered' } else { $unknown }
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+all script-emitted HARN_ codes are registered
+```
+
+Command:
+
+```powershell
+rg -n "mayChangeAuthority|mayChangeProductSemantics" governance\tasks governance\machine-task-contract.schema.json docs\engineering\machine-task-contract.md
+```
+
+Exit status: 0.
+
+Bounded result summary: `governance/tasks/FND-MECH-001.json`, `governance/tasks/FND-MECH-CONV-001.json`, and `governance/tasks/FND-MECH-CONV-002.json` explicitly contain both `mayChangeAuthority` and `mayChangeProductSemantics`; the schema requires both fields; the Machine Task Contract documentation example and rules state both fields.
+
+Command:
+
+```powershell
+Get-ChildItem -LiteralPath 'packages','apps','backend','frontend','src' -Force -ErrorAction SilentlyContinue | Select-Object FullName
+```
+
+Exit status: 1.
+
+Bounded result: no output.
+
+Interpretation: No Proofrail product runtime package directories were introduced.
+
+### Workflow Inspection
+
+The GitHub Actions workflow was inspected after modification. It preserves `pnpm install --frozen-lockfile` and `pnpm verify`, sets checkout `fetch-depth: 0`, and adds separate committed change-range whitespace steps for pull request, main push, new main history, and foundation branch push events.
+
+### Builder Final Convergence Review
+
+The Builder final convergence review for these remediations is recorded in [../reviews/foundation-gate-mechanization-final-convergence-review.md](../reviews/foundation-gate-mechanization-final-convergence-review.md).
+
+It is not independent acceptance, not a Proofrail product Verdict, and not Foundation Gate acceptance.

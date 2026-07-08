@@ -28,6 +28,8 @@ pnpm verify
 
 The root validator remains `node scripts/validate-foundation.mjs`. Use `node scripts/validate-foundation.mjs --format json` when machine-readable Foundation harness output is needed.
 
+`pnpm verify` includes no-argument `git diff --check` as a local workspace diff check. It does not validate a committed pull request change range by itself. CI performs committed change-range whitespace validation separately with explicit base and head refs before running `pnpm verify`.
+
 Update [docs/engineering/validation-evidence.md](docs/engineering/validation-evidence.md) when validation evidence changes.
 
 ## Review Model
