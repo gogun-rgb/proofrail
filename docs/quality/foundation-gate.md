@@ -42,12 +42,14 @@ This document is authoritative for Phase 0 foundation review criteria. The Build
 
 - AGENTS.md is a usable map.
 - A clean agent can locate authoritative concepts.
+- A clean agent distinguishes locating authority from permission to modify authority-bearing targets.
+- A clean agent can perform authority-change preflight before editing authority-bearing targets.
 - Stop conditions are discoverable.
 - Prohibited silent redesign behavior is explicit.
 
 ## Clean Agent Test
 
-The future Clean Agent Test gives a new agent with no conversational history a bounded task such as:
+The Clean Agent Test gives a new agent with no conversational history a bounded task such as:
 
 ```text
 Add a deterministic observation specification for lockfile changes.
@@ -57,10 +59,13 @@ The clean agent should be able to:
 
 - locate authoritative documents
 - identify the intended layer
+- identify whether editing an authority-bearing target is authorized before making the edit
 - avoid inventing duplicate terminology
 - respect scope
 - identify required verification
 - stop if protocol authority must change
+
+For the bounded lockfile Observation example, if adding the requested specification requires modifying authoritative protocol direction and no applicable authority-changing Machine Task Contract is supplied, the clean agent should stop before editing the protocol document.
 
 The Builder cannot grade this test. It requires an independent fresh-context agent or equivalent independent review process.
 
