@@ -1,0 +1,122 @@
+{
+  "task": {
+    "id": "OPS-AUTO-001",
+    "class": "governance_convergence",
+    "objective": "Make autonomous execution the default repository engineering behavior within valid Machine Task Contract boundaries while preserving deterministic trust promotion and independent review."
+  },
+  "scope": {
+    "write": [
+      "AGENTS.md",
+      "docs/engineering/machine-task-contract.md",
+      "docs/engineering/validation-evidence.md",
+      "docs/reviews/**",
+      "governance/tasks/OPS-AUTO-001.json"
+    ],
+    "read_only_authority": [
+      "docs/constitution/**",
+      "docs/architecture/**",
+      "docs/product/**",
+      "docs/protocols/**",
+      "docs/quality/**",
+      "packages/contracts/**",
+      "packages/kernel/**"
+    ],
+    "forbidden": [
+      "README.md",
+      "docs/constitution/**",
+      "docs/architecture/**",
+      "docs/product/**",
+      "docs/protocols/**",
+      "docs/quality/**",
+      "packages/**",
+      "scripts/**",
+      "tests/**",
+      ".github/**",
+      "package.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "tsconfig.json",
+      "governance/generated/**",
+      "governance/foundation.config.json",
+      "governance/foundation.config.schema.json",
+      "governance/machine-task-contract.schema.json",
+      "governance/harness-reason-codes.json",
+      "governance/harness-reason-codes.schema.json",
+      "Proofrail product semantic changes",
+      "Verdict semantic changes",
+      "Evidence authority class changes",
+      "Trust semantic changes",
+      "runtime implementation"
+    ]
+  },
+  "authority": {
+    "read": [
+      "AGENTS.md",
+      "docs/engineering/machine-task-contract.md",
+      "docs/engineering/clean-agent-test.md",
+      "docs/constitution/product-constitution.md",
+      "docs/constitution/trust-model.md",
+      "docs/architecture/dependency-rules.md",
+      "docs/plans/active/phase-1-deterministic-kernel-vertical-slice.md"
+    ],
+    "mayChangeAuthority": true,
+    "mayChangeProductSemantics": false
+  },
+  "acceptance": {
+    "requirements": [
+      "Add a prominent Autonomous Execution Default to AGENTS.md without weakening Authority-Change Preflight.",
+      "State that a valid Machine Task Contract defines boundaries and acceptance, not a prescribed implementation procedure.",
+      "Within granted authority, agents autonomously choose work order, writable files, implementation strategy, test design, verification sequencing, failure diagnosis, retry, rollback of task-local reversible changes, and remediation.",
+      "Do not require human approval for reversible implementation choices already inside granted authority.",
+      "Prefer autonomous convergence loops for Builder findings and independent review findings when an applicable convergence contract exists.",
+      "Reserve human escalation for product-direction ambiguity, irreversible external actions, material cost or resource commitment, security exception, authority conflict, or repeated autonomous-loop deadlock.",
+      "State that higher risk should normally increase evidence requirements and independent review depth before reducing agent autonomy.",
+      "Preserve Agent action != approved change != trusted release in substance.",
+      "Update Machine Task Contract guidance so task contracts are interpreted as trust and scope boundaries rather than step-by-step implementation scripts.",
+      "Preserve all existing authority-change preflight, self-grant prohibition, independent review requirements, and product runtime authority separation.",
+      "Do not modify product runtime, canonical terminology, Verdict semantics, Evidence authority classes, Trust semantics, protocols, architecture, or package code.",
+      "Record Builder review and validation evidence without claiming independent acceptance."
+    ]
+  },
+  "verification": {
+    "commands": [
+      "pnpm governance:check",
+      "pnpm governance:check-json",
+      "pnpm test:governance",
+      "pnpm verify",
+      "node scripts/validate-foundation.mjs --format json",
+      "git diff --check"
+    ],
+    "requiredInvariants": [
+      "Authority-Change Preflight remains materially intact.",
+      "Self-granted authority remains prohibited.",
+      "Independent review remains required.",
+      "No product or runtime semantics change.",
+      "No packages or production code change.",
+      "Human routing is not required for ordinary reversible choices within valid authority.",
+      "Autonomous remediation does not grant release or acceptance authority."
+    ]
+  },
+  "requiredArtifacts": [
+    "governance/tasks/OPS-AUTO-001.json",
+    "updated AGENTS.md autonomous execution guidance",
+    "updated Machine Task Contract autonomous execution guidance",
+    "Builder review",
+    "validation evidence"
+  ],
+  "stopConditions": [
+    "Authority-Change Preflight would need to be weakened",
+    "self-grant prevention would need to be weakened",
+    "independent review would need to be removed",
+    "Proofrail product semantics must change",
+    "runtime implementation is required",
+    "canonical terminology must change",
+    "Trust semantics must change",
+    "Verdict semantics must change",
+    "Evidence authority classes must change"
+  ],
+  "review": {
+    "expectation": "independent_review_required",
+    "reviewerMustNotRelyOnBuilderClaim": true
+  }
+}
