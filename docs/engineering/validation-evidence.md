@@ -2002,3 +2002,443 @@ Bounded result summary: Hits are boundary and non-acceptance statements. The cha
 The Builder convergence review for FND-LEG-001 is recorded in [../reviews/agent-legibility-convergence-builder-review.md](../reviews/agent-legibility-convergence-builder-review.md).
 
 It records the external finding as externally supplied, fixes all Builder-discovered HIGH findings within scope, leaves the inherent independent-review limitation open as LOW, and does not claim independent acceptance.
+
+## PHASE-TRANS-001 Validation Evidence
+
+All PHASE-TRANS-001 commands in this section were run from repository root:
+
+```text
+C:\Users\zizon\Documents\Codex\2026-07-07\proofrail
+```
+
+Starting Foundation baseline:
+
+```text
+7865ea299f98b3fd0158d1486272f73468b345ac
+```
+
+Task branch:
+
+```text
+phase/phase-0-close-phase-1-authorize
+```
+
+This Builder session did not implement `KERNEL-VS-001`, did not create production package placeholders, and did not run or grade an independent review.
+
+### Exact Baseline Preflight
+
+Command:
+
+```powershell
+git rev-parse --show-toplevel
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+C:/Users/zizon/Documents/Codex/2026-07-07/proofrail
+```
+
+Command:
+
+```powershell
+git remote -v
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+origin	https://github.com/gogun-rgb/proofrail.git (fetch)
+origin	https://github.com/gogun-rgb/proofrail.git (push)
+```
+
+Command:
+
+```powershell
+git status --short
+```
+
+Exit status: 0.
+
+Bounded result: no output.
+
+Command:
+
+```powershell
+git branch --show-current
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+main
+```
+
+Command:
+
+```powershell
+git rev-parse HEAD
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+7865ea299f98b3fd0158d1486272f73468b345ac
+```
+
+Command:
+
+```powershell
+git fetch origin --prune
+```
+
+Initial exit status: 1.
+
+Initial bounded result:
+
+```text
+error: cannot open '.git/FETCH_HEAD': Permission denied
+```
+
+The command was rerun after explicit authorization for Git metadata access.
+
+Rerun exit status: 0.
+
+Rerun bounded result: no output.
+
+Command:
+
+```powershell
+git rev-parse origin/main
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+7865ea299f98b3fd0158d1486272f73468b345ac
+```
+
+### Branch Creation
+
+Command:
+
+```powershell
+git switch -c phase/phase-0-close-phase-1-authorize
+```
+
+Initial exit status: 1.
+
+Initial bounded result:
+
+```text
+fatal: cannot lock ref 'refs/heads/phase/phase-0-close-phase-1-authorize': unable to create directory for .git/refs/heads/phase/phase-0-close-phase-1-authorize
+```
+
+The command was rerun after explicit authorization for Git metadata access.
+
+Rerun exit status: 0.
+
+Bounded result:
+
+```text
+Switched to a new branch 'phase/phase-0-close-phase-1-authorize'
+```
+
+### Machine Task Contract Validation
+
+`governance/tasks/PHASE-TRANS-001.json` was materialized as the first file edit.
+
+Command:
+
+```powershell
+pnpm governance:check
+```
+
+Exit status after materializing the task contract: 0.
+
+Bounded result:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+```
+
+During later document edits, a nonessential Documentation Authority Index note change caused a stale generated projection finding.
+
+Command:
+
+```powershell
+pnpm governance:check
+```
+
+Exit status: 1.
+
+Bounded result:
+
+```text
+HARN_PROJECTION_STALE governance/generated/documentation-authority-index.json: Generated governance projection is stale.
+```
+
+Remediation: revert the nonessential Documentation Authority Index note edit instead of editing forbidden `governance/generated/**`.
+
+Rerun command:
+
+```powershell
+pnpm governance:check
+```
+
+Rerun exit status: 0.
+
+Bounded result:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+```
+
+### Required Verification Commands
+
+Command:
+
+```powershell
+pnpm governance:check
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+```
+
+Command:
+
+```powershell
+pnpm governance:check-json
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Foundation JSON validation output parsed as VALID.
+```
+
+Command:
+
+```powershell
+pnpm test:governance
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+tests 37
+pass 37
+fail 0
+```
+
+Command:
+
+```powershell
+pnpm verify
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+Foundation JSON validation output parsed as VALID.
+tests 37
+pass 37
+fail 0
+git diff --check exit status 0
+```
+
+Git reported Windows line-ending conversion warnings for modified text files and no whitespace errors.
+
+Command:
+
+```powershell
+node scripts/validate-foundation.mjs
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+```
+
+Command:
+
+```powershell
+node scripts/validate-foundation.mjs --format json
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```json
+{
+  "findings": [],
+  "schemaVersion": "1",
+  "status": "VALID"
+}
+```
+
+Command:
+
+```powershell
+node scripts/governance/verify-json-output.mjs
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Foundation JSON validation output parsed as VALID.
+```
+
+Command:
+
+```powershell
+git diff --check
+```
+
+Exit status: 0.
+
+Bounded result summary: Git reported Windows line-ending conversion warnings for modified text files and no whitespace errors.
+
+### Scope-Boundary Checks
+
+Command:
+
+```powershell
+git status --short
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+ M AGENTS.md
+ M README.md
+ M docs/constitution/product-constitution.md
+ M docs/plans/active/foundation-gate-mechanization.md
+ M docs/quality/foundation-gate.md
+?? docs/plans/active/phase-1-deterministic-kernel-vertical-slice.md
+?? docs/reviews/phase-0-foundation-gate-independent-review.md
+?? docs/reviews/phase-transition-builder-review.md
+?? governance/tasks/PHASE-TRANS-001.json
+```
+
+After this evidence section was added, `docs/engineering/validation-evidence.md` also belongs to the PHASE-TRANS-001 changed-file set.
+
+Command:
+
+```powershell
+git diff --exit-code 7865ea299f98b3fd0158d1486272f73468b345ac -- docs\constitution\terminology.md docs\constitution\trust-model.md docs\architecture docs\product\verdict-semantics.md docs\protocols scripts tests .github package.json pnpm-lock.yaml governance\generated governance\foundation.config.json governance\foundation.config.schema.json governance\machine-task-contract.schema.json governance\harness-reason-codes.json governance\harness-reason-codes.schema.json
+```
+
+Exit status: 0.
+
+Bounded result: no output.
+
+Interpretation: canonical terminology, Trust semantics, architecture documents, Verdict semantics, protocol documents, scripts, tests, workflow files, package manifests, generated governance projections, governance config and schemas, and harness reason-code registry files are unchanged from the transition baseline.
+
+Command:
+
+```powershell
+Get-ChildItem -LiteralPath 'packages','apps','backend','frontend','src' -Force -ErrorAction SilentlyContinue | Select-Object FullName
+```
+
+Exit status: 1.
+
+Bounded result: no output.
+
+Interpretation: No Proofrail production package, application, backend, frontend, or source directories were created.
+
+Command:
+
+```powershell
+rg -n "Authority-Change Preflight|plain imperative request|plain natural-language request|self-grant|self-granted|Successful verification cannot retroactively|Stop before editing" AGENTS.md
+```
+
+Exit status: 0.
+
+Bounded result summary: Authority-Change Preflight remains present. The plain-request rule, stop-before-edit rule, no retroactive verification authority rule, and self-grant prevention rule remain visible in AGENTS.md.
+
+Command:
+
+```powershell
+rg -n "ADMISSIBLE" AGENTS.md README.md docs governance
+```
+
+Exit status: 0.
+
+Bounded result summary: Hits are canonical Verdict vocabulary, unchanged Verdict semantics, generated canonical Verdict projection, historical validation evidence, the PHASE-TRANS-001 task contract, and explicit boundary statements that Foundation Gate PASS is not the product Verdict `ADMISSIBLE`.
+
+Command:
+
+```powershell
+rg -n "Phase 0" AGENTS.md README.md docs governance
+```
+
+Exit status: 0.
+
+Bounded result summary: Current-status hits record Phase 0 closure. Remaining hits are historical provenance, unchanged Phase 0 authority documents, generated projections, or prior validation evidence.
+
+Command:
+
+```powershell
+rg -n "Phase 1" AGENTS.md README.md docs governance
+```
+
+Exit status: 0.
+
+Bounded result summary: Hits define Phase 1 as Deterministic Kernel Vertical Slice, prohibit out-of-scope integrations, identify `KERNEL-VS-001` as unimplemented, and link the active Phase 1 plan.
+
+Command:
+
+```powershell
+rg -n "packages/" AGENTS.md README.md docs governance
+```
+
+Exit status: 0.
+
+Bounded result summary: New PHASE-TRANS-001 hits authorize only `packages/contracts` and `packages/kernel` for the next implementation task. Existing examples and prior task contracts are historical or forbidden-scope references. No package directory exists.
+
+### Diff Inspection
+
+Commands:
+
+```powershell
+git diff -- AGENTS.md README.md docs\constitution\product-constitution.md docs\plans\active\foundation-gate-mechanization.md docs\quality\foundation-gate.md
+Get-Content -LiteralPath 'docs\plans\active\phase-1-deterministic-kernel-vertical-slice.md' -Raw
+Get-Content -LiteralPath 'docs\reviews\phase-0-foundation-gate-independent-review.md' -Raw
+Get-Content -LiteralPath 'docs\reviews\phase-transition-builder-review.md' -Raw
+Get-Content -LiteralPath 'governance\tasks\PHASE-TRANS-001.json' -Raw
+```
+
+Exit status: 0 for each command.
+
+Bounded result summary: The inspected diff and new files record Phase 0 closure, Foundation Gate external PASS boundary, Phase 1 deterministic kernel vertical-slice authorization, authorized initial package layers only, prohibited Phase 1 integrations, unimplemented `KERNEL-VS-001`, independent review evidence limits, Builder review findings, and the materialized Machine Task Contract.

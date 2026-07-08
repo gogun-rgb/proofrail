@@ -8,9 +8,13 @@ AI can write the code. Proofrail determines whether the change is admissible.
 
 ## Current Phase
 
-This repository is in Phase 0: Foundation and Engineering Harness Bootstrap.
+Phase 0 Foundation is closed for baseline `7865ea299f98b3fd0158d1486272f73468b345ac` after external independent Foundation Gate PASS.
 
-Phase 0 creates durable project memory, canonical terminology, architecture boundaries, trust boundaries, protocol foundations, and governance checks for later work. It does not implement Proofrail product runtime behavior.
+This repository is now in Phase 1: Deterministic Kernel Vertical Slice.
+
+Phase 1 authorizes a bounded synthetic-input vertical slice through Claim, Evidence Contract, Evidence Requirement, Observation, Evidence satisfaction, Rule, Verdict reduction, and Evidence Bundle. It does not authorize repository inspection, target-code execution, verification execution, adapters, delivery surfaces, model provider integration, or Inference Zone implementation.
+
+Proofrail does not yet have a working product runtime, kernel implementation, or completed Phase 1 vertical slice.
 
 ## Start Here
 
@@ -26,7 +30,7 @@ Authoritative knowledge is organized under:
 - [docs/product/verdict-semantics.md](docs/product/verdict-semantics.md)
 - [docs/quality/foundation-gate.md](docs/quality/foundation-gate.md)
 
-## Phase 0 Verification
+## Repository Governance Verification
 
 Run the governance verifier from the repository root:
 
@@ -49,8 +53,10 @@ node scripts/validate-foundation.mjs --format json
 
 See [docs/engineering/foundation-mechanization.md](docs/engineering/foundation-mechanization.md) for the current governance mechanics.
 
-## Next Foundation Task
+## Active Plan
 
-The next foundation task is documented in [docs/plans/active/foundation-gate-mechanization.md](docs/plans/active/foundation-gate-mechanization.md):
+The active Phase 1 plan is documented in [docs/plans/active/phase-1-deterministic-kernel-vertical-slice.md](docs/plans/active/phase-1-deterministic-kernel-vertical-slice.md):
 
-FOUNDATION GATE MECHANIZATION
+Phase 1 Deterministic Kernel Vertical Slice
+
+The next implementation task identity is `KERNEL-VS-001`. It is not implemented in this repository state.

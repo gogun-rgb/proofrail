@@ -2,7 +2,7 @@
 
 ## Authority
 
-This document is authoritative for Proofrail product identity, constitutional precedence, and Phase 0 scope.
+This document is authoritative for Proofrail product identity, constitutional precedence, and current phase scope.
 
 If this document conflicts with another repository document, this document has precedence unless the conflict is explicitly documented here. If two constitutional documents irreconcilably conflict, the agent MUST stop and report `BLOCKED`.
 
@@ -41,11 +41,32 @@ No additional authoritative verdict state may be added without documenting a con
 
 ## Current Phase Invariant
 
-Phase 0 establishes repository knowledge, governance boundaries, architecture direction, protocol foundations, and engineering harness strategy.
+Phase 0 is closed for the exact Foundation baseline `7865ea299f98b3fd0158d1486272f73468b345ac` after external independent Foundation Gate PASS. That PASS is a repository engineering review decision, not a Proofrail product Verdict.
 
-Phase 0 MUST NOT implement the product kernel, repository inspection, verification execution, policy evaluation, adapters, CLI, API, server, MCP server, web application, GitHub integration, or production package placeholders pretending those systems exist.
+The current phase is Phase 1: Deterministic Kernel Vertical Slice.
 
-Executable code is forbidden by default except for Phase 0 governance tooling explicitly allowed by this task.
+Phase 1 authorizes implementation only of a synthetic-input deterministic vertical slice through:
+
+```text
+Claim
+  -> Evidence Contract
+  -> Evidence Requirement
+  -> Observation
+  -> Evidence satisfaction
+  -> Rule
+  -> Verdict reduction
+  -> Evidence Bundle
+```
+
+Phase 1 inputs MUST be synthetic in-memory domain inputs supplied directly to the kernel boundary. The first implementation objective is to prove that the canonical deterministic domain flow can execute end-to-end without repository, network, model, or target-code execution dependencies.
+
+Phase 1 preserves the existing authoritative data-flow direction and canonical terminology. It does not change Verdict semantics, Evidence authority classes, or Trust semantics.
+
+Phase 1 authorizes production package layout only for the minimum layers required by the vertical slice. The only initial production package layers authorized by this transition are `packages/contracts` and `packages/kernel`.
+
+Phase 1 does not authorize repository inspection, execution of target repository code, verification execution, language adapters, Python path traversal detection, CLI, API, MCP, web, GitHub integration, SARIF export, model provider integration, Inference Zone implementation, LLM judgment, or probabilistic confidence in the authoritative path.
+
+No product runtime, kernel implementation, contracts implementation, or Phase 1 vertical slice exists until implemented by a later authorized task. The next implementation task identity is `KERNEL-VS-001`, and it is not implemented by this phase transition.
 
 ## Documentation Authority Index
 
