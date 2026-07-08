@@ -83,6 +83,7 @@
       "docs/plans/active/foundation-gate-mechanization.md",
       "docs/plans/debt.md"
     ],
+    "mayChangeAuthority": true,
     "mayChangeProductSemantics": false
   },
   "acceptance": {

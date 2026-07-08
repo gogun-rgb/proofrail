@@ -708,3 +708,375 @@ Three separate read-only reviewer agents were used:
 These reviews were Builder-internal only and are not independent acceptance. Findings and dispositions are recorded in [../reviews/foundation-gate-mechanization-builder-review.md](../reviews/foundation-gate-mechanization-builder-review.md).
 
 CI status for the final FND-MECH-001 branch was not observed at the time this evidence section was written because the pull request had not yet been created.
+
+## FND-MECH-CONV-001 Validation Evidence
+
+All FND-MECH-CONV-001 commands in this section were run from repository root:
+
+```text
+C:\Users\zizon\Documents\Codex\2026-07-07\proofrail
+```
+
+Branch:
+
+```text
+foundation/gate-mechanization-1
+```
+
+Reviewed starting head:
+
+```text
+559f740b83d44f2f931191e8baa977bcf157937f
+```
+
+### Preflight
+
+Command:
+
+```powershell
+git rev-parse --show-toplevel
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+C:/Users/zizon/Documents/Codex/2026-07-07/proofrail
+```
+
+Command:
+
+```powershell
+git remote -v
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+origin	https://github.com/gogun-rgb/proofrail.git (fetch)
+origin	https://github.com/gogun-rgb/proofrail.git (push)
+```
+
+Command:
+
+```powershell
+git status --short
+```
+
+Exit status: 0.
+
+Bounded result: no output.
+
+Command:
+
+```powershell
+git branch --show-current
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+foundation/gate-mechanization-1
+```
+
+Command:
+
+```powershell
+git rev-parse HEAD
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+559f740b83d44f2f931191e8baa977bcf157937f
+```
+
+Command:
+
+```powershell
+git fetch origin --prune
+```
+
+Exit status: 0 after explicit authorization for Git metadata access.
+
+Bounded result:
+
+```text
+From https://github.com/gogun-rgb/proofrail
+ - [deleted]         (none)     -> origin/convergence/phase-0-governor-review-1
+```
+
+Command:
+
+```powershell
+gh pr view 2 --json state,isDraft,mergeable,baseRefName,headRefName,headRefOid,mergedAt
+```
+
+Exit status: 0 after explicit authorization for GitHub CLI network access.
+
+Bounded result:
+
+```json
+{"baseRefName":"main","headRefName":"foundation/gate-mechanization-1","headRefOid":"559f740b83d44f2f931191e8baa977bcf157937f","isDraft":false,"mergeable":"MERGEABLE","mergedAt":null,"state":"OPEN"}
+```
+
+### Focused Negative Governance Tests
+
+Command:
+
+```powershell
+pnpm test:governance
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+tests 28
+pass 28
+fail 0
+```
+
+Unknown finding normalization coverage:
+
+- `detects unknown emitted harness reason codes`
+- injected `HARN_SYNTHETIC_UNKNOWN`
+- asserted `HARN_EMITTED_REASON_CODE_UNKNOWN` was present
+- asserted `HARN_SYNTHETIC_UNKNOWN` was absent from final output
+- asserted every final finding code was registered in `governance/harness-reason-codes.json`
+
+Config path safety coverage:
+
+- `reports unsafe required-document config paths as registered parseable JSON`
+- `reports unsafe repository paths for all Foundation config path fields`
+- synthetic path cases: `../outside.md`, `C:/outside.md`, and `contains\u0000null.md`
+- inspected config fields: `requiredDocuments`, `machineTaskContractSchema`, `harnessReasonCodeRegistry`, `cleanAgentTestSpecification`, `architectureCheckPreparation`, and `generatedProjections.canonicalTerminology`
+- asserted `INVALID` result shape, `HARN_CONFIG_PATH_INVALID`, parseable JSON, no JavaScript stack marker, and no synthetic host root in JSON output
+
+Machine Task Contract authority coverage:
+
+- `requires Machine Task Contract authority mayChangeAuthority`
+- `requires Machine Task Contract authority mayChangeProductSemantics`
+- `accepts Machine Task Contract authority with both explicit booleans`
+
+Projection sourceDigest coverage:
+
+- `ignores fenced fake canonical headings while extracting canonical sets`
+- `detects stale projections when fenced authoritative source content changes`
+- asserted fenced fake headings do not become canonical terms or canonical Verdicts
+- asserted changing fenced content changes `sourceDigest`, reports `HARN_PROJECTION_STALE` until regeneration, and returns to `VALID` after regeneration
+
+### Generated Projection Idempotence
+
+Command:
+
+```powershell
+pnpm governance:generate
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Generated Foundation governance projections.
+```
+
+First-run hashes:
+
+```text
+canonical-terminology.json                 6EAFE0A593F800365BF53363EB169E6EF8564214C76B94F0F9A876136D3A104A
+canonical-verdicts.json                    5AE43CFE3954295BFF06204949203EC863B1F92A8A3B8909FFFF1C5DF9E289EF
+documentation-authority-index.json         E0A01E004CDC248A1E5D4629B20FCBE45C2FA108FE4A485DC3C21260B208AC58
+```
+
+Command:
+
+```powershell
+pnpm governance:generate
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Generated Foundation governance projections.
+```
+
+Second-run hashes:
+
+```text
+canonical-terminology.json                 6EAFE0A593F800365BF53363EB169E6EF8564214C76B94F0F9A876136D3A104A
+canonical-verdicts.json                    5AE43CFE3954295BFF06204949203EC863B1F92A8A3B8909FFFF1C5DF9E289EF
+documentation-authority-index.json         E0A01E004CDC248A1E5D4629B20FCBE45C2FA108FE4A485DC3C21260B208AC58
+```
+
+Interpretation: The second generation produced byte-identical projection hashes. The digest semantics changed in code, but the current authoritative source sections contain no fenced code content requiring changed committed projection bytes.
+
+### Required Verification Commands
+
+Command:
+
+```powershell
+pnpm governance:check
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+```
+
+Command:
+
+```powershell
+pnpm governance:check-json
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Foundation JSON validation output parsed as VALID.
+```
+
+Command:
+
+```powershell
+pnpm verify
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+Foundation JSON validation output parsed as VALID.
+tests 28
+pass 28
+fail 0
+git diff --check exit status 0
+```
+
+Git reported Windows line-ending conversion warnings for modified text files and no whitespace errors.
+
+Command:
+
+```powershell
+node scripts/validate-foundation.mjs
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+```
+
+Command:
+
+```powershell
+node scripts/validate-foundation.mjs --format json
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```json
+{
+  "findings": [],
+  "schemaVersion": "1",
+  "status": "VALID"
+}
+```
+
+Command:
+
+```powershell
+node scripts/governance/verify-json-output.mjs
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Foundation JSON validation output parsed as VALID.
+```
+
+Command:
+
+```powershell
+git diff --check
+```
+
+Exit status: 0.
+
+Bounded result summary: Git reported Windows line-ending conversion warnings for modified text files and no whitespace errors.
+
+### Additional Invariant Checks
+
+Command:
+
+```powershell
+$registry = (Get-Content -Raw -LiteralPath 'governance\harness-reason-codes.json' | ConvertFrom-Json).codes.code; $emitted = @(rg --only-matching --no-filename 'HARN_[A-Z0-9_]+' scripts | Sort-Object -Unique); $unknown = @($emitted | Where-Object { $_ -notin $registry }); if ($unknown.Count -eq 0) { 'all script-emitted HARN_ codes are registered' } else { $unknown }
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+all script-emitted HARN_ codes are registered
+```
+
+Command:
+
+```powershell
+rg -n "mayChangeAuthority|mayChangeProductSemantics" governance\tasks docs\engineering\machine-task-contract.md governance\machine-task-contract.schema.json
+```
+
+Exit status: 0.
+
+Bounded result summary: `governance/tasks/FND-MECH-001.json` and `governance/tasks/FND-MECH-CONV-001.json` explicitly contain both `mayChangeAuthority` and `mayChangeProductSemantics`; the schema requires both fields; the Machine Task Contract documentation example and rules state both fields.
+
+Command:
+
+```powershell
+$paths = @('packages','apps','backend','frontend','src'); foreach ($p in $paths) { "$p=$(Test-Path -LiteralPath $p)" }
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+packages=False
+apps=False
+backend=False
+frontend=False
+src=False
+```
+
+Interpretation: No Proofrail product runtime package directories were introduced.
+
+### Builder Convergence Review
+
+The Builder convergence review for these remediations is recorded in [../reviews/foundation-gate-mechanization-convergence-review.md](../reviews/foundation-gate-mechanization-convergence-review.md).
+
+It is not independent acceptance, not a Proofrail product Verdict, and not Foundation Gate acceptance.

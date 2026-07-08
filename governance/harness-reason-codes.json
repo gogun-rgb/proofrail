@@ -60,6 +60,11 @@
       "remediation": "Remove duplicate Verdict headings without changing Verdict semantics."
     },
     {
+      "code": "HARN_CONFIG_PATH_INVALID",
+      "summary": "The Foundation governance config contains a repository path that cannot be safely resolved inside the repository.",
+      "remediation": "Use a non-empty relative repository path without absolute roots, traversal, or null bytes."
+    },
+    {
       "code": "HARN_CONFIG_SCHEMA_INVALID",
       "summary": "The Foundation governance config does not satisfy its JSON Schema.",
       "remediation": "Update governance/foundation.config.json to match governance/foundation.config.schema.json."

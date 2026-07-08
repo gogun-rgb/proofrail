@@ -1,6 +1,6 @@
 import fs from "node:fs";
 
-import { FindingCollector, resultFromFindings, validateEmittedReasonCodes } from "./findings.mjs";
+import { FindingCollector, normalizeRegisteredFindings, resultFromFindings } from "./findings.mjs";
 import { readJsonFile, readTextFile } from "./json-utils.mjs";
 import { listFiles, validateMarkdownLinks } from "./markdown.mjs";
 import {
@@ -15,10 +15,52 @@ import {
   validateMachineTaskContractSchemaConstants,
   validateTaskContractInstances,
 } from "./schema-validation.mjs";
-import { relativeRepoPath, resolveRepoPath } from "./path-utils.mjs";
+import { isSafeRelativeRepoPath, relativeRepoPath, resolveRepoPath } from "./path-utils.mjs";
 
-function validateRequiredDocuments(root, config, collector) {
-  for (const documentPath of config.requiredDocuments ?? []) {
+const CONFIG_PATH = "governance/foundation.config.json";
+const DEFAULT_REASON_CODE_REGISTRY_PATH = "governance/harness-reason-codes.json";
+
+function configPathLocation(selector) {
+  return `${CONFIG_PATH}#${selector}`;
+}
+
+function validateConfigRepositoryPaths(config, collector) {
+  const invalid = new Set();
+
+  const inspect = (selector, repoPath) => {
+    if (typeof repoPath !== "string") return;
+    if (isSafeRelativeRepoPath(repoPath)) return;
+
+    invalid.add(selector);
+    collector.add(
+      "HARN_CONFIG_PATH_INVALID",
+      configPathLocation(selector),
+      "Configured repository path cannot be safely resolved inside the repository.",
+      "Use a non-empty relative repository path without absolute roots, traversal, or null bytes.",
+    );
+  };
+
+  if (Array.isArray(config?.requiredDocuments)) {
+    config.requiredDocuments.forEach((documentPath, index) => inspect(`requiredDocuments[${index}]`, documentPath));
+  }
+
+  inspect("machineTaskContractSchema", config?.machineTaskContractSchema);
+  inspect("harnessReasonCodeRegistry", config?.harnessReasonCodeRegistry);
+  inspect("cleanAgentTestSpecification", config?.cleanAgentTestSpecification);
+  inspect("architectureCheckPreparation", config?.architectureCheckPreparation);
+
+  if (config?.generatedProjections && typeof config.generatedProjections === "object" && !Array.isArray(config.generatedProjections)) {
+    for (const key of Object.keys(config.generatedProjections).sort()) {
+      inspect(`generatedProjections.${key}`, config.generatedProjections[key]);
+    }
+  }
+
+  return invalid;
+}
+
+function validateRequiredDocuments(root, config, collector, invalidConfigPaths) {
+  for (const [index, documentPath] of (config.requiredDocuments ?? []).entries()) {
+    if (invalidConfigPaths.has(`requiredDocuments[${index}]`)) continue;
     if (!fs.existsSync(resolveRepoPath(root, documentPath))) {
       collector.add(
         "HARN_REQUIRED_DOCUMENT_MISSING",
@@ -68,10 +110,11 @@ function isTextFile(file) {
 export function validateFoundation({ root = process.cwd(), additionalFindings = [] } = {}) {
   const collector = new FindingCollector();
 
-  const configPath = "governance/foundation.config.json";
+  const configPath = CONFIG_PATH;
   const configSchemaPath = "governance/foundation.config.schema.json";
   const config = readJsonFile(root, configPath, collector);
   const configSchema = readJsonFile(root, configSchemaPath, collector);
+  const invalidConfigPaths = validateConfigRepositoryPaths(config, collector);
   let configValid = false;
 
   if (config && configSchema) {
@@ -84,30 +127,36 @@ export function validateFoundation({ root = process.cwd(), additionalFindings = 
     });
   }
 
-  const registryPath = config?.harnessReasonCodeRegistry ?? "governance/harness-reason-codes.json";
+  const registryPath =
+    config?.harnessReasonCodeRegistry && !invalidConfigPaths.has("harnessReasonCodeRegistry")
+      ? config.harnessReasonCodeRegistry
+      : DEFAULT_REASON_CODE_REGISTRY_PATH;
   const registry = readJsonFile(root, registryPath, collector);
   const registeredCodes = registry ? validateReasonCodeRegistry(registry, registryPath, collector) : new Set();
 
   if (config && configValid) {
-    validateRequiredDocuments(root, config, collector);
+    validateRequiredDocuments(root, config, collector, invalidConfigPaths);
     validateActivePlan(root, config, collector);
 
-    const mtcSchema = readJsonFile(root, config.machineTaskContractSchema, collector);
-    if (mtcSchema) {
-      validateMachineTaskContractSchemaConstants(mtcSchema, config.machineTaskContractSchema, collector);
-      validateTaskContractInstances(root, mtcSchema, collector);
+    if (!invalidConfigPaths.has("machineTaskContractSchema")) {
+      const mtcSchema = readJsonFile(root, config.machineTaskContractSchema, collector);
+      if (mtcSchema) {
+        validateMachineTaskContractSchemaConstants(mtcSchema, config.machineTaskContractSchema, collector);
+        validateTaskContractInstances(root, mtcSchema, collector);
+      }
     }
 
     validateCanonicalSets(root, config, collector);
     const authorityProjection = validateDocumentationAuthorityIndex(root, collector);
     validateAgentsAuthorityRoutes(root, authorityProjection, collector);
-    validateProjectionFreshness(root, config, collector);
+    if (![...invalidConfigPaths].some((selector) => selector.startsWith("generatedProjections."))) {
+      validateProjectionFreshness(root, config, collector);
+    }
   }
 
   validateMarkdownLinks(root, collector);
   validateIdentityHygiene(root, collector);
   collector.addMany(additionalFindings);
-  collector.addMany(validateEmittedReasonCodes(collector.list(), registeredCodes));
 
-  return resultFromFindings(collector.list());
+  return resultFromFindings(normalizeRegisteredFindings(collector.list(), registeredCodes));
 }

@@ -38,11 +38,7 @@
     "authority": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["read"],
-      "anyOf": [
-        { "required": ["mayChangeAuthority"] },
-        { "required": ["mayChangeProductSemantics"] }
-      ],
+      "required": ["read", "mayChangeAuthority", "mayChangeProductSemantics"],
       "properties": {
         "read": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 },
         "mayChangeAuthority": { "type": "boolean" },

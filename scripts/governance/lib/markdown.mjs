@@ -53,25 +53,40 @@ export function anchorsFor(content) {
 }
 
 export function extractSection(content, headingText, level = 2) {
-  const lines = stripFencedCode(content).split(/\r?\n/);
-  let start = -1;
-  for (let index = 0; index < lines.length; index += 1) {
-    const match = /^(#{1,6})\s+(.+?)\s*$/.exec(lines[index]);
-    if (match && match[1].length === level && match[2].trim() === headingText) {
-      start = index;
-      break;
-    }
-  }
-  if (start === -1) return "";
+  return stripFencedCode(extractRawSection(content, headingText, level));
+}
 
+export function extractRawSection(content, headingText, level = 2) {
+  const lines = content.split(/\r?\n/);
+  let start = -1;
   let end = lines.length;
-  for (let index = start + 1; index < lines.length; index += 1) {
-    const match = /^(#{1,6})\s+(.+?)\s*$/.exec(lines[index]);
-    if (match && match[1].length <= level) {
-      end = index;
-      break;
+  let inFence = false;
+  let fenceMarker = "";
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const match = !inFence ? /^(#{1,6})\s+(.+?)\s*$/.exec(lines[index]) : null;
+    if (match) {
+      if (start === -1 && match[1].length === level && match[2].trim() === headingText) {
+        start = index;
+      } else if (start !== -1 && match[1].length <= level) {
+        end = index;
+        break;
+      }
+    }
+
+    const fence = /^[ \t]{0,3}(```+|~~~+)/.exec(lines[index]);
+    if (fence) {
+      if (!inFence) {
+        inFence = true;
+        fenceMarker = fence[1].startsWith("`") ? "```" : "~~~";
+      } else if (fence[1].startsWith(fenceMarker[0])) {
+        inFence = false;
+        fenceMarker = "";
+      }
     }
   }
+
+  if (start === -1) return "";
   return `${lines.slice(start, end).join("\n").trimEnd()}\n`;
 }
 
@@ -176,7 +191,7 @@ export function readIfExists(root, repoPath) {
   }
 }
 
-function stripFencedCode(content) {
+export function stripFencedCode(content) {
   const lines = content.split(/\r?\n/);
   let inFence = false;
   let fenceMarker = "";

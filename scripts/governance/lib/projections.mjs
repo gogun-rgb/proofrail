@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { stableStringify } from "./json-utils.mjs";
-import { extractSection, markdownLinks, readIfExists, slugifyHeading, splitMarkdownTarget } from "./markdown.mjs";
+import { extractRawSection, extractSection, markdownLinks, readIfExists, slugifyHeading, splitMarkdownTarget, stripFencedCode } from "./markdown.mjs";
 import { isExternalTarget, repoPathFromMarkdownTarget, resolveRepoPath } from "./path-utils.mjs";
 
 export const CANONICAL_VERDICT_VALUES = ["ADMISSIBLE", "REVISION_REQUIRED", "REJECTED", "BLOCKED"];
@@ -56,11 +56,13 @@ function setDifference(left, right) {
 
 export function extractCanonicalTerminology(root) {
   const content = readIfExists(root, TERMINOLOGY_PATH);
-  const section = extractSection(content, "Canonical Terms");
-  const terms = headingsInSection(section, 3);
+  const section = extractRawSection(content, "Canonical Terms");
+  const scanSection = stripFencedCode(section);
+  const terms = headingsInSection(scanSection, 3);
   return {
     authority: TERMINOLOGY_PATH,
     section,
+    scanSection,
     terms,
     duplicates: duplicateValues(terms),
   };
@@ -68,11 +70,13 @@ export function extractCanonicalTerminology(root) {
 
 export function extractCanonicalVerdicts(root) {
   const content = readIfExists(root, VERDICT_PATH);
-  const section = extractSection(content, "Canonical Verdicts");
-  const verdicts = headingsInSection(section, 3);
+  const section = extractRawSection(content, "Canonical Verdicts");
+  const scanSection = stripFencedCode(section);
+  const verdicts = headingsInSection(scanSection, 3);
   return {
     authority: VERDICT_PATH,
     section,
+    scanSection,
     verdicts,
     duplicates: duplicateValues(verdicts),
   };
@@ -127,8 +131,9 @@ function parseAuthorityTargets(cell) {
 
 export function extractDocumentationAuthorityIndex(root) {
   const content = readIfExists(root, PRODUCT_CONSTITUTION_PATH);
-  const section = extractSection(content, "Documentation Authority Index");
-  const rows = markdownTableRows(section);
+  const section = extractRawSection(content, "Documentation Authority Index");
+  const scanSection = stripFencedCode(section);
+  const rows = markdownTableRows(scanSection);
   const dataRows = rows.filter((cells) => cells[0] !== "Topic");
 
   const topics = dataRows.map(([topic, authoritativeLocation, notes]) => {
@@ -145,6 +150,7 @@ export function extractDocumentationAuthorityIndex(root) {
   return {
     authority: PRODUCT_CONSTITUTION_PATH,
     section,
+    scanSection,
     topics,
     duplicates: duplicateValues(topics.map((row) => row.topic)),
   };

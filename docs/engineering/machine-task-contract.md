@@ -37,6 +37,7 @@ authority:
     - docs/protocols/adapter-protocol.md
     - docs/architecture/dependency-rules.md
   mayChangeAuthority: false
+  mayChangeProductSemantics: false
 
 acceptance:
   requirements:
@@ -75,7 +76,7 @@ review:
 | `scope.forbidden` | Paths or concepts the task must not modify. |
 | `authority.read` | Authoritative documents the agent must read before acting. |
 | `authority.mayChangeAuthority` | Whether the task is allowed to modify authority-bearing docs or schemas. |
-| `authority.mayChangeProductSemantics` | Whether the task may change Proofrail product semantics when a task needs that boundary stated explicitly. |
+| `authority.mayChangeProductSemantics` | Whether the task may change Proofrail product semantics. |
 | `acceptance.requirements` | Reviewable requirements for the task. |
 | `verification.commands` | Commands expected for self-checks. |
 | `verification.requiredInvariants` | Verification invariants expected in addition to command execution. |
@@ -88,6 +89,8 @@ review:
 A task contract MUST identify writable and forbidden scope.
 
 A task contract MUST identify authoritative documents to read.
+
+A task contract MUST explicitly state both `authority.mayChangeAuthority` and `authority.mayChangeProductSemantics`.
 
 A task contract MUST define stop conditions.
 

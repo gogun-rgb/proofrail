@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 
 import { renderJson, sortFindings } from "../../scripts/governance/lib/findings.mjs";
 import { stableStringify } from "../../scripts/governance/lib/json-utils.mjs";
-import { writeExpectedProjections } from "../../scripts/governance/lib/projections.mjs";
+import { canonicalTerminologyProjection, writeExpectedProjections } from "../../scripts/governance/lib/projections.mjs";
 import { validateFoundation } from "../../scripts/governance/lib/validator.mjs";
 
 const CANONICAL_TERMS = [
@@ -109,7 +109,7 @@ function taskContract() {
   return {
     task: { id: "SYN-001", class: "synthetic", objective: "Synthetic governance validator test task." },
     scope: { write: ["synthetic/**"], forbidden: ["runtime implementation"] },
-    authority: { read: ["AGENTS.md"], mayChangeAuthority: false },
+    authority: { read: ["AGENTS.md"], mayChangeAuthority: false, mayChangeProductSemantics: false },
     acceptance: { requirements: ["Synthetic requirement."] },
     verification: { commands: ["node synthetic-validator.js"] },
     requiredArtifacts: ["synthetic artifact"],
@@ -189,6 +189,17 @@ function codes(result) {
   return result.findings.map((finding) => finding.code);
 }
 
+function registeredCodes(root) {
+  return new Set(readJson(root, "governance/harness-reason-codes.json").codes.map((entry) => entry.code));
+}
+
+function assertFindingCodesRegistered(root, result) {
+  const registered = registeredCodes(root);
+  for (const code of codes(result)) {
+    assert.ok(registered.has(code), `${code} is not registered`);
+  }
+}
+
 test("sorts findings deterministically by code, path, and message", () => {
   const sorted = sortFindings([
     { code: "HARN_Z", path: "b", message: "b", remediation: "r" },
@@ -226,6 +237,8 @@ test("detects unknown emitted harness reason codes", (t) => {
   });
   assert.equal(result.status, "INVALID");
   assert.ok(codes(result).includes("HARN_EMITTED_REASON_CODE_UNKNOWN"));
+  assert.equal(codes(result).includes("HARN_SYNTHETIC_UNKNOWN"), false);
+  assertFindingCodesRegistered(root, result);
 });
 
 test("rejects duplicate harness reason codes", (t) => {
@@ -250,6 +263,61 @@ test("detects a missing required document", (t) => {
   assert.ok(codes(validateFoundation({ root })).includes("HARN_REQUIRED_DOCUMENT_MISSING"));
 });
 
+test("reports unsafe required-document config paths as registered parseable JSON", (t) => {
+  const unsafePaths = ["../outside.md", "C:/outside.md", "contains\u0000null.md"];
+
+  for (const unsafePath of unsafePaths) {
+    const root = createSyntheticRepo(t);
+    mutateJson(root, "governance/foundation.config.json", (foundationConfig) => {
+      foundationConfig.requiredDocuments = [unsafePath];
+    });
+
+    const output = renderJson(validateFoundation({ root }));
+    const parsed = JSON.parse(output);
+    assert.equal(parsed.status, "INVALID");
+    assert.ok(codes(parsed).includes("HARN_CONFIG_PATH_INVALID"));
+    assertFindingCodesRegistered(root, parsed);
+    assert.equal(output.includes(root), false);
+    assert.equal(output.includes("Error:"), false);
+    assert.equal(output.includes(" at "), false);
+  }
+});
+
+test("reports unsafe repository paths for all Foundation config path fields", (t) => {
+  const pathCases = [
+    ["requiredDocuments[0]", (foundationConfig) => {
+      foundationConfig.requiredDocuments[0] = "../outside.md";
+    }],
+    ["machineTaskContractSchema", (foundationConfig) => {
+      foundationConfig.machineTaskContractSchema = "../outside.md";
+    }],
+    ["harnessReasonCodeRegistry", (foundationConfig) => {
+      foundationConfig.harnessReasonCodeRegistry = "../outside.md";
+    }],
+    ["cleanAgentTestSpecification", (foundationConfig) => {
+      foundationConfig.cleanAgentTestSpecification = "../outside.md";
+    }],
+    ["architectureCheckPreparation", (foundationConfig) => {
+      foundationConfig.architectureCheckPreparation = "../outside.md";
+    }],
+    ["generatedProjections.canonicalTerminology", (foundationConfig) => {
+      foundationConfig.generatedProjections.canonicalTerminology = "../outside.md";
+    }],
+  ];
+
+  for (const [selector, mutate] of pathCases) {
+    const root = createSyntheticRepo(t);
+    mutateJson(root, "governance/foundation.config.json", mutate);
+    const result = validateFoundation({ root });
+    assert.equal(result.status, "INVALID");
+    assert.ok(
+      result.findings.some((finding) => finding.code === "HARN_CONFIG_PATH_INVALID" && finding.path === `governance/foundation.config.json#${selector}`),
+      `${selector} did not produce HARN_CONFIG_PATH_INVALID`,
+    );
+    assertFindingCodesRegistered(root, result);
+  }
+});
+
 test("detects stale generated projections", (t) => {
   const root = createSyntheticRepo(t);
   writeText(
@@ -258,6 +326,63 @@ test("detects stale generated projections", (t) => {
     readText(root, "docs/constitution/terminology.md").replace("Definition: synthetic Claim.", "Definition: synthetic Claim changed."),
   );
   assert.ok(codes(validateFoundation({ root })).includes("HARN_PROJECTION_STALE"));
+});
+
+test("ignores fenced fake canonical headings while extracting canonical sets", (t) => {
+  const root = createSyntheticRepo(t);
+  writeText(
+    root,
+    "docs/constitution/terminology.md",
+    readText(root, "docs/constitution/terminology.md").replace(
+      "## Canonical Terms\n",
+      "## Canonical Terms\n\n```text\n### Synthetic Fake Term\n```\n\n",
+    ),
+  );
+  writeText(
+    root,
+    "docs/product/verdict-semantics.md",
+    readText(root, "docs/product/verdict-semantics.md").replace(
+      "## Canonical Verdicts\n",
+      "## Canonical Verdicts\n\n```text\n### REVIEW_LATER\n```\n\n",
+    ),
+  );
+  writeExpectedProjections(root, config());
+
+  const terminologyProjection = readJson(root, "governance/generated/canonical-terminology.json");
+  const verdictProjection = readJson(root, "governance/generated/canonical-verdicts.json");
+  assert.equal(terminologyProjection.terms.some((entry) => entry.term === "Synthetic Fake Term"), false);
+  assert.equal(verdictProjection.verdicts.some((entry) => entry.verdict === "REVIEW_LATER"), false);
+  assert.equal(validateFoundation({ root }).status, "VALID");
+});
+
+test("detects stale projections when fenced authoritative source content changes", (t) => {
+  const root = createSyntheticRepo(t);
+  writeText(
+    root,
+    "docs/constitution/terminology.md",
+    readText(root, "docs/constitution/terminology.md").replace(
+      "## Canonical Terms\n",
+      "## Canonical Terms\n\n```text\n### Synthetic Fake Term\nalpha\n```\n\n",
+    ),
+  );
+  writeExpectedProjections(root, config());
+  const beforeDigest = readJson(root, "governance/generated/canonical-terminology.json").sourceDigest;
+
+  writeText(
+    root,
+    "docs/constitution/terminology.md",
+    readText(root, "docs/constitution/terminology.md").replace("alpha", "beta"),
+  );
+  const expectedDigest = canonicalTerminologyProjection(root).sourceDigest;
+  assert.notEqual(expectedDigest, beforeDigest);
+
+  const staleResult = validateFoundation({ root });
+  assert.equal(staleResult.status, "INVALID");
+  assert.ok(codes(staleResult).includes("HARN_PROJECTION_STALE"));
+
+  writeExpectedProjections(root, config());
+  assert.equal(readJson(root, "governance/generated/canonical-terminology.json").sourceDigest, expectedDigest);
+  assert.equal(validateFoundation({ root }).status, "VALID");
 });
 
 test("refuses generated projection output outside governance/generated", (t) => {
@@ -359,4 +484,29 @@ test("detects invalid Machine Task Contract reviewerMustNotRelyOnBuilderClaim", 
     task.review.reviewerMustNotRelyOnBuilderClaim = false;
   });
   assert.ok(codes(validateFoundation({ root })).includes("HARN_MTC_REVIEWER_CLAIM_INVALID"));
+});
+
+test("requires Machine Task Contract authority mayChangeAuthority", (t) => {
+  const root = createSyntheticRepo(t);
+  mutateJson(root, "governance/tasks/SYN-001.json", (task) => {
+    delete task.authority.mayChangeAuthority;
+  });
+  const result = validateFoundation({ root });
+  assert.equal(result.status, "INVALID");
+  assert.ok(codes(result).includes("HARN_MTC_INSTANCE_INVALID"));
+});
+
+test("requires Machine Task Contract authority mayChangeProductSemantics", (t) => {
+  const root = createSyntheticRepo(t);
+  mutateJson(root, "governance/tasks/SYN-001.json", (task) => {
+    delete task.authority.mayChangeProductSemantics;
+  });
+  const result = validateFoundation({ root });
+  assert.equal(result.status, "INVALID");
+  assert.ok(codes(result).includes("HARN_MTC_INSTANCE_INVALID"));
+});
+
+test("accepts Machine Task Contract authority with both explicit booleans", (t) => {
+  const root = createSyntheticRepo(t);
+  assert.equal(validateFoundation({ root }).status, "VALID");
 });

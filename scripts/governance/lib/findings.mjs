@@ -73,11 +73,14 @@ export function renderJson(result) {
   return stableStringify(result);
 }
 
-export function validateEmittedReasonCodes(findings, registeredCodes) {
-  if (!registeredCodes || registeredCodes.size === 0) return [];
+export function normalizeRegisteredFindings(findings, registeredCodes) {
+  if (!registeredCodes || registeredCodes.size === 0 || !registeredCodes.has("HARN_EMITTED_REASON_CODE_UNKNOWN")) {
+    return sortFindings(findings);
+  }
 
   const unknownCodes = [...new Set(findings.map((finding) => finding.code).filter((code) => !registeredCodes.has(code)))].sort();
-  return unknownCodes.map((code) =>
+  const registeredFindings = findings.filter((finding) => registeredCodes.has(finding.code));
+  const unknownDiagnostics = unknownCodes.map((code) =>
     createFinding(
       "HARN_EMITTED_REASON_CODE_UNKNOWN",
       "governance/harness-reason-codes.json",
@@ -85,4 +88,6 @@ export function validateEmittedReasonCodes(findings, registeredCodes) {
       "Register the HARN_ code or correct the validator to emit an existing registered code.",
     ),
   );
+
+  return sortFindings([...registeredFindings, ...unknownDiagnostics]);
 }
