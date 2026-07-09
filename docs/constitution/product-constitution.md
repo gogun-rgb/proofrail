@@ -43,9 +43,13 @@ No additional authoritative verdict state may be added without documenting a con
 
 Phase 0 is closed for the exact Foundation baseline `7865ea299f98b3fd0158d1486272f73468b345ac` after external independent Foundation Gate PASS. That PASS is a repository engineering review decision, not a Proofrail product Verdict.
 
-The current phase is Phase 1: Deterministic Kernel Vertical Slice.
+Phase 1 Deterministic Kernel Vertical Slice is closed for the exact accepted source baseline `0616091da1a572a2ea3e457ed84dab8e32259f59` after independent Phase 1 Gate PASS. The accepted Gate path is PR #12 / `PHASE1-GATE-002`, reviewed at head `b3724a8d7fdd71c0f8c68f9b98cfa45984a812a3` and merged as `6895a00ec0570fb90a53ebd12998197e526f9c4b`.
 
-Phase 1 authorizes implementation only of a synthetic-input deterministic vertical slice through:
+The Phase 1 Gate PASS is a repository engineering decision. It is not a Proofrail product Verdict, not product readiness, not a trusted release, and not authorization to implement Phase 2.
+
+PR #11 / `PHASE1-GATE-001` remains blocked and closed historical context because of an MTC authority-procedure defect. It MUST NOT be reused as accepted evidence.
+
+The closed Phase 1 slice covers only the synthetic-input deterministic vertical slice through:
 
 ```text
 Claim
@@ -58,15 +62,15 @@ Claim
   -> Evidence Bundle
 ```
 
-Phase 1 inputs MUST be synthetic in-memory domain inputs supplied directly to the kernel boundary. The first implementation objective is to prove that the canonical deterministic domain flow can execute end-to-end without repository, network, model, or target-code execution dependencies.
+Phase 1 inputs are synthetic in-memory domain inputs supplied directly to the kernel boundary. The Phase 1 closure means the repository engineering Gate accepted the bounded deterministic kernel vertical-slice baseline; it does not establish external trust, repository inspection, verification execution, or delivery behavior.
 
-Phase 1 preserves the existing authoritative data-flow direction and canonical terminology. It does not change Verdict semantics, Evidence authority classes, or Trust semantics.
+Phase 1 preserved the existing authoritative data-flow direction and canonical terminology. It did not change Verdict semantics, Evidence authority classes, or Trust semantics.
 
-Phase 1 authorizes production package layout only for the minimum layers required by the vertical slice. The only initial production package layers authorized by this transition are `packages/contracts` and `packages/kernel`.
+Phase 1 production package scope was limited to the minimum layers required by the vertical slice: `packages/contracts` and `packages/kernel`.
 
-Phase 1 does not authorize repository inspection, execution of target repository code, verification execution, language adapters, Python path traversal detection, CLI, API, MCP, web, GitHub integration, SARIF export, model provider integration, Inference Zone implementation, LLM judgment, or probabilistic confidence in the authoritative path.
+Proofrail still does not authorize or contain repository inspection, execution of target repository code, verification execution, language adapters, Python path traversal detection, CLI, API, MCP, web, GitHub integration, SARIF export, model provider integration, Inference Zone implementation, LLM judgment, or probabilistic confidence in the authoritative path.
 
-No product runtime, kernel implementation, contracts implementation, or Phase 1 vertical slice exists until implemented by a later authorized task. The next implementation task identity is `KERNEL-VS-001`, and it is not implemented by this phase transition.
+Any next phase, including Phase 2 boundary definition or implementation, requires a later valid Machine Task Contract and independent review. This Phase 1 closure record does not itself authorize Phase 2 implementation.
 
 ## Documentation Authority Index
 
