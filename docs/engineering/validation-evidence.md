@@ -3393,6 +3393,452 @@ ca70d542d3291b86c2575cac7b081d821f2bd6b9
 
 The untracked file list after final observed `pnpm verify` matched the pre-verify list. No additional untracked repository artifact was created by `pnpm verify`.
 
+## PHASE1-GATE-001 Validation Evidence
+
+All commands in this section were run from repository root on
+`phase1/phase-1-gate-1`.
+
+This section records Builder validation methods and bounded results for
+`PHASE1-GATE-001`. It is not independent Gate acceptance, not Phase 1 closure,
+not product readiness, and not a Proofrail product Verdict.
+
+### Baseline And Branch Preflight
+
+Command:
+
+```powershell
+git fetch origin
+```
+
+Exit status: 0 after escalated Git metadata/network authorization.
+
+Bounded result summary:
+
+```text
+origin/main updated to 0616091da1a572a2ea3e457ed84dab8e32259f59.
+origin/phase1/phase-1-gate-1 was fetched as a new branch.
+```
+
+Command:
+
+```powershell
+git switch phase1/phase-1-gate-1
+```
+
+Exit status: 0 after escalated Git metadata authorization.
+
+Bounded result summary:
+
+```text
+Created local branch phase1/phase-1-gate-1 tracking origin/phase1/phase-1-gate-1.
+```
+
+Command:
+
+```powershell
+git rev-parse origin/main
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+0616091da1a572a2ea3e457ed84dab8e32259f59
+```
+
+Interpretation: current `origin/main` exactly matched the `PHASE1-GATE-001`
+required baseline. There were no additional main commits after that baseline
+to inspect.
+
+Command:
+
+```powershell
+git diff --name-status origin/main...HEAD
+```
+
+Exit status: 0.
+
+Bounded result before Builder evidence edits:
+
+```text
+A	governance/tasks/PHASE1-GATE-001.json
+```
+
+### Authority Read
+
+The Builder read `governance/tasks/PHASE1-GATE-001.json` and every
+`authority.read` path listed by that task before producing gate evidence:
+
+```text
+AGENTS.md
+README.md
+docs/constitution/product-constitution.md
+docs/constitution/terminology.md
+docs/constitution/trust-model.md
+docs/architecture/data-flow.md
+docs/architecture/dependency-rules.md
+docs/architecture/inference-boundary.md
+docs/architecture/execution-boundary.md
+docs/product/verdict-semantics.md
+docs/protocols/evidence-schema.md
+docs/protocols/adapter-protocol.md
+docs/protocols/policy-schema.md
+docs/protocols/bundle-format.md
+docs/quality/foundation-gate.md
+docs/plans/active/phase-1-deterministic-kernel-vertical-slice.md
+docs/engineering/kernel-vertical-slice.md
+docs/engineering/kernel-assurance-campaign.md
+docs/engineering/machine-task-contract.md
+docs/engineering/validation-evidence.md
+docs/reviews/kernel-assurance-campaign-builder-review.md
+governance/tasks/KERNEL-VS-001.json
+governance/tasks/KERNEL-ASSURE-001.json
+governance/tasks/KERNEL-ASSURE-CONV-001.json
+packages/contracts/src/index.d.ts
+packages/contracts/src/index.js
+packages/kernel/src/index.js
+packages/kernel/src/boundary-validation.js
+packages/kernel/src/normalization.js
+packages/kernel/src/canonical-json.js
+packages/kernel/src/evidence-satisfaction.js
+packages/kernel/src/rule-evaluation.js
+packages/kernel/src/verdict-reduction.js
+packages/kernel/src/bundle-finalization.js
+packages/kernel/src/deep-freeze.js
+packages/kernel/src/kernel-reason-codes.js
+packages/kernel/test/helpers.js
+packages/kernel/test/boundary-validation.test.js
+packages/kernel/test/kernel-vertical-slice.test.js
+packages/kernel/test/verdict-reduction.test.js
+packages/kernel/test/immutability.test.js
+packages/kernel/test/kernel-assurance-campaign.test.js
+```
+
+### Source And Surface Inspection
+
+Command:
+
+```powershell
+rg --files packages
+```
+
+Exit status: 0.
+
+Bounded result summary: only `packages/contracts` and `packages/kernel` files
+were present under `packages`; no third production package or application layer
+was observed.
+
+Command:
+
+```powershell
+rg --files -g 'package.json' -g '!node_modules' -g '!dist'
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+package.json
+packages/contracts/package.json
+packages/kernel/package.json
+```
+
+Command:
+
+```powershell
+rg -n -i "\b(fs|node:fs|child_process|exec|spawn|execa|shell|fetch|http|https|net|tls|dns|github|octokit|openai|anthropic|model|llm|inference|confidence|probabilistic|random|randomUUID|uuid|Date\.now|new Date|process\.env|env\b|repository|repo|target-code|verification|pnpm|npm|yarn|bun|sarif|mcp|web|adapter|python|path traversal)\b" packages\contracts\src packages\kernel\src packages\contracts\package.json packages\kernel\package.json package.json pnpm-workspace.yaml tsconfig.json
+```
+
+Exit status: 0.
+
+Bounded result summary: production source had no forbidden-surface hits. The
+only hits were root `package.json` governance/package-manager script metadata:
+`packageManager: pnpm@11.7.0` and the repository engineering `verify` script.
+
+Command:
+
+```powershell
+rg -n "test\.(skip|todo|only)|describe\.(skip|only)|assert\.doesNotThrow|\.skip\(|\.only\(|TODO|todo" packages\kernel\test
+```
+
+Exit status: 1.
+
+Interpretation: exit status 1 is the expected ripgrep status for no matches.
+No skipped/todo/only/no-throw-only markers were found in kernel tests.
+
+### Task Contract Schema Correction
+
+Initial command:
+
+```powershell
+pnpm governance:check
+```
+
+Initial exit status: 1.
+
+Initial bounded result:
+
+```text
+HARN_MTC_REVIEW_EXPECTATION_INVALID governance/tasks/PHASE1-GATE-001.json:
+JSON Schema validation failed at /review/expectation: must be equal to constant.
+```
+
+Action: corrected `governance/tasks/PHASE1-GATE-001.json` review expectation
+from `independent_phase_1_gate_review_required` to the schema-required
+`independent_review_required`. The correction did not change authority fields,
+scope, product semantics, or `review.reviewerMustNotRelyOnBuilderClaim`.
+
+Retry command:
+
+```powershell
+pnpm governance:check
+```
+
+Retry exit status: 0.
+
+Bounded result:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+```
+
+### Required Verification Commands
+
+Command:
+
+```powershell
+pnpm governance:check-json
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Foundation JSON validation output parsed as VALID.
+```
+
+Command:
+
+```powershell
+pnpm test:governance
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+tests 37
+pass 37
+fail 0
+skipped 0
+todo 0
+```
+
+Command:
+
+```powershell
+pnpm typecheck:phase1
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+tsc -p tsconfig.json
+```
+
+Command:
+
+```powershell
+pnpm test:kernel
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+tests 475
+pass 475
+fail 0
+skipped 0
+todo 0
+```
+
+Command:
+
+```powershell
+pnpm test:kernel
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+tests 475
+pass 475
+fail 0
+skipped 0
+todo 0
+```
+
+Command:
+
+```powershell
+pnpm verify
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+Foundation JSON validation output parsed as VALID.
+governance tests: 37 pass, 0 fail.
+kernel tests: 475 pass, 0 fail.
+git diff --check exit status 0 with a Git line-ending conversion warning for governance/tasks/PHASE1-GATE-001.json.
+```
+
+Command:
+
+```powershell
+node scripts/validate-foundation.mjs
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+```
+
+Command:
+
+```powershell
+node scripts/validate-foundation.mjs --format json
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```json
+{
+  "findings": [],
+  "schemaVersion": "1",
+  "status": "VALID"
+}
+```
+
+Command:
+
+```powershell
+node scripts/governance/verify-json-output.mjs
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Foundation JSON validation output parsed as VALID.
+```
+
+Command:
+
+```powershell
+git diff --check
+```
+
+Exit status: 0.
+
+Bounded result summary: no whitespace errors. Git reported a line-ending
+conversion warning for `governance/tasks/PHASE1-GATE-001.json`.
+
+### Deterministic pnpm verify No-Mutation Comparison
+
+The following comparison is measured after the gate evidence and Builder review
+drafts are otherwise complete, then recorded afterward.
+
+Method:
+
+```powershell
+git diff --binary | git hash-object --stdin
+git status --short | Sort-Object
+pnpm verify
+git diff --binary | git hash-object --stdin
+git status --short | Sort-Object
+```
+
+Pre-verify tracked diff hash:
+
+```text
+477fba44c3731fcf2d40be9695397297edf8abc7
+```
+
+Pre-verify sorted status:
+
+```text
+ M docs/engineering/validation-evidence.md
+ M governance/tasks/PHASE1-GATE-001.json
+?? docs/engineering/phase-1-gate-evidence.md
+?? docs/reviews/phase-1-gate-builder-review.md
+```
+
+Observed command:
+
+```powershell
+pnpm verify
+```
+
+Exit status:
+
+```text
+0
+```
+
+Post-verify tracked diff hash:
+
+```text
+477fba44c3731fcf2d40be9695397297edf8abc7
+```
+
+Post-verify sorted status:
+
+```text
+ M docs/engineering/validation-evidence.md
+ M governance/tasks/PHASE1-GATE-001.json
+?? docs/engineering/phase-1-gate-evidence.md
+?? docs/reviews/phase-1-gate-builder-review.md
+```
+
+Interpretation:
+
+```text
+Pre/post tracked diff hashes matched. Pre/post sorted status states matched.
+No tracked or untracked repository artifact mutation was observed from the
+measured pnpm verify run.
+```
+
+Sequencing limitation: the comparison is recorded after the measured
+`pnpm verify` run, so this evidence append itself necessarily changes the
+tracked diff afterward. The comparison supports that the observed `pnpm verify`
+did not mutate the pre-existing tracked diff or sorted status state.
+
+### Builder Review Artifact
+
+Builder self-review is recorded in
+`docs/reviews/phase-1-gate-builder-review.md` with status
+`BUILDER_READY_FOR_INDEPENDENT_GATE`.
+
 ## KERNEL-ASSURE-001 Validation Evidence
 
 Task identity: `KERNEL-ASSURE-001`.

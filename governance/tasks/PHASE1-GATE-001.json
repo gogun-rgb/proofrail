@@ -199,7 +199,7 @@
     "repeated autonomous evidence-preparation convergence reaches a deadlock"
   ],
   "review": {
-    "expectation": "independent_phase_1_gate_review_required",
+    "expectation": "independent_review_required",
     "reviewerMustNotRelyOnBuilderClaim": true
   }
 }
