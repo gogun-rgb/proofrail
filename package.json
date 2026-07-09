@@ -9,10 +9,11 @@
     "governance:check": "node scripts/validate-foundation.mjs",
     "governance:check-json": "node scripts/governance/verify-json-output.mjs",
     "test:governance": "node --test tests/governance/*.test.mjs",
+    "test:evidence-gate": "node --test tests/evidence-gate/*.test.mjs",
     "typecheck:phase1": "tsc -p tsconfig.json",
     "test:kernel": "node --test packages/kernel/test/*.test.js",
     "validate:foundation": "node scripts/validate-foundation.mjs",
-    "verify": "pnpm governance:check && pnpm governance:check-json && pnpm test:governance && pnpm typecheck:phase1 && pnpm test:kernel && git diff --check"
+    "verify": "pnpm governance:check && pnpm governance:check-json && pnpm test:governance && pnpm test:evidence-gate && pnpm typecheck:phase1 && pnpm test:kernel && git diff --check"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
