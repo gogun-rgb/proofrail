@@ -1,0 +1,134 @@
+{
+  "task": {
+    "id": "GATE-MVP-001",
+    "class": "ai_pr_evidence_gate_mvp",
+    "objective": "Implement the smallest useful AI PR Evidence Gate: deterministic local code that converts provided static pull request input into an evidence packet separating claims, observed evidence, missing evidence, scope, and review needs."
+  },
+  "scope": {
+    "write": [
+      "governance/tasks/GATE-MVP-001.json",
+      "packages/evidence-gate/**",
+      "tests/evidence-gate/**",
+      "package.json",
+      "README.md",
+      "docs/plans/active/phase-2-ai-pr-evidence-gate.md",
+      "docs/engineering/validation-evidence.md"
+    ],
+    "read_only_authority": [
+      "AGENTS.md",
+      "docs/constitution/product-constitution.md",
+      "docs/constitution/terminology.md",
+      "docs/constitution/trust-model.md",
+      "docs/architecture/**",
+      "docs/product/**",
+      "docs/protocols/**",
+      "docs/quality/**",
+      "packages/contracts/**",
+      "packages/kernel/**",
+      "scripts/**",
+      ".github/**",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "tsconfig.json",
+      "governance/generated/**",
+      "governance/*.json",
+      "governance/*.schema.json"
+    ],
+    "forbidden": [
+      "packages/contracts/**",
+      "packages/kernel/**",
+      "scripts/**",
+      ".github/**",
+      "docs/constitution/**",
+      "docs/architecture/**",
+      "docs/product/**",
+      "docs/protocols/**",
+      "docs/quality/**",
+      "governance/generated/**",
+      "governance/*.json",
+      "governance/*.schema.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "tsconfig.json",
+      "live repository inspection",
+      "target repository code execution",
+      "network access",
+      "delivery surface implementation",
+      "model provider behavior",
+      "Inference Zone implementation",
+      "Proofrail product Verdict semantic changes",
+      "Evidence authority class changes",
+      "Trust semantic changes",
+      "canonical terminology changes",
+      "product readiness claims",
+      "trusted release claims",
+      "cost-risk setup"
+    ]
+  },
+  "authority": {
+    "read": [
+      "governance/tasks/GATE-MVP-001.json",
+      "AGENTS.md",
+      "README.md",
+      "package.json",
+      "docs/constitution/product-constitution.md",
+      "docs/plans/active/phase-2-ai-pr-evidence-gate.md"
+    ],
+    "mayChangeAuthority": false,
+    "mayChangeProductSemantics": false
+  },
+  "acceptance": {
+    "requirements": [
+      "Commit GATE-MVP-001 as the first artifact on the branch before implementation edits.",
+      "Create packages/evidence-gate with deterministic local static-input evidence packet behavior.",
+      "Do not inspect live repositories, use network access, execute target repository code, use model providers, or implement a delivery surface.",
+      "The packet must distinguish claims, observedEvidence, missingEvidence, scope, reviewNeeds, and boundaries.",
+      "Claims must remain assertions and must not become Evidence by themselves.",
+      "Missing evidence must remain visible and must not become confidence.",
+      "Identical normalized inputs must produce identical packet output.",
+      "Add focused local tests for claim/evidence separation, missing evidence retention, scope boundary preservation, determinism, and no readiness overclaim.",
+      "Add root test script wiring without external dependencies or lockfile changes.",
+      "Update README.md and the active Phase 2 plan to describe this as a local static-input MVP, not product readiness.",
+      "Record only commands actually run in validation evidence.",
+      "If cost-risk setup appears, stop with BLOCKED_COST_RISK.",
+      "If local long-run or Codex limit is reached, stop with LIMIT_REACHED."
+    ]
+  },
+  "verification": {
+    "commands": [
+      "pnpm governance:check",
+      "pnpm governance:check-json",
+      "pnpm test:governance",
+      "pnpm test:evidence-gate",
+      "pnpm verify",
+      "git diff --check"
+    ],
+    "requiredInvariants": [
+      "No live repository inspection, network access, target-code execution, delivery surface, model provider, or Inference Zone behavior is implemented.",
+      "Claims remain distinct from observed evidence.",
+      "Missing evidence remains explicit in the packet.",
+      "Identical normalized inputs produce identical packet output.",
+      "No product Verdict semantic, Trust semantic, Evidence authority class, canonical terminology, or product protocol change is introduced."
+    ]
+  },
+  "requiredArtifacts": [
+    "governance/tasks/GATE-MVP-001.json",
+    "packages/evidence-gate package source",
+    "tests/evidence-gate focused tests",
+    "package.json test script update",
+    "README.md MVP note",
+    "docs/plans/active/phase-2-ai-pr-evidence-gate.md MVP update",
+    "docs/engineering/validation-evidence.md command evidence if commands run"
+  ],
+  "stopConditions": [
+    "The task requires live repository inspection, network access, target-code execution, model provider behavior, delivery surface behavior, or Inference Zone behavior",
+    "The task requires changing product semantics, Verdict semantics, Trust semantics, Evidence authority classes, canonical terminology, or product protocols",
+    "The task requires external dependencies or pnpm-lock.yaml changes",
+    "Cost-risk setup appears: BLOCKED_COST_RISK",
+    "Local long-run or Codex limit is reached: LIMIT_REACHED"
+  ],
+  "review": {
+    "expectation": "independent_review_required",
+    "reviewerMustNotRelyOnBuilderClaim": true
+  }
+}
