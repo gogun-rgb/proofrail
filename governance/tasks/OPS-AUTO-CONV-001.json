@@ -1,0 +1,140 @@
+{
+  "task": {
+    "id": "OPS-AUTO-CONV-001",
+    "class": "governance_convergence",
+    "objective": "Converge PR #9 onto the current main baseline after PR #10 integration, resolve the validation-evidence merge conflict without dropping either task's evidence, and revalidate autonomous-execution governance against the post-assurance repository state."
+  },
+  "scope": {
+    "write": [
+      "AGENTS.md",
+      "docs/engineering/machine-task-contract.md",
+      "docs/engineering/validation-evidence.md",
+      "docs/reviews/**",
+      "governance/tasks/OPS-AUTO-001.json",
+      "governance/tasks/OPS-AUTO-CONV-001.json"
+    ],
+    "read_only_authority": [
+      "docs/constitution/**",
+      "docs/architecture/**",
+      "docs/product/**",
+      "docs/protocols/**",
+      "docs/quality/**",
+      "packages/contracts/**",
+      "packages/kernel/**",
+      "docs/engineering/kernel-assurance-campaign.md",
+      "governance/tasks/KERNEL-ASSURE-001.json",
+      "governance/tasks/KERNEL-ASSURE-CONV-001.json"
+    ],
+    "forbidden": [
+      "README.md",
+      "docs/constitution/**",
+      "docs/architecture/**",
+      "docs/product/**",
+      "docs/protocols/**",
+      "docs/quality/**",
+      "packages/**",
+      "scripts/**",
+      "tests/**",
+      ".github/**",
+      "package.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "tsconfig.json",
+      "governance/generated/**",
+      "governance/foundation.config.json",
+      "governance/foundation.config.schema.json",
+      "governance/machine-task-contract.schema.json",
+      "governance/harness-reason-codes.json",
+      "governance/harness-reason-codes.schema.json",
+      "Proofrail product semantic changes",
+      "Verdict semantic changes",
+      "Evidence authority class changes",
+      "Trust semantic changes",
+      "runtime implementation"
+    ]
+  },
+  "authority": {
+    "read": [
+      "AGENTS.md",
+      "docs/engineering/machine-task-contract.md",
+      "docs/engineering/clean-agent-test.md",
+      "docs/engineering/validation-evidence.md",
+      "docs/engineering/kernel-assurance-campaign.md",
+      "docs/reviews/autonomous-execution-defaults-builder-review.md",
+      "docs/constitution/product-constitution.md",
+      "docs/constitution/trust-model.md",
+      "docs/architecture/dependency-rules.md",
+      "docs/plans/active/phase-1-deterministic-kernel-vertical-slice.md",
+      "governance/tasks/OPS-AUTO-001.json",
+      "governance/tasks/KERNEL-ASSURE-001.json",
+      "governance/tasks/KERNEL-ASSURE-CONV-001.json",
+      "packages/kernel/test/kernel-assurance-campaign.test.js"
+    ],
+    "mayChangeAuthority": true,
+    "mayChangeProductSemantics": false
+  },
+  "acceptance": {
+    "requirements": [
+      "Treat this as autonomous post-main convergence for PR #9. Continue through base integration, conflict diagnosis, conflict resolution, evidence reconciliation, validation, remediation, retries, commit, and push until BUILDER_READY_FOR_REVIEW or a true stop condition is reached.",
+      "Fetch origin and confirm the current main baseline contains merged PR #10 commit ecb10ed4723fce3d250f8a02468a4afadd638786 in its ancestry. If main has materially advanced beyond this baseline, inspect the additional commits before proceeding and stop only for a genuine authority or semantic conflict.",
+      "Integrate current origin/main into governance/autonomous-execution-defaults-1 using a history-preserving strategy chosen by the Builder. Do not force-push rewritten history unless necessary; prefer a normal merge when it preserves reviewability.",
+      "Resolve the docs/engineering/validation-evidence.md conflict by retaining the complete KERNEL-ASSURE-001 and KERNEL-ASSURE-CONV-001 evidence already on main and the complete OPS-AUTO-001 evidence from PR #9. Do not drop, rewrite as if newly executed, or conflate historical command evidence from either task.",
+      "Keep OPS-AUTO-001 autonomous-execution guidance materially unchanged unless post-main integration reveals a real authority conflict. Preserve Authority-Change Preflight, self-grant prohibition, independent review, product runtime authority separation, and Agent action != approved change != trusted release in substance.",
+      "Do not modify kernel, contracts, tests, scripts, workflows, dependencies, canonical terminology, Verdict semantics, Evidence authority classes, Trust semantics, protocols, architecture, product semantics, or runtime behavior.",
+      "After integration, inspect the diff from origin/main to HEAD and prove task-local changes are limited to OPS-AUTO-001 / OPS-AUTO-CONV-001 writable governance and evidence paths.",
+      "Re-run all OPS-AUTO-001 verification commands against the post-PR-#10 baseline. Record actual current kernel test counts from pnpm verify; do not retain stale 72-test wording as current convergence verification evidence.",
+      "Add a post-main convergence section to docs/engineering/validation-evidence.md that records base integration, conflict path, resolution policy, current verification results, exact origin/main comparison scope, and whether the merge/conflict resolution changed the intended OPS-AUTO governance text.",
+      "Update the Builder review with a post-main convergence finding covering the validation-evidence conflict and its disposition. Do not erase the original Builder findings or pretend the conflict did not occur.",
+      "Perform a deterministic pnpm verify no-mutation pre/post comparison using tracked diff hash and sorted status state after convergence changes are otherwise complete, and record exact values and sequencing limitations.",
+      "Do not claim independent acceptance, PASS, PASS_FOR_INTEGRATION, trusted release, product readiness, Phase 1 completion, or a Proofrail product Verdict."
+    ]
+  },
+  "verification": {
+    "commands": [
+      "pnpm governance:check",
+      "pnpm governance:check-json",
+      "pnpm test:governance",
+      "pnpm verify",
+      "node scripts/validate-foundation.mjs --format json",
+      "git diff --check"
+    ],
+    "requiredInvariants": [
+      "Current origin/main is integrated before review readiness is claimed.",
+      "KERNEL-ASSURE evidence from main and OPS-AUTO evidence from PR #9 are both retained without historical evidence fabrication.",
+      "Authority-Change Preflight remains materially intact.",
+      "Self-granted authority remains prohibited.",
+      "Independent review remains required.",
+      "No product or runtime semantics change.",
+      "No packages or production code change is introduced by the OPS-AUTO convergence delta from current origin/main.",
+      "Human routing is not required for ordinary reversible choices within valid authority.",
+      "Autonomous remediation does not grant release or acceptance authority.",
+      "pnpm verify is non-mutating under the recorded deterministic pre/post comparison.",
+      "PR #9 becomes mergeable against the current main baseline before independent integration review."
+    ]
+  },
+  "requiredArtifacts": [
+    "governance/tasks/OPS-AUTO-CONV-001.json",
+    "conflict-resolved post-main PR #9 branch",
+    "retained KERNEL-ASSURE and OPS-AUTO validation evidence",
+    "updated autonomous execution Builder review",
+    "post-main convergence validation evidence",
+    "deterministic verify no-mutation comparison"
+  ],
+  "stopConditions": [
+    "Authority-Change Preflight would need to be weakened",
+    "self-grant prevention would need to be weakened",
+    "independent review would need to be removed",
+    "Proofrail product semantics must change",
+    "runtime implementation is required",
+    "canonical terminology must change",
+    "Trust semantics must change",
+    "Verdict semantics must change",
+    "Evidence authority classes must change",
+    "the main integration conflict requires edits outside writable scope",
+    "repeated autonomous convergence reaches a deadlock"
+  ],
+  "review": {
+    "expectation": "independent_review_required",
+    "reviewerMustNotRelyOnBuilderClaim": true
+  }
+}
