@@ -10,13 +10,15 @@ AI can write the code. Proofrail determines whether the change is admissible.
 
 Phase 0 Foundation is closed for baseline `7865ea299f98b3fd0158d1486272f73468b345ac` after external independent Foundation Gate PASS.
 
-This repository is now in Phase 1: Deterministic Kernel Vertical Slice.
+Phase 1 Deterministic Kernel Vertical Slice is closed for the exact accepted source baseline `0616091da1a572a2ea3e457ed84dab8e32259f59` after independent Phase 1 Gate PASS. PR #12 reviewed head `b3724a8d7fdd71c0f8c68f9b98cfa45984a812a3`; PR #12 merged as `6895a00ec0570fb90a53ebd12998197e526f9c4b`.
 
-Phase 1 authorizes a bounded synthetic-input vertical slice through Claim, Evidence Contract, Evidence Requirement, Observation, Evidence satisfaction, Rule, Verdict reduction, and Evidence Bundle. It does not authorize repository inspection, target-code execution, verification execution, adapters, delivery surfaces, model provider integration, or Inference Zone implementation.
+This Phase 1 PASS is a repository engineering Gate PASS. It is not a Proofrail product Verdict, not product readiness, not a trusted release, and not Phase 2 implementation authorization.
 
-This repository now contains an initial deterministic synthetic-input kernel vertical slice from `KERNEL-VS-001`. It is pending independent review and is not a claim that Phase 1 is complete or independently accepted.
+PR #11 / `PHASE1-GATE-001` remains blocked and closed historical context due to an MTC authority-procedure defect. It must not be reused as accepted evidence.
 
-Proofrail still does not have repository inspection, verification execution, adapters, delivery surfaces, or a complete product runtime.
+Proofrail still does not have repository inspection, verification execution, adapters, delivery surfaces, model provider behavior, Inference Zone implementation, or a complete product runtime.
+
+Phase 2 or any next phase work requires a later valid Machine Task Contract and independent review before implementation.
 
 ## Start Here
 
@@ -55,10 +57,10 @@ node scripts/validate-foundation.mjs --format json
 
 See [docs/engineering/foundation-mechanization.md](docs/engineering/foundation-mechanization.md) for the current governance mechanics.
 
-## Active Plan
+## Closed Phase 1 Plan
 
-The active Phase 1 plan is documented in [docs/plans/active/phase-1-deterministic-kernel-vertical-slice.md](docs/plans/active/phase-1-deterministic-kernel-vertical-slice.md):
+The closed Phase 1 plan is documented in [docs/plans/active/phase-1-deterministic-kernel-vertical-slice.md](docs/plans/active/phase-1-deterministic-kernel-vertical-slice.md):
 
 Phase 1 Deterministic Kernel Vertical Slice
 
-The first implementation task identity is `KERNEL-VS-001`. Builder implementation exists on `phase1/kernel-vertical-slice-1` and is pending independent review.
+The Phase 1 implementation task was `KERNEL-VS-001`; the accepted Phase 1 source baseline is `0616091da1a572a2ea3e457ed84dab8e32259f59`.

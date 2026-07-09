@@ -1,0 +1,154 @@
+{
+  "task": {
+    "id": "PHASE1-CLOSE-001",
+    "class": "phase_closure_record_cleanup",
+    "objective": "Record the externally supplied independent Phase 1 Gate PASS for the exact accepted baseline, close Phase 1 as the Deterministic Kernel Vertical Slice in current-state records, and clean stale record drift without claiming product readiness, trusted release, Phase 2 implementation authorization, or a Proofrail product Verdict."
+  },
+  "scope": {
+    "write": [
+      "governance/tasks/PHASE1-CLOSE-001.json",
+      "README.md",
+      "docs/constitution/product-constitution.md",
+      "docs/plans/active/phase-1-deterministic-kernel-vertical-slice.md"
+    ],
+    "read_only_authority": [
+      "AGENTS.md",
+      "docs/engineering/machine-task-contract.md",
+      "docs/engineering/validation-evidence.md",
+      "docs/engineering/phase-1-gate-evidence.md",
+      "docs/reviews/phase-1-gate-builder-review.md",
+      "docs/constitution/terminology.md",
+      "docs/constitution/trust-model.md",
+      "docs/architecture/**",
+      "docs/product/**",
+      "docs/protocols/**",
+      "docs/quality/**",
+      "packages/contracts/**",
+      "packages/kernel/**",
+      "scripts/**",
+      "tests/**",
+      ".github/**",
+      "package.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "tsconfig.json",
+      "governance/generated/**",
+      "governance/foundation.config.json",
+      "governance/foundation.config.schema.json",
+      "governance/machine-task-contract.schema.json",
+      "governance/harness-reason-codes.json",
+      "governance/harness-reason-codes.schema.json",
+      "governance/tasks/PHASE1-GATE-002.json"
+    ],
+    "forbidden": [
+      "packages/**",
+      "scripts/**",
+      "tests/**",
+      ".github/**",
+      "docs/architecture/**",
+      "docs/product/**",
+      "docs/protocols/**",
+      "docs/quality/**",
+      "docs/engineering/**",
+      "docs/reviews/**",
+      "docs/constitution/terminology.md",
+      "docs/constitution/trust-model.md",
+      "governance/generated/**",
+      "governance/foundation.config.json",
+      "governance/foundation.config.schema.json",
+      "governance/machine-task-contract.schema.json",
+      "governance/harness-reason-codes.json",
+      "governance/harness-reason-codes.schema.json",
+      "governance/tasks/PHASE1-GATE-001.json",
+      "governance/tasks/PHASE1-GATE-002.json",
+      "governance/tasks/KERNEL-VS-001.json",
+      "governance/tasks/KERNEL-ASSURE-001.json",
+      "package.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "tsconfig.json",
+      "Proofrail product semantic changes",
+      "Verdict semantic changes",
+      "Evidence authority class changes",
+      "Trust semantic changes",
+      "canonical terminology changes",
+      "repository inspection product behavior",
+      "verification execution product behavior",
+      "target-code execution behavior",
+      "language adapters or adapter capability implementation",
+      "CLI, API, MCP, web, GitHub, SARIF, or other delivery surfaces",
+      "model provider behavior",
+      "Inference Zone implementation",
+      "Phase 2 implementation",
+      "product readiness claims",
+      "trusted release claims",
+      "Proofrail product Verdict claims"
+    ]
+  },
+  "authority": {
+    "read": [
+      "governance/tasks/PHASE1-CLOSE-001.json",
+      "governance/tasks/PHASE1-GATE-002.json",
+      "AGENTS.md",
+      "README.md",
+      "docs/constitution/product-constitution.md",
+      "docs/constitution/terminology.md",
+      "docs/constitution/trust-model.md",
+      "docs/plans/active/phase-1-deterministic-kernel-vertical-slice.md",
+      "docs/engineering/phase-1-gate-evidence.md",
+      "docs/engineering/validation-evidence.md",
+      "docs/reviews/phase-1-gate-builder-review.md"
+    ],
+    "mayChangeAuthority": true,
+    "mayChangeProductSemantics": false
+  },
+  "acceptance": {
+    "requirements": [
+      "Treat the independent Phase 1 Gate PASS as externally supplied task input for repository engineering records only. Do not convert it into a Proofrail product Verdict, product readiness claim, trusted release, or Phase 2 implementation authorization.",
+      "Record that the accepted Phase 1 source baseline is 0616091da1a572a2ea3e457ed84dab8e32259f59, PR #12 reviewed head is b3724a8d7fdd71c0f8c68f9b98cfa45984a812a3, and PR #12 merge commit is 6895a00ec0570fb90a53ebd12998197e526f9c4b.",
+      "Record that PR #11 / PHASE1-GATE-001 remains BLOCKED and closed due to an MTC authority-procedure defect and must not be reused as accepted evidence.",
+      "Close Phase 1 as Deterministic Kernel Vertical Slice only. Preserve the explicit limits: no repository inspection, no verification execution, no adapters, no delivery surfaces, no model provider behavior, and no Inference Zone unless separately authorized later.",
+      "Update stale current-state declarations in README.md, docs/constitution/product-constitution.md, and docs/plans/active/phase-1-deterministic-kernel-vertical-slice.md so they no longer say the kernel implementation, convergence remediation, or independent review is pending.",
+      "Optionally prepare the next phase boundary only as a pending future boundary requiring a later valid Machine Task Contract and independent review. Do not authorize or start Phase 2 implementation in this task.",
+      "Before editing authority-bearing current-state records, perform Authority-Change Preflight from this committed MTC: identify the authority-bearing targets, confirm scope.write includes them, confirm forbidden scope does not cover them, confirm authority.mayChangeAuthority is true, and confirm the objective and acceptance requirements explicitly authorize only this record cleanup and Phase 1 closure wording.",
+      "Keep the final diff limited to this Machine Task Contract and the three authorized current-state record files.",
+      "If any payment, billing, API key, credits, paid cloud runner, SaaS enablement, or cloud execution prompt appears, stop with BLOCKED_COST_RISK.",
+      "If Codex or local long-run execution limit is reached, stop with LIMIT_REACHED."
+    ]
+  },
+  "verification": {
+    "commands": [
+      "pnpm governance:check",
+      "pnpm governance:check-json",
+      "pnpm verify",
+      "git diff --check"
+    ],
+    "requiredInvariants": [
+      "PHASE1-CLOSE-001 is the first committed artifact on the task branch before Builder edits to authority-bearing records.",
+      "Authority-Change Preflight authorizes the three current-state record edits before they are made.",
+      "No production code, contracts, tests, generated governance projection, CI, package manifest, product protocol, Verdict semantics, Trust semantics, Evidence authority class, or canonical terminology file changes.",
+      "Phase 1 Gate PASS is stated as repository engineering Gate PASS, not a Proofrail product Verdict.",
+      "Phase 1 closure does not claim product readiness, trusted release, or Phase 2 implementation authorization.",
+      "PR #11 / PHASE1-GATE-001 remains blocked historical context, not accepted evidence.",
+      "Record cleanup preserves all Phase 1 prohibited integration boundaries."
+    ]
+  },
+  "requiredArtifacts": [
+    "governance/tasks/PHASE1-CLOSE-001.json",
+    "README.md updated Phase 1 closure record",
+    "docs/constitution/product-constitution.md updated Current Phase Invariant",
+    "docs/plans/active/phase-1-deterministic-kernel-vertical-slice.md updated closure status and next-boundary note"
+  ],
+  "stopConditions": [
+    "PHASE1-CLOSE-001 fails schema or governance validation",
+    "Authority-Change Preflight cannot authorize the record cleanup before edits",
+    "Requested edits would require product semantic, Verdict semantic, Trust semantic, Evidence authority, canonical terminology, production code, test, generated projection, CI, package, or protocol changes",
+    "Any Phase 2 implementation work is needed or requested inside this task",
+    "Any payment, billing, API key, credits, paid cloud runner, SaaS enablement, or cloud execution prompt appears: BLOCKED_COST_RISK",
+    "Codex or local long-run limit is reached: LIMIT_REACHED"
+  ],
+  "review": {
+    "expectation": "independent_review_required",
+    "reviewerMustNotRelyOnBuilderClaim": true
+  }
+}
