@@ -1,0 +1,148 @@
+{
+  "task": {
+    "id": "OPS-AUTOPILOT-001",
+    "class": "autonomous_local_operation",
+    "objective": "Make low-touch Proofrail operation the default by implementing a local-only autonomous Governor/Builder runner protocol that continues from committed Machine Task Contracts, idles without noisy reminders when no open PR exists, preserves independent review separation, and never uses paid services, API keys, credits, or cloud runner enablement."
+  },
+  "scope": {
+    "write": [
+      "governance/tasks/OPS-AUTOPILOT-001.json",
+      "AGENTS.md",
+      "docs/engineering/autonomous-local-operation.md",
+      "docs/engineering/machine-task-contract.md",
+      "docs/engineering/validation-evidence.md",
+      "scripts/**",
+      "tests/governance/**",
+      "package.json"
+    ],
+    "read_only_authority": [
+      "README.md",
+      "docs/constitution/product-constitution.md",
+      "docs/constitution/terminology.md",
+      "docs/constitution/trust-model.md",
+      "docs/constitution/non-goals.md",
+      "docs/plans/active/phase-1-deterministic-kernel-vertical-slice.md",
+      "docs/plans/active/phase-2-boundary-definition.md",
+      "governance/tasks/PHASE1-CLOSE-001.json",
+      "governance/tasks/PHASE2-BOUNDARY-001.json",
+      "docs/architecture/**",
+      "docs/product/**",
+      "docs/protocols/**",
+      "docs/quality/**",
+      "packages/**",
+      ".github/**",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "tsconfig.json",
+      "governance/generated/**",
+      "governance/*.json",
+      "governance/*.schema.json"
+    ],
+    "forbidden": [
+      "packages/**",
+      ".github/**",
+      "docs/architecture/**",
+      "docs/product/**",
+      "docs/protocols/**",
+      "docs/quality/**",
+      "docs/constitution/terminology.md",
+      "docs/constitution/trust-model.md",
+      "docs/constitution/non-goals.md",
+      "docs/plans/active/phase-1-deterministic-kernel-vertical-slice.md",
+      "docs/plans/active/phase-2-boundary-definition.md",
+      "governance/generated/**",
+      "governance/*.json",
+      "governance/*.schema.json",
+      "governance/tasks/PHASE1-CLOSE-001.json",
+      "governance/tasks/PHASE2-BOUNDARY-001.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "tsconfig.json",
+      "Proofrail product semantic changes",
+      "Verdict semantic changes",
+      "Evidence authority class changes",
+      "Trust semantic changes",
+      "canonical terminology changes",
+      "repository inspection product behavior",
+      "verification execution product behavior",
+      "target-code execution behavior",
+      "language adapters or adapter capability implementation",
+      "CLI, API, MCP, web, GitHub, SARIF, or other delivery surfaces as Proofrail product behavior",
+      "model provider behavior",
+      "Inference Zone implementation",
+      "Phase 2 implementation work",
+      "product readiness claims",
+      "trusted release claims",
+      "Proofrail product Verdict claims",
+      "paid service enablement",
+      "API key usage",
+      "credit purchase",
+      "billing setup",
+      "paid cloud runner or SaaS enablement"
+    ]
+  },
+  "authority": {
+    "read": [
+      "governance/tasks/OPS-AUTOPILOT-001.json",
+      "AGENTS.md",
+      "docs/engineering/machine-task-contract.md",
+      "docs/engineering/validation-evidence.md",
+      "README.md",
+      "docs/constitution/product-constitution.md",
+      "docs/plans/active/phase-2-boundary-definition.md"
+    ],
+    "mayChangeAuthority": true,
+    "mayChangeProductSemantics": false
+  },
+  "acceptance": {
+    "requirements": [
+      "Implement or document a local-only autonomous operation loop so the human operator does not need to issue a new task command after every completed PR.",
+      "When there is no open PR with a committed Machine Task Contract, the runner must idle quietly or report a single bounded terminal state instead of repeatedly sending noisy reminders.",
+      "The loop must distinguish Governor task issuance, Builder execution, and independent review/merge authority. Builder output must not be accepted as independent review.",
+      "The loop must not self-author permissive implementation authority from a broad natural-language goal. Every implementation step still requires a committed valid Machine Task Contract before edits.",
+      "The loop must never buy credits, request billing, use API keys, enable paid cloud, enable paid SaaS, or enable paid cloud runners. Any such prompt must stop with BLOCKED_COST_RISK.",
+      "If local long-run or Codex limit is reached, stop with LIMIT_REACHED.",
+      "Do not add paid dependencies, package dependencies, product code, package implementation, product protocols, or product semantics.",
+      "Do not modify GitHub Actions workflows or branch protection in this task. If structural GitHub enforcement is needed, record it as a required external repository setting or a later separately authorized task.",
+      "Add tests or local validation where practical for runner state classification, especially no-open-PR idle behavior and cost-risk stop classification.",
+      "Update validation evidence only with commands actually run by the Builder; do not claim local command execution in PR text unless actually performed.",
+      "Keep Phase 2 implementation unauthorized. This task is operating-mode automation only."
+    ]
+  },
+  "verification": {
+    "commands": [
+      "pnpm governance:check",
+      "pnpm governance:check-json",
+      "pnpm test:governance",
+      "pnpm verify",
+      "git diff --check"
+    ],
+    "requiredInvariants": [
+      "OPS-AUTOPILOT-001 is the first committed artifact on the task branch before Builder edits.",
+      "No production package or product protocol files are changed.",
+      "No GitHub Actions workflow, branch protection, cloud, billing, API-key, or paid-service configuration is added.",
+      "No Phase 2 implementation authority is introduced.",
+      "No Builder self-approval or self-merge path is represented as independent review.",
+      "No-open-PR state no longer creates repeated noisy BLOCKED reminders in the documented local operation protocol."
+    ]
+  },
+  "requiredArtifacts": [
+    "governance/tasks/OPS-AUTOPILOT-001.json",
+    "AGENTS.md autonomous operation update",
+    "docs/engineering/autonomous-local-operation.md",
+    "docs/engineering/machine-task-contract.md update if needed for role separation wording",
+    "docs/engineering/validation-evidence.md Builder evidence update if commands are run",
+    "local runner scripts and governance tests if implementation is practical within scope"
+  ],
+  "stopConditions": [
+    "The task would require paid service, billing, credits, API keys, cloud runner enablement, or SaaS enablement: BLOCKED_COST_RISK",
+    "Codex or local long-run limit is reached: LIMIT_REACHED",
+    "The task would require product semantics, product code, product protocols, package implementation, GitHub Actions workflow changes, branch protection API changes, or Phase 2 implementation",
+    "Authority-Change Preflight cannot authorize the operational-documentation and local-runner changes before edits",
+    "Independent review separation cannot be preserved"
+  ],
+  "review": {
+    "expectation": "independent_review_required",
+    "reviewerMustNotRelyOnBuilderClaim": true
+  }
+}
