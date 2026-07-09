@@ -16,13 +16,11 @@ This Phase 1 PASS is a repository engineering Gate PASS. It is not a Proofrail p
 
 PR #11 / `PHASE1-GATE-001` remains blocked and closed historical context due to an MTC authority-procedure defect. It must not be reused as accepted evidence.
 
-The current next product focus is Phase 2 AI PR Evidence Gate: a narrowed, practical first product direction for turning an AI-authored pull request into an evidence packet that separates claims, observed evidence, missing evidence, scope, and review needs.
+The current product focus is Phase 2 AI PR Evidence Gate: a practical first product direction for turning an AI-authored pull request into an evidence packet that separates claims, observed evidence, missing evidence, scope, and review needs.
 
-`PRODUCT-FOCUS-001` narrows the implementation roadmap focus only. It does not authorize product runtime implementation, product readiness, trusted release status, or an authoritative Proofrail product Verdict.
+`GATE-MVP-001` starts the smallest local static-input implementation: `@proofrail/evidence-gate` builds an evidence packet from caller-provided pull request facts. It is not product readiness, trusted release status, or an authoritative Proofrail product Verdict.
 
-Proofrail still does not have repository inspection, verification execution, adapters, delivery surfaces, model provider behavior, Inference Zone implementation, complete Evidence Bundle protocol completion, complete product Verdict runtime behavior, or a complete product runtime.
-
-Any implementation after this narrowed focus requires a later valid Machine Task Contract and independent review.
+Proofrail still does not have the complete product runtime. Any implementation beyond this static-input MVP requires a later valid Machine Task Contract and independent review.
 
 ## Start Here
 
@@ -59,6 +57,12 @@ node scripts/validate-foundation.mjs
 node scripts/validate-foundation.mjs --format json
 ```
 
+For the static-input AI PR Evidence Gate MVP:
+
+```bash
+pnpm test:evidence-gate
+```
+
 See [docs/engineering/foundation-mechanization.md](docs/engineering/foundation-mechanization.md) for the current governance mechanics.
 
 ## Closed Phase 1 Plan
@@ -73,4 +77,4 @@ The Phase 1 implementation task was `KERNEL-VS-001`; the accepted Phase 1 source
 
 The narrowed Phase 2 focus plan is documented in [docs/plans/active/phase-2-ai-pr-evidence-gate.md](docs/plans/active/phase-2-ai-pr-evidence-gate.md).
 
-The earlier boundary-only record remains documented in [docs/plans/active/phase-2-boundary-definition.md](docs/plans/active/phase-2-boundary-definition.md). That record and this focus plan do not implement or authorize repository inspection, verification execution, adapters, delivery surfaces, model provider behavior, Inference Zone behavior, or a trusted release.
+The earlier boundary-only record remains documented in [docs/plans/active/phase-2-boundary-definition.md](docs/plans/active/phase-2-boundary-definition.md).
