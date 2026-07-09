@@ -68,11 +68,11 @@ Phase 1 preserved the existing authoritative data-flow direction and canonical t
 
 Phase 1 production package scope was limited to the minimum layers required by the vertical slice: `packages/contracts` and `packages/kernel`.
 
-The next repository engineering work is Phase 2 Boundary Definition only under `PHASE2-BOUNDARY-001`. It may define a future implementation boundary, prohibited surfaces, acceptance criteria, and independent review requirements, but it does not itself authorize or start Phase 2 implementation.
+The current next product focus is Phase 2 AI PR Evidence Gate under `PRODUCT-FOCUS-001`: a narrowed, practical first product direction for turning an AI-authored pull request into an evidence packet that separates claims, observed evidence, missing evidence, scope, and review needs. This is an implementation roadmap focus, not product readiness, trusted release status, or an authoritative Proofrail product Verdict.
 
-Proofrail still does not authorize or contain repository inspection, execution of target repository code, verification execution, language adapters, Python path traversal detection, CLI, API, MCP, web, GitHub integration, SARIF export, model provider integration, Inference Zone implementation, LLM judgment, or probabilistic confidence in the authoritative path.
+Proofrail still does not authorize or contain repository inspection, execution of target repository code, verification execution, language adapters, Python path traversal detection, CLI, API, MCP, web, GitHub integration, SARIF export, model provider integration, Inference Zone implementation, LLM judgment, probabilistic confidence in the authoritative path, complete Evidence Bundle protocol completion, or complete product Verdict runtime behavior.
 
-Any future implementation after Phase 2 Boundary Definition requires a later valid Machine Task Contract and independent review. `PHASE2-BOUNDARY-001` is not product readiness, not a trusted release, and not a Proofrail product Verdict.
+Any future implementation after this focus narrowing requires a later valid Machine Task Contract and independent review. `PRODUCT-FOCUS-001` is not product readiness, not a trusted release, and not a Proofrail product Verdict.
 
 ## Documentation Authority Index
 

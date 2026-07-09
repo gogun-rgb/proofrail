@@ -1,0 +1,149 @@
+{
+  "task": {
+    "id": "PRODUCT-FOCUS-001",
+    "class": "product_focus_narrowing",
+    "objective": "Narrow the next Proofrail product direction to an AI PR Evidence Gate: a small, practical first product that turns an AI-authored pull request into an evidence packet separating claims, observed evidence, missing evidence, scope, and review needs, without implementing runtime behavior in this task."
+  },
+  "scope": {
+    "write": [
+      "governance/tasks/PRODUCT-FOCUS-001.json",
+      "AGENTS.md",
+      "README.md",
+      "docs/constitution/product-constitution.md",
+      "docs/plans/active/phase-2-boundary-definition.md",
+      "docs/plans/active/phase-2-ai-pr-evidence-gate.md"
+    ],
+    "read_only_authority": [
+      "docs/constitution/terminology.md",
+      "docs/constitution/trust-model.md",
+      "docs/constitution/non-goals.md",
+      "docs/architecture/**",
+      "docs/product/**",
+      "docs/protocols/**",
+      "docs/quality/**",
+      "docs/engineering/**",
+      "packages/**",
+      "scripts/**",
+      "tests/**",
+      ".github/**",
+      "package.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "tsconfig.json",
+      "governance/generated/**",
+      "governance/*.json",
+      "governance/*.schema.json",
+      "governance/tasks/PHASE1-CLOSE-001.json",
+      "governance/tasks/PHASE2-BOUNDARY-001.json",
+      "governance/tasks/OPS-AUTOPILOT-001.json"
+    ],
+    "forbidden": [
+      "packages/**",
+      "scripts/**",
+      "tests/**",
+      ".github/**",
+      "docs/architecture/**",
+      "docs/product/**",
+      "docs/protocols/**",
+      "docs/quality/**",
+      "docs/engineering/**",
+      "docs/constitution/terminology.md",
+      "docs/constitution/trust-model.md",
+      "docs/constitution/non-goals.md",
+      "governance/generated/**",
+      "governance/*.json",
+      "governance/*.schema.json",
+      "governance/tasks/PHASE1-CLOSE-001.json",
+      "governance/tasks/PHASE2-BOUNDARY-001.json",
+      "governance/tasks/OPS-AUTOPILOT-001.json",
+      "package.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "tsconfig.json",
+      "runtime implementation",
+      "production package implementation",
+      "repository inspection implementation",
+      "verification execution implementation",
+      "target-code execution behavior",
+      "language adapters or adapter capability implementation",
+      "CLI, API, MCP, web, GitHub, SARIF, or other delivery surface implementation",
+      "model provider behavior",
+      "Inference Zone implementation",
+      "Proofrail product Verdict semantic changes",
+      "Evidence authority class changes",
+      "Trust semantic changes",
+      "canonical terminology changes",
+      "product readiness claims",
+      "trusted release claims",
+      "paid service enablement",
+      "API key usage",
+      "credit purchase",
+      "billing setup",
+      "paid cloud runner or SaaS enablement"
+    ]
+  },
+  "authority": {
+    "read": [
+      "governance/tasks/PRODUCT-FOCUS-001.json",
+      "AGENTS.md",
+      "README.md",
+      "docs/constitution/product-constitution.md",
+      "docs/plans/active/phase-2-boundary-definition.md",
+      "docs/plans/active/phase-1-deterministic-kernel-vertical-slice.md",
+      "governance/tasks/PHASE1-CLOSE-001.json",
+      "governance/tasks/PHASE2-BOUNDARY-001.json"
+    ],
+    "mayChangeAuthority": true,
+    "mayChangeProductSemantics": false
+  },
+  "acceptance": {
+    "requirements": [
+      "Commit PRODUCT-FOCUS-001 as the first artifact on the branch before editing authority-bearing current-state records.",
+      "Update README.md, AGENTS.md, and docs/constitution/product-constitution.md so the current next product focus is AI PR Evidence Gate, not a broad complete Proofrail platform build.",
+      "Create docs/plans/active/phase-2-ai-pr-evidence-gate.md defining the narrowed Phase 2 objective as a practical evidence packet for AI-authored GitHub pull requests.",
+      "Update docs/plans/active/phase-2-boundary-definition.md to point to the narrowed AI PR Evidence Gate focus without treating PR #14 as implementation authority or independent acceptance evidence.",
+      "Preserve the core product principle: claim is not evidence; verify it.",
+      "Preserve Builder versus Reviewer separation, passing tests as evidence not authority, and PR merge as not a trusted release.",
+      "Explicitly de-scope complete product Verdict runtime, broad Evidence Bundle protocol completion, Inference Zone, model providers, adapters, delivery surfaces, repository inspection implementation, and verification execution implementation until later separately authorized tasks.",
+      "Do not implement product runtime behavior, production code, package code, scripts, tests, CI, adapters, delivery surfaces, model provider behavior, or Inference Zone behavior in this task.",
+      "Do not change canonical terminology, Verdict semantics, Evidence authority classes, Trust semantics, or product protocols.",
+      "Do not claim product readiness, trusted release, or an authoritative Proofrail product Verdict.",
+      "If any payment, billing, API key, credits, paid cloud runner, SaaS enablement, or cloud execution prompt appears, stop with BLOCKED_COST_RISK.",
+      "If Codex or local long-run execution limit is reached, stop with LIMIT_REACHED."
+    ]
+  },
+  "verification": {
+    "commands": [
+      "pnpm governance:check",
+      "pnpm governance:check-json",
+      "pnpm verify",
+      "git diff --check"
+    ],
+    "requiredInvariants": [
+      "PRODUCT-FOCUS-001 is the first committed artifact on the task branch before current-state record edits.",
+      "The final diff is limited to the MTC and authorized focus/plan records.",
+      "The narrowed direction is an implementation roadmap focus, not product readiness or trusted release.",
+      "No production packages, scripts, tests, CI, generated projections, product protocols, canonical terminology, Verdict semantics, Evidence authority classes, or Trust semantics are changed.",
+      "The AI PR Evidence Gate focus remains claim/evidence/review-packet oriented and does not implement repository inspection or verification execution behavior."
+    ]
+  },
+  "requiredArtifacts": [
+    "governance/tasks/PRODUCT-FOCUS-001.json",
+    "AGENTS.md updated current phase/focus map",
+    "README.md updated product focus summary",
+    "docs/constitution/product-constitution.md updated current phase invariant/focus",
+    "docs/plans/active/phase-2-boundary-definition.md updated pointer",
+    "docs/plans/active/phase-2-ai-pr-evidence-gate.md"
+  ],
+  "stopConditions": [
+    "The requested focus narrowing would require product semantic, Verdict semantic, Trust semantic, Evidence authority, canonical terminology, production code, test, CI, package, script, generated projection, or protocol changes",
+    "The task would require implementing repository inspection, verification execution, adapters, delivery surfaces, model provider behavior, or Inference Zone behavior",
+    "Authority-Change Preflight cannot authorize the current-state record updates before edits",
+    "Any payment, billing, API key, credits, paid cloud runner, SaaS enablement, or cloud execution prompt appears: BLOCKED_COST_RISK",
+    "Codex or local long-run limit is reached: LIMIT_REACHED"
+  ],
+  "review": {
+    "expectation": "independent_review_required",
+    "reviewerMustNotRelyOnBuilderClaim": true
+  }
+}
