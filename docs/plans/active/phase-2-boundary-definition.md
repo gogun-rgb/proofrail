@@ -2,9 +2,13 @@
 
 ## Status
 
-Boundary definition only. `PHASE2-BOUNDARY-001` prepares the next repository engineering boundary after Phase 1 closure.
+Boundary definition only. `PHASE2-BOUNDARY-001` prepared the next repository engineering boundary after Phase 1 closure.
 
 This plan does not authorize Phase 2 implementation, product readiness, trusted release status, or a Proofrail product Verdict.
+
+The narrowed current Phase 2 product focus is AI PR Evidence Gate under [phase-2-ai-pr-evidence-gate.md](phase-2-ai-pr-evidence-gate.md). That focus is an implementation roadmap direction for a practical evidence packet around AI-authored pull requests; it is not implementation authority by itself.
+
+PR #14, if referenced as historical context, must not be treated as implementation authority, independent acceptance evidence, product readiness, trusted release status, or an authoritative Proofrail product Verdict for this narrowed focus.
 
 ## Phase 1 Carry-Forward
 

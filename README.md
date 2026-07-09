@@ -16,11 +16,13 @@ This Phase 1 PASS is a repository engineering Gate PASS. It is not a Proofrail p
 
 PR #11 / `PHASE1-GATE-001` remains blocked and closed historical context due to an MTC authority-procedure defect. It must not be reused as accepted evidence.
 
-The next repository engineering work is Phase 2 Boundary Definition only. `PHASE2-BOUNDARY-001` does not authorize Phase 2 implementation.
+The current next product focus is Phase 2 AI PR Evidence Gate: a narrowed, practical first product direction for turning an AI-authored pull request into an evidence packet that separates claims, observed evidence, missing evidence, scope, and review needs.
 
-Proofrail still does not have repository inspection, verification execution, adapters, delivery surfaces, model provider behavior, Inference Zone implementation, or a complete product runtime.
+`PRODUCT-FOCUS-001` narrows the implementation roadmap focus only. It does not authorize product runtime implementation, product readiness, trusted release status, or an authoritative Proofrail product Verdict.
 
-Any implementation after boundary definition requires a later valid Machine Task Contract and independent review.
+Proofrail still does not have repository inspection, verification execution, adapters, delivery surfaces, model provider behavior, Inference Zone implementation, complete Evidence Bundle protocol completion, complete product Verdict runtime behavior, or a complete product runtime.
+
+Any implementation after this narrowed focus requires a later valid Machine Task Contract and independent review.
 
 ## Start Here
 
@@ -67,8 +69,8 @@ Phase 1 Deterministic Kernel Vertical Slice
 
 The Phase 1 implementation task was `KERNEL-VS-001`; the accepted Phase 1 source baseline is `0616091da1a572a2ea3e457ed84dab8e32259f59`.
 
-## Phase 2 Boundary Definition
+## Phase 2 AI PR Evidence Gate Focus
 
-The next boundary-only plan is documented in [docs/plans/active/phase-2-boundary-definition.md](docs/plans/active/phase-2-boundary-definition.md).
+The narrowed Phase 2 focus plan is documented in [docs/plans/active/phase-2-ai-pr-evidence-gate.md](docs/plans/active/phase-2-ai-pr-evidence-gate.md).
 
-`PHASE2-BOUNDARY-001` prepares boundaries only. It does not implement or authorize repository inspection, verification execution, adapters, delivery surfaces, model provider behavior, Inference Zone behavior, or a trusted release.
+The earlier boundary-only record remains documented in [docs/plans/active/phase-2-boundary-definition.md](docs/plans/active/phase-2-boundary-definition.md). That record and this focus plan do not implement or authorize repository inspection, verification execution, adapters, delivery surfaces, model provider behavior, Inference Zone behavior, or a trusted release.
