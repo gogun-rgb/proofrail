@@ -1,0 +1,139 @@
+{
+  "task": {
+    "id": "PHASE2-BOUNDARY-001",
+    "class": "phase_boundary_definition",
+    "objective": "Define the next repository engineering phase boundary after Phase 1 closure as Phase 2 Boundary Definition only, without authorizing Phase 2 implementation or any product delivery surface."
+  },
+  "scope": {
+    "write": [
+      "governance/tasks/PHASE2-BOUNDARY-001.json",
+      "README.md",
+      "docs/constitution/product-constitution.md",
+      "docs/plans/active/phase-2-boundary-definition.md"
+    ],
+    "read_only_authority": [
+      "AGENTS.md",
+      "docs/engineering/machine-task-contract.md",
+      "governance/tasks/PHASE1-CLOSE-001.json",
+      "docs/constitution/terminology.md",
+      "docs/constitution/trust-model.md",
+      "docs/constitution/non-goals.md",
+      "docs/plans/active/phase-1-deterministic-kernel-vertical-slice.md",
+      "docs/architecture/**",
+      "docs/product/**",
+      "docs/protocols/**",
+      "docs/quality/**",
+      "packages/**",
+      "scripts/**",
+      "tests/**",
+      ".github/**",
+      "package.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "tsconfig.json",
+      "governance/generated/**",
+      "governance/*.json",
+      "governance/*.schema.json"
+    ],
+    "forbidden": [
+      "packages/**",
+      "scripts/**",
+      "tests/**",
+      ".github/**",
+      "docs/architecture/**",
+      "docs/product/**",
+      "docs/protocols/**",
+      "docs/quality/**",
+      "docs/engineering/**",
+      "docs/reviews/**",
+      "docs/constitution/terminology.md",
+      "docs/constitution/trust-model.md",
+      "docs/constitution/non-goals.md",
+      "governance/generated/**",
+      "governance/*.json",
+      "governance/*.schema.json",
+      "governance/tasks/PHASE1-CLOSE-001.json",
+      "governance/tasks/PHASE1-GATE-001.json",
+      "governance/tasks/PHASE1-GATE-002.json",
+      "package.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "tsconfig.json",
+      "product semantic changes",
+      "Verdict semantic changes",
+      "Evidence authority class changes",
+      "Trust semantic changes",
+      "canonical terminology changes",
+      "repository inspection behavior",
+      "verification execution behavior",
+      "target-code execution behavior",
+      "adapters",
+      "delivery surfaces",
+      "model provider behavior",
+      "Inference Zone implementation",
+      "Phase 2 implementation work",
+      "product readiness claims",
+      "trusted release claims",
+      "Proofrail product Verdict claims"
+    ]
+  },
+  "authority": {
+    "read": [
+      "governance/tasks/PHASE2-BOUNDARY-001.json",
+      "governance/tasks/PHASE1-CLOSE-001.json",
+      "AGENTS.md",
+      "README.md",
+      "docs/constitution/product-constitution.md",
+      "docs/plans/active/phase-1-deterministic-kernel-vertical-slice.md"
+    ],
+    "mayChangeAuthority": true,
+    "mayChangeProductSemantics": false
+  },
+  "acceptance": {
+    "requirements": [
+      "Commit this MTC as the first artifact on the branch before any authority-bearing current-state record edits.",
+      "Update only the authorized current-state records to identify Phase 2 Boundary Definition as the next repository engineering work.",
+      "Create a non-implementation boundary plan with allowed planning work, forbidden implementation work, stop conditions, and independent review requirements.",
+      "Do not authorize or start Phase 2 implementation.",
+      "Do not create or modify production code, contracts, tests, scripts, generated projections, CI, package manifests, product protocols, product semantics, Verdict semantics, Trust semantics, Evidence authority classes, or canonical terminology.",
+      "Preserve current product boundaries: no repository inspection, verification execution, target-code execution, adapters, delivery surfaces, model provider behavior, or Inference Zone implementation.",
+      "Do not claim product readiness, trusted release, a Proofrail product Verdict, or a complete product runtime.",
+      "Require a later valid Machine Task Contract and independent review before any implementation task may begin.",
+      "Keep the final diff limited to this MTC, README.md, docs/constitution/product-constitution.md, and docs/plans/active/phase-2-boundary-definition.md.",
+      "Any cost, billing, credential, paid cloud, or SaaS prompt stops the task with BLOCKED_COST_RISK.",
+      "If local long-run or Codex limit is reached, stop with LIMIT_REACHED."
+    ]
+  },
+  "verification": {
+    "commands": [
+      "pnpm governance:check",
+      "pnpm governance:check-json",
+      "pnpm verify",
+      "git diff --check"
+    ],
+    "requiredInvariants": [
+      "The first branch commit is PHASE2-BOUNDARY-001.",
+      "The boundary plan is non-implementation only.",
+      "No prohibited product surface or product semantic change is introduced.",
+      "No product readiness, trusted release, or product Verdict claim is introduced."
+    ]
+  },
+  "requiredArtifacts": [
+    "governance/tasks/PHASE2-BOUNDARY-001.json",
+    "README.md updated next-phase boundary record",
+    "docs/constitution/product-constitution.md updated Current Phase Invariant",
+    "docs/plans/active/phase-2-boundary-definition.md"
+  ],
+  "stopConditions": [
+    "PHASE2-BOUNDARY-001 fails schema or governance validation",
+    "Authority-Change Preflight cannot authorize the record updates before edits",
+    "Any prohibited implementation or semantic change is needed",
+    "Any Phase 2 implementation work is needed or requested inside this task",
+    "Any cost, billing, credential, paid cloud, or SaaS prompt appears: BLOCKED_COST_RISK",
+    "Local long-run or Codex limit is reached: LIMIT_REACHED"
+  ],
+  "review": {
+    "expectation": "independent_review_required",
+    "reviewerMustNotRelyOnBuilderClaim": true
+  }
+}
