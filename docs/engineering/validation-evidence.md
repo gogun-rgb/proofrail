@@ -3393,6 +3393,323 @@ ca70d542d3291b86c2575cac7b081d821f2bd6b9
 
 The untracked file list after final observed `pnpm verify` matched the pre-verify list. No additional untracked repository artifact was created by `pnpm verify`.
 
+## PHASE1-GATE-002 Validation Evidence
+
+Date: 2026-07-09.
+
+Task identity: `PHASE1-GATE-002`.
+
+Builder status target after evidence preparation: `BUILDER_READY_FOR_INDEPENDENT_GATE`.
+
+This section records fresh Builder gate-evidence preparation from current `origin/main`. It does not reuse, copy, cherry-pick, merge, or rely on gate artifacts, validation-evidence text, Builder review text, commits, or conclusions from `phase1/phase-1-gate-1` or PR #11. It is not independent Gate acceptance, not Phase 1 closure, not Phase 2 authorization, not product readiness, and not a Proofrail product Verdict.
+
+### Baseline And Contract Preflight
+
+Command:
+
+```powershell
+git fetch origin
+```
+
+Exit status: 0 after explicit Git metadata authorization.
+
+Bounded result summary: fetch completed.
+
+Command:
+
+```powershell
+git switch phase1/phase-1-gate-2
+```
+
+Initial sandboxed attempt could not create `.git/index.lock`; rerun with explicit Git metadata authorization exited 0.
+
+Bounded result summary: branch was already `phase1/phase-1-gate-2` and up to date with `origin/phase1/phase-1-gate-2`.
+
+Command:
+
+```powershell
+Get-Content -LiteralPath "governance/tasks/PHASE1-GATE-002.json"
+```
+
+Purpose: Read the current Machine Task Contract before acting.
+
+Exit status: 0.
+
+Bounded result summary: task id `PHASE1-GATE-002`; objective is clean-rebootstrap Phase 1 gate-evidence preparation; writable paths are `docs/engineering/phase-1-gate-evidence.md`, `docs/engineering/validation-evidence.md`, and `docs/reviews/phase-1-gate-builder-review.md`; `authority.mayChangeAuthority` is `true`; `authority.mayChangeProductSemantics` is `false`.
+
+Command:
+
+```powershell
+pnpm governance:check
+```
+
+Purpose: Required pre-edit governance check against the committed task contract.
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+```
+
+Command:
+
+```powershell
+git rev-parse origin/main
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+0616091da1a572a2ea3e457ed84dab8e32259f59
+```
+
+Interpretation: observed `origin/main` exactly matched the required `PHASE1-GATE-002` review baseline.
+
+Command:
+
+```powershell
+git rev-parse HEAD
+```
+
+Exit status: 0.
+
+Pre-edit branch head:
+
+```text
+77bd16ce407aed46ccda9a73cb90fd2d88232223
+```
+
+Command:
+
+```powershell
+git diff --name-status origin/main...HEAD
+```
+
+Exit status: 0.
+
+Pre-edit bounded result:
+
+```text
+A	governance/tasks/PHASE1-GATE-002.json
+```
+
+Interpretation: before Builder edits, the committed branch delta from current main was limited to the externally Governor-committed `PHASE1-GATE-002` task contract.
+
+### Authority Reads
+
+The Builder read every `authority.read` document named by `PHASE1-GATE-002`, including current authority documents, Phase 1 engineering records, KERNEL task contracts, `packages/contracts` source, `packages/kernel` source, and the named kernel tests.
+
+### Authority-Change Preflight For Validation Evidence
+
+Target path: `docs/engineering/validation-evidence.md`.
+
+Why authority-bearing: the document declares `## Authority` and records Builder validation methods and bounded evidence for independent review.
+
+Current Machine Task Contract: committed `governance/tasks/PHASE1-GATE-002.json`.
+
+Contract validity: `pnpm governance:check` exited 0 before any Builder edit.
+
+`scope.write` authorization: yes, `docs/engineering/validation-evidence.md` is listed exactly.
+
+`scope.read_only_authority` exclusion: yes, the target is not listed as read-only authority.
+
+`scope.forbidden` exclusion: yes, the target is not forbidden.
+
+`authority.mayChangeAuthority`: exactly `true`.
+
+Objective and acceptance coverage: yes. `PHASE1-GATE-002` explicitly authorizes appending bounded Builder gate validation evidence and the explicit Authority-Change Preflight to `docs/engineering/validation-evidence.md`. This narrow grant does not authorize current phase authority changes, product authority changes, constitutional changes, protocol changes, Trust semantic changes, Verdict semantic changes, Evidence authority class changes, canonical terminology changes, production source changes, contract changes, or test changes.
+
+Preflight result: satisfied before editing this validation evidence section.
+
+### Source And Boundary Audit
+
+Command:
+
+```powershell
+Get-ChildItem -LiteralPath "packages" -Directory -Force | Select-Object -ExpandProperty Name
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+contracts
+kernel
+```
+
+Interpretation: production package scope is limited to the authorized Phase 1 package layers.
+
+Command:
+
+```powershell
+node -e "Promise.all([import('./packages/contracts/src/index.js'), import('./packages/kernel/src/index.js')]).then(([contracts,kernel]) => { console.log('contracts=' + Object.keys(contracts).sort().join(',')); console.log('kernel=' + Object.keys(kernel).sort().join(',')); })"
+```
+
+Exit status: 0.
+
+Bounded result:
+
+```text
+contracts=EVIDENCE_CONTRACT_SELECTION_PROVENANCE_SOURCES,EVIDENCE_SATISFACTION_KIND,PHASE1_BUNDLE_SCHEMA_VERSION,PHASE1_KERNEL_ENGINE_VERSION,PHASE1_KERNEL_INPUT_SCHEMA_VERSION,RULE_AUTHORITY_PROVENANCE_SOURCES,RULE_EFFECT_DENY,RULE_PREDICATES,VERDICTS
+kernel=KernelBoundaryError,evaluate,evaluateKernel
+```
+
+Command:
+
+```powershell
+rg -n 'node:fs|node:child_process|node:http|node:https|node:net|node:dns|fetch\(|axios|octokit|github|openai|anthropic|Date\.now|new Date|Math\.random|randomUUID|crypto\.randomUUID|process\.env|process\.uptime|exec\(|spawn\(|execFile\(|readFile|writeFile|readdir|stat\(|pnpm|npm|yarn|git ' packages\contracts\src packages\kernel\src packages\contracts\package.json packages\kernel\package.json
+```
+
+Exit status: 1.
+
+Bounded result: no matches.
+
+Interpretation: exit status 1 is the expected ripgrep status for no matches. No forbidden production source or package-manifest use of repository/filesystem inspection, child process execution, package-manager or build-tool execution, network clients, GitHub or model providers, current-time dependence, randomness, UUID generation, environment-derived authoritative input, or target-code execution was found.
+
+Command:
+
+```powershell
+rg -n 'ADMISSIBLE|REVISION_REQUIRED|REJECTED|BLOCKED|PASS|FAIL|APPROVED|DENIED|UNKNOWN|SAFE|high confidence|model confidence|LLM|AI judgment' packages\contracts\src packages\kernel\src
+```
+
+Exit status: 0.
+
+Bounded result summary: production Verdict literals are limited to `ADMISSIBLE`, `REVISION_REQUIRED`, `REJECTED`, and `BLOCKED`; no extra production Verdict value was found.
+
+Command:
+
+```powershell
+rg -n 'HARN_|KERNEL_EVIDENCE_REQUIREMENT_MISSING|PASS_FOR_INTEGRATION|PASS|FAIL|APPROVED|DENIED|UNKNOWN' packages\contracts\src packages\kernel\src
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+HARN_ appears only in Rule reason-code rejection logic.
+KERNEL_EVIDENCE_REQUIREMENT_MISSING appears as the single internal kernel missing-Evidence reason-code declaration.
+```
+
+### Record-Drift And Known Gap Inspection
+
+Command:
+
+```powershell
+rg -n "Phase 1|pending independent review|KERNEL-VS|KERNEL-ASSURE|complete|product runtime|PASS|Phase 2|ready" README.md docs\constitution\product-constitution.md docs\plans\active\phase-1-deterministic-kernel-vertical-slice.md
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+README.md still points the first implementation task identity at phase1/kernel-vertical-slice-1 and pending independent review.
+docs/constitution/product-constitution.md still contains transition-era wording that no kernel implementation or Phase 1 vertical slice exists until later implementation.
+docs/plans/active/phase-1-deterministic-kernel-vertical-slice.md still references KERNEL-VS-CONV-003 as pending independent review and uses expected-test language.
+```
+
+Disposition: recorded as `RECORD_DRIFT` transition candidates in `docs/engineering/phase-1-gate-evidence.md`. These read-only authority/current-phase paths were not edited.
+
+Command:
+
+```powershell
+rg -n 'Known Gaps|does not provide|Future Gaps|does not implement|Non-Goals|Future authorized' docs\engineering\kernel-assurance-campaign.md docs\engineering\kernel-vertical-slice.md
+```
+
+Exit status: 0.
+
+Bounded result summary: Known Gaps and Non-Goals remain future or explicitly forbidden Phase 1 capabilities, including independent review, product readiness, Phase 1 completion, external reproducibility, complete Evidence Bundle protocol coverage, repository inspection, verification execution, Policy runtime, adapters, delivery integrations, model-provider behavior, external trust establishment, and deterministic Policy selection outside this slice.
+
+Disposition: classified in `docs/engineering/phase-1-gate-evidence.md`. No reviewed Known Gap was classified as `PHASE1_BLOCKER`.
+
+### Required Verification Commands
+
+Command results below were produced after the fresh evidence and Builder review files were prepared.
+
+| Command | Exit status | Bounded result |
+| --- | --- | --- |
+| `pnpm governance:check` | 0 | Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance. |
+| `pnpm governance:check-json` | 0 | Foundation JSON validation output parsed as `VALID`. |
+| `pnpm test:governance` | 0 | Governance tests: 37 pass, 0 fail, 0 skipped, 0 todo. |
+| `pnpm typecheck:phase1` | 0 | `tsc -p tsconfig.json`. |
+| `pnpm test:kernel` | 0 | Kernel tests: 475 pass, 0 fail, 0 skipped, 0 todo. |
+| `pnpm test:kernel` | 0 | Second kernel run: 475 pass, 0 fail, 0 skipped, 0 todo. |
+| `pnpm verify` | 0 | Governance check, JSON check, 37 governance tests, typecheck, 475 kernel tests, and `git diff --check` passed; Git reported line-ending conversion warnings for the three writable evidence/review files and no whitespace errors. |
+| `node scripts/validate-foundation.mjs` | 0 | Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance. |
+| `node scripts/validate-foundation.mjs --format json` | 0 | `{"findings":[],"schemaVersion":"1","status":"VALID"}`. |
+| `node scripts/governance/verify-json-output.mjs` | 0 | Foundation JSON validation output parsed as `VALID`. |
+| `git diff --check` | 0 | Git reported line-ending conversion warnings for the three writable evidence/review files and no whitespace errors. |
+
+### Deterministic Verify No-Mutation Comparison
+
+Method:
+
+```powershell
+git add -N docs/engineering/phase-1-gate-evidence.md docs/reviews/phase-1-gate-builder-review.md
+git diff HEAD --binary | git hash-object --stdin
+git status --short | Sort-Object
+pnpm verify
+git diff HEAD --binary | git hash-object --stdin
+git status --short | Sort-Object
+```
+
+Pre-verify tracked diff hash:
+
+```text
+0fd7f1e84ee523501d2c83677cbdc4f016f5ecb6
+```
+
+Pre-verify sorted status state:
+
+```text
+ A docs/engineering/phase-1-gate-evidence.md
+ A docs/reviews/phase-1-gate-builder-review.md
+ M docs/engineering/validation-evidence.md
+```
+
+Command:
+
+```powershell
+pnpm verify
+```
+
+Exit status: 0.
+
+Bounded result summary:
+
+```text
+Mechanical Foundation governance checks passed; this is not independent Foundation Gate acceptance.
+Foundation JSON validation output parsed as VALID.
+governance tests: 37 pass, 0 fail, 0 skipped, 0 todo.
+phase1 typecheck passed.
+kernel tests: 475 pass, 0 fail, 0 skipped, 0 todo.
+git diff --check exit status 0 with Git line-ending conversion warnings for the three writable evidence/review files and no whitespace errors.
+```
+
+Post-verify tracked diff hash:
+
+```text
+0fd7f1e84ee523501d2c83677cbdc4f016f5ecb6
+```
+
+Post-verify sorted status state:
+
+```text
+ A docs/engineering/phase-1-gate-evidence.md
+ A docs/reviews/phase-1-gate-builder-review.md
+ M docs/engineering/validation-evidence.md
+```
+
+Interpretation: the tracked diff hash and sorted status state matched before and after the measured `pnpm verify`; no tracked or status-visible repository artifact changed during that verification run.
+
+Sequencing limitation: this subsection is updated after the measured `pnpm verify` run so the comparison can record the observed values. The measurement proves `pnpm verify` was non-mutating for the otherwise-complete PHASE1-GATE-002 evidence and Builder review set immediately before this record update; it does not claim that this final explanatory update itself existed before the measured command.
+
 ## KERNEL-ASSURE-001 Validation Evidence
 
 Task identity: `KERNEL-ASSURE-001`.
