@@ -16,6 +16,7 @@ It is not independent acceptance, not a trusted release decision, and not a Proo
 | OPS-AUTO-BR-004 | MEDIUM | FIXED | Autonomous remediation could be confused with acceptance, release, independent review, or product Verdict authority. The new guidance separates agent action, approved repository change, trusted release, independent review, and product Verdict authority. |
 | OPS-AUTO-BR-005 | MEDIUM | FIXED | Higher-risk work could be routed to humans by default instead of increasing evidence and review depth. The new guidance says higher risk should normally raise evidence requirements and independent review depth before reducing autonomy. |
 | OPS-AUTO-BR-006 | MEDIUM | FIXED | Human escalation boundaries could be too broad. The new guidance reserves escalation for product-direction ambiguity, irreversible external actions, material cost or resource commitment, security exceptions, authority conflicts, or repeated autonomous-loop deadlock. |
+| OPS-AUTO-BR-008 | MEDIUM | FIXED | Post-main convergence produced a `docs/engineering/validation-evidence.md` merge conflict with KERNEL-ASSURE evidence from main. The conflict was resolved by retaining the complete KERNEL-ASSURE-001 and KERNEL-ASSURE-CONV-001 historical evidence from main and the complete OPS-AUTO-001 historical evidence from PR #9 as separate sections. No real authority conflict was found in the autonomous-execution governance text. |
 | OPS-AUTO-BR-007 | LOW | OPEN | Independent review must still inspect the exact pull request head. Builder review, local checks, and Builder claim do not replace independent acceptance. |
 
 ## Required Review Questions
@@ -35,6 +36,8 @@ Ordinary reversible choices are autonomous inside granted authority: agents may 
 Human escalation remains available for true boundary issues: product-direction ambiguity, irreversible external actions, material cost or resource commitment, security exceptions, authority conflicts, and repeated autonomous-loop deadlock remain escalation triggers.
 
 No product or runtime semantics changed: the edits are limited to repository engineering governance guidance, review, and validation evidence.
+
+Post-main convergence disposition: `origin/main` at `ecb10ed4723fce3d250f8a02468a4afadd638786` was integrated with a normal merge. The only content conflict was the validation evidence log, where both sides had appended task-specific evidence. The Builder retained both historical evidence streams without rewriting them as newly executed convergence evidence.
 
 ## Remaining Review Risk
 
