@@ -1,0 +1,12 @@
+{
+  "name": "@proofrail/evidence-gate",
+  "version": "0.1.0-mvp",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    }
+  },
+  "sideEffects": false
+}
