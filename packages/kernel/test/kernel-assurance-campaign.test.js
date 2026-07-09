@@ -2,7 +2,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { evaluateKernel, KernelBoundaryError } from "../src/index.js";
+import { evaluate, evaluateKernel, KernelBoundaryError } from "../src/index.js";
 import { canonicalJson } from "../src/canonical-json.js";
 import { reduceVerdictCandidates } from "../src/verdict-reduction.js";
 import { MISSING_EVIDENCE_REASON_CODE } from "../src/kernel-reason-codes.js";
@@ -20,6 +20,12 @@ import { makeInput, clone, lineageKinds } from "./helpers.js";
  *   readonly family: string,
  *   readonly run: () => void
  * }} AssuranceCase
+ * @typedef {{
+ *   readonly id: string,
+ *   readonly presentRequirementIds: readonly string[],
+ *   readonly rules: readonly Rule[],
+ *   readonly configure?: (input: any) => void
+ * }} PermutationVariant
  */
 
 /** @type {readonly { readonly label: string, readonly value: JsonPrimitive }[]} */
@@ -46,14 +52,186 @@ const VERDICTS = Object.freeze([
   "BLOCKED"
 ]);
 
-/** @type {ReadonlyMap<Verdict, number>} */
-const VERDICT_RANK = new Map(VERDICTS.map((verdict, index) => [verdict, index]));
+/** @type {readonly Verdict[]} */
+const REFERENCE_PUBLISHED_PRECEDENCE = Object.freeze([
+  "BLOCKED",
+  "REJECTED",
+  "REVISION_REQUIRED",
+  "ADMISSIBLE"
+]);
 
 /** @type {readonly string[]} */
 const FORBIDDEN_AUTHORITY_FIELDS = Object.freeze([
   "modelConfidence",
   "inferenceProposal",
   "proposedContent"
+]);
+
+/** @type {ReadonlyMap<string, number>} */
+const EXPECTED_FAMILY_COUNTS = new Map([
+  ["boundary-array", 63],
+  ["boundary-record", 96],
+  ["boundary-reference", 16],
+  ["boundary-value", 16],
+  ["boundary-wrapper", 7],
+  ["canonical-json", 3],
+  ["immutability", 3],
+  ["isolation", 2],
+  ["lineage", 4],
+  ["permutation", 16],
+  ["primitive", 144],
+  ["rule-matrix", 16],
+  ["verdict-reference", 15]
+]);
+
+/** @type {readonly PermutationVariant[]} */
+const PERMUTATION_VARIANTS = Object.freeze([
+  {
+    id: "all-present-rule-denial",
+    presentRequirementIds: ["req.alpha", "req.beta", "req.gamma"],
+    rules: [
+      validRule("rule.absent.alpha", "req.alpha", "EVIDENCE_ABSENT", "KERNEL_ALPHA_ABSENT"),
+      validRule("rule.present.beta", "req.beta", "EVIDENCE_PRESENT", "KERNEL_BETA_PRESENT")
+    ]
+  },
+  {
+    id: "missing-gamma-denial-retains-revision",
+    presentRequirementIds: ["req.alpha", "req.beta"],
+    rules: [
+      validRule("rule.present.beta", "req.beta", "EVIDENCE_PRESENT", "KERNEL_BETA_PRESENT")
+    ]
+  },
+  {
+    id: "all-present-nontriggered-rules",
+    presentRequirementIds: ["req.alpha", "req.beta", "req.gamma"],
+    rules: [
+      validRule("rule.absent.alpha", "req.alpha", "EVIDENCE_ABSENT", "KERNEL_ALPHA_ABSENT"),
+      validRule("rule.absent.beta", "req.beta", "EVIDENCE_ABSENT", "KERNEL_BETA_ABSENT")
+    ]
+  },
+  {
+    id: "missing-beta-revision-only",
+    presentRequirementIds: ["req.alpha", "req.gamma"],
+    rules: []
+  },
+  {
+    id: "missing-beta-absence-denial",
+    presentRequirementIds: ["req.alpha", "req.gamma"],
+    rules: [
+      validRule("rule.absent.beta", "req.beta", "EVIDENCE_ABSENT", "KERNEL_BETA_ABSENT")
+    ]
+  },
+  {
+    id: "single-present-multiple-missing",
+    presentRequirementIds: ["req.alpha"],
+    rules: [
+      validRule("rule.present.alpha", "req.alpha", "EVIDENCE_PRESENT", "KERNEL_ALPHA_PRESENT")
+    ]
+  },
+  {
+    id: "all-missing-revision-only",
+    presentRequirementIds: [],
+    rules: [
+      validRule("rule.present.gamma", "req.gamma", "EVIDENCE_PRESENT", "KERNEL_GAMMA_PRESENT")
+    ]
+  },
+  {
+    id: "two-triggered-denials",
+    presentRequirementIds: ["req.alpha", "req.beta", "req.gamma"],
+    rules: [
+      validRule("rule.present.alpha", "req.alpha", "EVIDENCE_PRESENT", "KERNEL_ALPHA_PRESENT"),
+      validRule("rule.present.gamma", "req.gamma", "EVIDENCE_PRESENT", "KERNEL_GAMMA_PRESENT")
+    ]
+  },
+  {
+    id: "trusted-configuration-rule-authority",
+    presentRequirementIds: ["req.alpha", "req.beta", "req.gamma"],
+    rules: [
+      validRule("rule.trusted.present", "req.alpha", "EVIDENCE_PRESENT", "KERNEL_TRUSTED_PRESENT")
+    ],
+    configure(input) {
+      setFirst(input.rules, "Rule").authority = {
+        source: "TRUSTED_CONFIGURATION",
+        configurationId: "config.rule",
+        configurationVersion: "1.0.0"
+      };
+    }
+  },
+  {
+    id: "deterministic-policy-selection-provenance",
+    presentRequirementIds: ["req.alpha", "req.beta", "req.gamma"],
+    rules: [],
+    configure(input) {
+      setFirst(input.evidenceContracts, "Evidence Contract").selectionProvenance = {
+        source: "DETERMINISTIC_POLICY_SELECTION",
+        policyId: "policy.contract-selection",
+        policyVersion: "1.0.0"
+      };
+    }
+  },
+  {
+    id: "duplicate-accepted-observations",
+    presentRequirementIds: ["req.alpha", "req.beta", "req.gamma"],
+    rules: [],
+    configure(input) {
+      input.observations.push({
+        ...observationForRequirement("req.alpha", "004"),
+        id: "obs.alpha.second",
+        sourceInputId: "source.alpha.second"
+      });
+    }
+  },
+  {
+    id: "unmatched-limited-observation",
+    presentRequirementIds: ["req.alpha", "req.beta", "req.gamma"],
+    rules: [
+      validRule("rule.absent.gamma", "req.gamma", "EVIDENCE_ABSENT", "KERNEL_GAMMA_ABSENT")
+    ],
+    configure(input) {
+      input.observations.push({
+        id: "obs.limited.gamma",
+        observer: { id: "observer.synthetic", version: "1.0.0" },
+        targetScopeId: "scope.repo",
+        factKey: "fact.gamma",
+        factValue: true,
+        sourceInputId: "source.limited.gamma",
+        orderingKey: "004",
+        limitations: ["Z_LIMIT", "A_LIMIT"]
+      });
+    }
+  },
+  {
+    id: "string-primitive-satisfaction",
+    presentRequirementIds: ["req.alpha", "req.beta", "req.gamma"],
+    rules: [],
+    configure(input) {
+      setRequirementPrimitive(input, "req.alpha", "stable");
+    }
+  },
+  {
+    id: "number-primitive-satisfaction",
+    presentRequirementIds: ["req.alpha", "req.beta", "req.gamma"],
+    rules: [],
+    configure(input) {
+      setRequirementPrimitive(input, "req.alpha", 1.25);
+    }
+  },
+  {
+    id: "null-primitive-satisfaction",
+    presentRequirementIds: ["req.alpha", "req.beta", "req.gamma"],
+    rules: [],
+    configure(input) {
+      setRequirementPrimitive(input, "req.alpha", null);
+    }
+  },
+  {
+    id: "false-primitive-satisfaction",
+    presentRequirementIds: ["req.alpha", "req.beta", "req.gamma"],
+    rules: [],
+    configure(input) {
+      setRequirementPrimitive(input, "req.alpha", false);
+    }
+  }
 ]);
 
 /** @type {readonly AssuranceCase[]} */
@@ -70,15 +248,13 @@ const CAMPAIGN_CASES = Object.freeze([
 test("KERNEL-ASSURE-001 campaign manifest is deterministic and broad", () => {
   const ids = CAMPAIGN_CASES.map((item) => item.id);
   const families = countBy(CAMPAIGN_CASES.map((item) => item.family));
+  const expectedCaseCount = [...EXPECTED_FAMILY_COUNTS.values()].reduce((sum, count) => sum + count, 0);
 
   assert.equal(ids.length, new Set(ids).size, "case identities are unique");
   assert.deepEqual(ids, [...ids].sort(compareStrings), "case generation order is stable");
-  assert.equal(CAMPAIGN_CASES.length >= 256, true, "campaign case count");
-  assert.equal(families.get("primitive") ?? 0, 144);
-  assert.equal((families.get("boundary-record") ?? 0) > 0, true);
-  assert.equal((families.get("boundary-array") ?? 0) > 0, true);
-  assert.equal((families.get("verdict-reference") ?? 0) > 0, true);
-  assert.equal((families.get("rule-matrix") ?? 0) > 0, true);
+  assert.equal(CAMPAIGN_CASES.length, expectedCaseCount, "campaign case count");
+  assert.equal(CAMPAIGN_CASES.length >= 256, true, "campaign threshold");
+  assert.deepEqual(families, EXPECTED_FAMILY_COUNTS);
 });
 
 test("KERNEL-ASSURE-001 deterministic assurance cases", async (t) => {
@@ -125,12 +301,12 @@ function makePrimitiveDistinctionCases() {
 function makePermutationCases() {
   /** @type {AssuranceCase[]} */
   const cases = [];
-  for (let index = 0; index < 16; index += 1) {
+  for (const variant of PERMUTATION_VARIANTS) {
     cases.push({
-      id: `permutation/equivalent-input-${String(index).padStart(2, "0")}`,
+      id: `permutation/${variant.id}`,
       family: "permutation",
       run() {
-        const base = makePermutationBaseInput(index);
+        const base = makePermutationBaseInput(variant);
         const permuted = permuteSemanticallyUnorderedInput(base);
         const first = evaluateKernel(clone(base));
         const second = evaluateKernel(clone(permuted));
@@ -232,10 +408,11 @@ function makeVerdictReferenceCases() {
         const actual = reduceVerdictCandidates(candidates);
         const expected = referenceReduce(candidates);
 
-        assert.deepEqual(actual, expected);
-        assert.equal(actual.verdict, selectedVerdicts.reduce(maxVerdictByReference, "ADMISSIBLE"));
+        assert.equal(actual.verdict, expected.verdict);
+        assert.deepEqual(actual.candidateIds, expected.candidateIds);
         assert.deepEqual(actual.reasonCodes, expected.reasonCodes);
         assert.deepEqual(actual.lineageIds, expected.lineageIds);
+        assert.deepEqual(actual.precedence, expected.precedence);
       }
     });
   }
@@ -782,6 +959,54 @@ function makeLineageAndIsolationCases() {
         assertLineageReference(bundle, "EVIDENCE_PRODUCED", "requirementId", "req.has-lockfile");
         assertLineageReference(bundle, "RULE_EVALUATED", "ruleId", "rule.absent.nontriggered");
         assertLineageReference(bundle, "VERDICT_REDUCED", "evaluationId", "eval.phase1");
+        assertLineageReferences(bundle, "VERDICT_CANDIDATE_CLASSIFIED", {
+          condition: "ALL_REQUIREMENTS_SATISFIED_NO_RULE_DENIAL",
+          evaluationId: "eval.phase1",
+          verdict: "ADMISSIBLE"
+        });
+
+        const missingBundle = evaluateKernel(makeInput({ observations: [] }));
+        assertLineageReferences(missingBundle, "VERDICT_CANDIDATE_CLASSIFIED", {
+          condition: "MISSING_EVIDENCE_REQUIREMENT",
+          requirementId: "req.has-lockfile",
+          verdict: "REVISION_REQUIRED",
+          reasonCode: MISSING_EVIDENCE_REASON_CODE
+        });
+
+        const rejectedBundle = evaluateKernel(makeInput({
+          rules: [validRule("rule.reject.present", "req.has-lockfile", "EVIDENCE_PRESENT", "KERNEL_REJECT_PRESENT")]
+        }));
+        assertLineageReferences(rejectedBundle, "VERDICT_CANDIDATE_CLASSIFIED", {
+          condition: "RULE_DENIAL",
+          ruleId: "rule.reject.present",
+          requirementId: "req.has-lockfile",
+          verdict: "REJECTED",
+          reasonCode: "KERNEL_REJECT_PRESENT"
+        });
+      }
+    },
+    {
+      id: "isolation/caller-input-preserved-after-evaluate-multi-requirement",
+      family: "isolation",
+      run() {
+        /** @type {readonly [string, (input: unknown) => import("@proofrail/contracts").EvidenceBundle][]} */
+        const evaluators = [
+          ["evaluateKernel", evaluateKernel],
+          ["evaluate", evaluate]
+        ];
+        for (const [label, evaluator] of evaluators) {
+          const input = makeRequirementInput(
+            ["req.alpha", "req.beta", "req.gamma"],
+            ["req.alpha", "req.gamma"],
+            [validRule("rule.present.alpha", "req.alpha", "EVIDENCE_PRESENT", "KERNEL_ALPHA_PRESENT")]
+          );
+          const before = clone(input);
+          const bundle = evaluator(input);
+
+          assert.equal(bundle.evaluationId, "eval.phase1", label);
+          assert.deepEqual(input, before, label);
+          assertCallerGraphUnfrozen(input, label);
+        }
       }
     },
     {
@@ -927,34 +1152,38 @@ function makeCanonicalSerializationCases() {
 }
 
 /**
- * @param {number} variant
+ * @param {number | PermutationVariant} selectedVariant
  * @returns {KernelEvaluationInput}
  */
-function makePermutationBaseInput(variant) {
-  const input = makeMultiRequirementInput(
+function makePermutationBaseInput(selectedVariant) {
+  const variant = typeof selectedVariant === "number"
+    ? PERMUTATION_VARIANTS[selectedVariant]
+    : selectedVariant;
+  assert.ok(variant, "permutation variant");
+
+  const input = makeRequirementInput(
     ["req.alpha", "req.beta", "req.gamma"],
-    [
-      validRule("rule.absent.alpha", "req.alpha", "EVIDENCE_ABSENT", "KERNEL_ALPHA_ABSENT"),
-      validRule("rule.present.beta", "req.beta", "EVIDENCE_PRESENT", "KERNEL_BETA_PRESENT")
-    ]
+    variant.presentRequirementIds,
+    variant.rules
   );
   const mutableInput = /** @type {any} */ (input);
 
   mutableInput.claims.push({
-    id: `claim.extra.${variant}`,
+    id: `claim.extra.${variant.id}`,
     targetScopeId: "scope.repo",
-    statement: "Additional synthetic Claim for permutation assurance."
+    statement: `Additional synthetic Claim for ${variant.id}.`
   });
   mutableInput.observations.push({
-    id: `obs.unmatched.${variant}`,
+    id: `obs.unmatched.${variant.id}`,
     observer: { id: "observer.synthetic", version: "1.0.0" },
     targetScopeId: "scope.repo",
     factKey: "unmatched.fact",
     factValue: "ignored",
-    sourceInputId: "source.unmatched",
+    sourceInputId: `source.unmatched.${variant.id}`,
     orderingKey: "999",
     limitations: ["Z_LIMIT", "A_LIMIT"]
   });
+  variant.configure?.(mutableInput);
 
   return input;
 }
@@ -1059,6 +1288,27 @@ function observationForRequirement(requirementId, orderingKey) {
 }
 
 /**
+ * @param {any} input
+ * @param {string} requirementId
+ * @param {JsonPrimitive} value
+ * @returns {void}
+ */
+function setRequirementPrimitive(input, requirementId, value) {
+  const requirementRecord = input.evidenceRequirements.find(
+    /** @param {KernelEvaluationInput["evidenceRequirements"][number]} item */
+    (item) => item.id === requirementId
+  );
+  const observationRecord = input.observations.find(
+    /** @param {KernelEvaluationInput["observations"][number]} item */
+    (item) => item.id === `obs.${requirementId.slice("req.".length)}`
+  );
+  assert.ok(requirementRecord, requirementId);
+  assert.ok(observationRecord, requirementId);
+  requirementRecord.expectedValue = value;
+  observationRecord.factValue = value;
+}
+
+/**
  * @returns {any}
  */
 function makeBoundaryInput() {
@@ -1150,35 +1400,46 @@ function candidate(id, verdict) {
  * @returns {import("@proofrail/contracts").VerdictReduction}
  */
 function referenceReduce(candidates) {
-  const sortedCandidates = [...candidates].sort((left, right) =>
-    referenceRank(left.verdict) - referenceRank(right.verdict) || compareStrings(left.id, right.id)
-  );
+  const sortedCandidates = independentlyOrderCandidates(candidates);
   return {
-    verdict: sortedCandidates.map((item) => item.verdict).reduce(maxVerdictByReference, "ADMISSIBLE"),
+    verdict: independentlySelectWinningVerdict(candidates),
     reasonCodes: uniqueSorted(sortedCandidates.flatMap((item) => item.reasonCodes)),
     candidateIds: sortedCandidates.map((item) => item.id),
     lineageIds: uniqueSorted(sortedCandidates.flatMap((item) => item.lineageIds)),
-    precedence: [...VERDICTS].reverse()
+    precedence: [...REFERENCE_PUBLISHED_PRECEDENCE]
   };
 }
 
 /**
- * @param {Verdict} left
- * @param {Verdict} right
+ * @param {readonly VerdictCandidate[]} candidates
  * @returns {Verdict}
  */
-function maxVerdictByReference(left, right) {
-  return referenceRank(right) > referenceRank(left) ? right : left;
+function independentlySelectWinningVerdict(candidates) {
+  const verdicts = new Set(candidates.map((item) => item.verdict));
+  if (verdicts.has("BLOCKED")) {
+    return "BLOCKED";
+  }
+  if (verdicts.has("REJECTED")) {
+    return "REJECTED";
+  }
+  if (verdicts.has("REVISION_REQUIRED")) {
+    return "REVISION_REQUIRED";
+  }
+  assert.equal(verdicts.has("ADMISSIBLE"), true);
+  return "ADMISSIBLE";
 }
 
 /**
- * @param {Verdict} verdict
- * @returns {number}
+ * @param {readonly VerdictCandidate[]} candidates
+ * @returns {VerdictCandidate[]}
  */
-function referenceRank(verdict) {
-  const value = VERDICT_RANK.get(verdict);
-  assert.notEqual(value, undefined);
-  return /** @type {number} */ (value);
+function independentlyOrderCandidates(candidates) {
+  return [
+    ...candidates.filter((item) => item.verdict === "ADMISSIBLE").sort(compareCandidateIds),
+    ...candidates.filter((item) => item.verdict === "REVISION_REQUIRED").sort(compareCandidateIds),
+    ...candidates.filter((item) => item.verdict === "REJECTED").sort(compareCandidateIds),
+    ...candidates.filter((item) => item.verdict === "BLOCKED").sort(compareCandidateIds)
+  ];
 }
 
 /**
@@ -1246,6 +1507,52 @@ function assertLineageReference(bundle, kind, key, expectedValue) {
     true,
     `${kind}.${key}`
   );
+}
+
+/**
+ * @param {import("@proofrail/contracts").EvidenceBundle} bundle
+ * @param {import("@proofrail/contracts").EvidenceLineage["kind"]} kind
+ * @param {Readonly<Record<string, JsonPrimitive>>} expectedReferences
+ * @returns {void}
+ */
+function assertLineageReferences(bundle, kind, expectedReferences) {
+  assert.equal(
+    bundle.evidenceLineage.some((entry) =>
+      entry.kind === kind &&
+      Object.entries(expectedReferences).every(([key, expectedValue]) => entry.references[key] === expectedValue)
+    ),
+    true,
+    `${kind}.${Object.keys(expectedReferences).join(".")}`
+  );
+}
+
+/**
+ * @param {unknown} value
+ * @param {string} label
+ * @returns {void}
+ */
+function assertCallerGraphUnfrozen(value, label) {
+  const seen = new WeakSet();
+  const stack = [value];
+  let reachableObjectCount = 0;
+
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (current === null || typeof current !== "object") {
+      continue;
+    }
+    if (seen.has(current)) {
+      continue;
+    }
+    seen.add(current);
+    reachableObjectCount += 1;
+    assert.equal(Object.isFrozen(current), false, label);
+    for (const key of Object.getOwnPropertyNames(current)) {
+      stack.push(/** @type {Record<string, unknown>} */ (current)[key]);
+    }
+  }
+
+  assert.equal(reachableObjectCount > 0, true, label);
 }
 
 /**
@@ -1367,6 +1674,15 @@ function countBy(values) {
     counts.set(value, (counts.get(value) ?? 0) + 1);
   }
   return counts;
+}
+
+/**
+ * @param {VerdictCandidate} left
+ * @param {VerdictCandidate} right
+ * @returns {number}
+ */
+function compareCandidateIds(left, right) {
+  return compareStrings(left.id, right.id);
 }
 
 /**
