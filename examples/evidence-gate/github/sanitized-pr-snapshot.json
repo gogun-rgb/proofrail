@@ -1,0 +1,29 @@
+{
+  "repository": "example/proofrail-fixture",
+  "number": 17,
+  "title": "Claim: importer change is ready",
+  "state": "OPEN",
+  "isDraft": false,
+  "authorLogin": "fixture-builder",
+  "baseRefName": "main",
+  "headRefName": "feature/local-importer",
+  "headOid": "2222222222222222222222222222222222222222",
+  "changedFiles": 2,
+  "files": [
+    {"path": "README.md", "additions": 8, "deletions": 1},
+    {"path": "packages/evidence-gate/src/github.js", "additions": 34, "deletions": 6}
+  ],
+  "commits": [
+    {"oid": "1111111111111111111111111111111111111111"},
+    {"oid": "2222222222222222222222222222222222222222"}
+  ],
+  "checks": [
+    {"kind": "check-run", "name": "unit-tests", "status": "COMPLETED", "conclusion": "SUCCESS"},
+    {"kind": "status-context", "name": "lint", "status": "FAILURE", "conclusion": null}
+  ],
+  "reviews": [
+    {"authorLogin": "fixture-reviewer", "state": "APPROVED", "submittedAt": "2026-01-02T00:00:00Z", "commitOid": "2222222222222222222222222222222222222222"},
+    {"authorLogin": null, "state": "COMMENTED", "submittedAt": "2026-01-01T00:00:00Z", "commitOid": null}
+  ]
+}
+

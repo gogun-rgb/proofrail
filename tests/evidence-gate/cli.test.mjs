@@ -11,6 +11,10 @@ const CLI = path.join(ROOT, "packages/evidence-gate/src/cli.mjs");
 const EXAMPLE_INPUT = path.join(ROOT, "examples/evidence-gate/input.json");
 const EXPECTED_OUTPUT = path.join(ROOT, "examples/evidence-gate/expected-output.json");
 
+function readExpectedOutput() {
+  return readFileSync(EXPECTED_OUTPUT, "utf8").replace(/\r\n/g, "\n");
+}
+
 function runCli(args) {
   return spawnSync(process.execPath, [CLI, ...args], {
     cwd: ROOT,
@@ -29,7 +33,7 @@ function withTempDirectory(run) {
 
 test("CLI writes canonical example output to stdout with exactly one trailing newline", () => {
   const result = runCli(["--input", EXAMPLE_INPUT]);
-  const expected = readFileSync(EXPECTED_OUTPUT, "utf8");
+  const expected = readExpectedOutput();
 
   assert.equal(result.status, 0);
   assert.equal(result.stderr, "");
@@ -46,7 +50,7 @@ test("CLI writes byte-identical output to a requested file", () => {
     assert.equal(result.status, 0);
     assert.equal(result.stdout, "");
     assert.equal(result.stderr, "");
-    assert.equal(readFileSync(outputPath, "utf8"), readFileSync(EXPECTED_OUTPUT, "utf8"));
+    assert.equal(readFileSync(outputPath, "utf8"), readExpectedOutput());
   });
 });
 

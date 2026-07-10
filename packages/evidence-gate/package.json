@@ -4,11 +4,15 @@
   "private": true,
   "type": "module",
   "bin": {
-    "evidence-gate": "./src/cli.mjs"
+    "evidence-gate": "./src/cli.mjs",
+    "evidence-gate-github": "./src/github-cli.mjs"
   },
   "exports": {
     ".": {
       "default": "./src/index.js"
+    },
+    "./github": {
+      "default": "./src/github.js"
     }
   },
   "sideEffects": false
