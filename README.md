@@ -75,6 +75,12 @@ The command writes canonical packet JSON to stdout. To save the same output inst
 pnpm evidence-gate --input examples/evidence-gate/input.json --output packet.json
 ```
 
+For a deterministic human-readable view of the same packet, select the optional report format:
+
+    pnpm evidence-gate --input examples/evidence-gate/input.json --format human
+
+Omitting --format (or selecting --format json) preserves the existing byte-identical JSON output. Human mode uses fixed sections, one trailing newline, and escapes control/ANSI/newline characters in untrusted packet text.
+
 See [the example input](examples/evidence-gate/input.json) and [its expected output](examples/evidence-gate/expected-output.json) for the complete input and packet shapes. Run the focused tests with:
 
 ```bash
@@ -100,6 +106,12 @@ To write the packet to a file instead:
 ```bash
 pnpm evidence-gate:github --repo owner/name --pr 123 --output packet.json
 ```
+
+The same importer can render the collected packet as a deterministic human report:
+
+    pnpm evidence-gate:github --repo owner/name --pr 123 --format human
+
+The format flag changes rendering only; human mode performs the same bounded read-only collection, and omitted or explicit --format json remains the canonical packet JSON. The report is a review aid, not a product Verdict, authorization decision, readiness claim, or trusted release.
 
 The importer collects selected PR metadata, changed-file summaries, commit identities, reported checks, and review metadata through local `gh`. It records the pull request head SHA; the resulting packet describes only that point-in-time snapshot. Run the command again after any new push.
 

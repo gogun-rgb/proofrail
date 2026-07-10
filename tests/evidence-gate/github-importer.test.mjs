@@ -153,7 +153,13 @@ function createGraphqlRunGh(snapshot, calls = []) {
   };
 }
 
-function runGitHubCliWithFakeGh({ args, mode = "success", payload = fixture(), writeOutput = false } = {}) {
+function runGitHubCliWithFakeGh({
+  args,
+  mode = "success",
+  payload = fixture(),
+  writeOutput = false,
+  format
+} = {}) {
   return withTempDirectory((directory) => {
     const ghName = process.platform === "win32" ? "gh.exe" : "gh";
     const ghPath = path.join(directory, ghName);
@@ -203,6 +209,7 @@ function runGitHubCliWithFakeGh({ args, mode = "success", payload = fixture(), w
     const cliArgs = args ?? [
       "--repo", payload.repository,
       "--pr", String(payload.number),
+      ...(format ? ["--format", format] : []),
       ...(writeOutput ? ["--output", outputPath] : [])
     ];
     const result = spawnSync(process.execPath, [GITHUB_CLI, ...cliArgs], {
@@ -769,13 +776,19 @@ test("secret-shaped projected text is redacted before packet output", async () =
 test("GitHub CLI argument parsing is strict", () => {
   assert.deepEqual(
     parseGitHubArguments(["--repo", "example/repo", "--pr", "17", "--output", "packet.json"]),
-    { repository: "example/repo", pullRequestNumber: 17, output: "packet.json" }
+    { repository: "example/repo", pullRequestNumber: 17, output: "packet.json", format: "json" }
+  );
+  assert.equal(
+    parseGitHubArguments(["--repo", "example/repo", "--pr", "17", "--format", "human"]).format,
+    "human"
   );
   assert.throws(() => parseGitHubArguments(["--pr", "17"]), /--repo <owner\/name> is required/);
   assert.throws(() => parseGitHubArguments(["--repo", "example/repo", "--pr", "0"]), /--pr must be a positive integer/);
   assert.throws(() => parseGitHubArguments(["--repo", "example\/repo;owned", "--pr", "17"]), /--repo must use owner\/name format/);
   assert.throws(() => parseGitHubArguments(["--repo", "example/repo", "--pr", "17", "--pr", "18"]), /--pr may be supplied only once/);
   assert.throws(() => parseGitHubArguments(["--repo", "example/repo", "--pr"]), /--pr requires a value/);
+  assert.throws(() => parseGitHubArguments(["--repo", "example/repo", "--pr", "17", "--format", "yaml"]), /--format must be json or human/);
+  assert.throws(() => parseGitHubArguments(["--repo", "example/repo", "--pr", "17", "--format", "json", "--format", "human"]), /--format may be supplied only once/);
   assert.throws(() => parseGitHubArguments(["--wat"]), /expected --repo/);
 });
 
@@ -805,6 +818,19 @@ test("GitHub CLI output file is byte-identical to stdout mode", () => {
   assert.equal(fileResult.fileOutput, stdoutResult.stdout);
 });
 
+test("GitHub CLI human format uses the same collection and supports file output", () => {
+  const stdoutResult = runGitHubCliWithFakeGh({ format: "human" });
+  assert.equal(stdoutResult.status, 0);
+  assert.equal(stdoutResult.stderr, "");
+  assert.match(stdoutResult.stdout, /^Proofrail AI PR Evidence Report\n/);
+  assert.equal(stdoutResult.ghArgs.length, 9);
+
+  const fileResult = runGitHubCliWithFakeGh({ format: "human", writeOutput: true });
+  assert.equal(fileResult.status, 0);
+  assert.equal(fileResult.stdout, "");
+  assert.equal(fileResult.fileOutput, stdoutResult.stdout);
+});
+
 test("GitHub CLI rejects invalid repo and PR before invoking gh", () => {
   const repoResult = runGitHubCliWithFakeGh({ args: ["--repo", "example/repo;owned", "--pr", "17"] });
   assert.notEqual(repoResult.status, 0);
@@ -815,6 +841,13 @@ test("GitHub CLI rejects invalid repo and PR before invoking gh", () => {
   assert.notEqual(prResult.status, 0);
   assert.match(prResult.stderr, /evidence-gate-github: --pr must be a positive integer/);
   assert.equal(prResult.ghArgs, null);
+
+  const formatResult = runGitHubCliWithFakeGh({
+    args: ["--repo", "example/repo", "--pr", "17", "--format", "yaml"]
+  });
+  assert.notEqual(formatResult.status, 0);
+  assert.match(formatResult.stderr, /evidence-gate-github: --format must be json or human/);
+  assert.equal(formatResult.ghArgs, null);
 });
 
 test("GitHub CLI reports missing gh without raw platform details", () => {

@@ -10,9 +10,14 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const CLI = path.join(ROOT, "packages/evidence-gate/src/cli.mjs");
 const EXAMPLE_INPUT = path.join(ROOT, "examples/evidence-gate/input.json");
 const EXPECTED_OUTPUT = path.join(ROOT, "examples/evidence-gate/expected-output.json");
+const EXPECTED_REPORT = path.join(ROOT, "examples/evidence-gate/expected-report.txt");
 
 function readExpectedOutput() {
   return readFileSync(EXPECTED_OUTPUT, "utf8").replace(/\r\n/g, "\n");
+}
+
+function readExpectedReport() {
+  return readFileSync(EXPECTED_REPORT, "utf8").replace(/\r\n/g, "\n");
 }
 
 function runCli(args) {
@@ -52,6 +57,43 @@ test("CLI writes byte-identical output to a requested file", () => {
     assert.equal(result.stderr, "");
     assert.equal(readFileSync(outputPath, "utf8"), readExpectedOutput());
   });
+});
+
+test("CLI default JSON and explicit json format remain byte-identical", () => {
+  const defaultResult = runCli(["--input", EXAMPLE_INPUT]);
+  const explicitResult = runCli(["--input", EXAMPLE_INPUT, "--format", "json"]);
+  assert.equal(defaultResult.status, 0);
+  assert.equal(explicitResult.status, 0);
+  assert.equal(explicitResult.stdout, defaultResult.stdout);
+});
+
+test("CLI writes deterministic human report to stdout and file", () => {
+  const expected = readExpectedReport();
+  const stdoutResult = runCli(["--input", EXAMPLE_INPUT, "--format", "human"]);
+  assert.equal(stdoutResult.status, 0);
+  assert.equal(stdoutResult.stderr, "");
+  assert.equal(stdoutResult.stdout, expected);
+
+  withTempDirectory((directory) => {
+    const outputPath = path.join(directory, "report.txt");
+    const fileResult = runCli([
+      "--input", EXAMPLE_INPUT, "--format", "human", "--output", outputPath
+    ]);
+    assert.equal(fileResult.status, 0);
+    assert.equal(fileResult.stdout, "");
+    assert.equal(readFileSync(outputPath, "utf8"), expected);
+  });
+});
+
+test("CLI rejects invalid and duplicate format arguments", () => {
+  const invalid = runCli(["--input", EXAMPLE_INPUT, "--format", "yaml"]);
+  assert.notEqual(invalid.status, 0);
+  assert.match(invalid.stderr, /--format must be json or human/);
+  const duplicate = runCli([
+    "--input", EXAMPLE_INPUT, "--format", "human", "--format", "json"
+  ]);
+  assert.notEqual(duplicate.status, 0);
+  assert.match(duplicate.stderr, /--format may be supplied only once/);
 });
 
 test("CLI produces byte-identical output for reordered but identically normalized input", () => {

@@ -4,6 +4,7 @@ import { writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
 import { buildEvidencePacket, canonicalJson } from "./index.js";
+import { renderHumanReport } from "./report.js";
 import {
   collectGitHubPullRequest,
   mapGitHubPullRequestToEvidenceInput
@@ -14,9 +15,9 @@ export function parseGitHubArguments(args) {
 
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
-    if (!["--repo", "--pr", "--output"].includes(argument)) {
+    if (!["--repo", "--pr", "--output", "--format"].includes(argument)) {
       throw new TypeError(
-        "expected --repo <owner/name> --pr <positive-integer> and optional --output <packet.json>"
+        "expected --repo <owner/name> --pr <positive-integer> and optional --output <packet.json> and --format json|human"
       );
     }
 
@@ -45,18 +46,25 @@ export function parseGitHubArguments(args) {
       || !Number.isSafeInteger(Number(options.pr))) {
     throw new TypeError("--pr must be a positive integer");
   }
+  if (options.format !== undefined && !["json", "human"].includes(options.format)) {
+    throw new TypeError("--format must be json or human");
+  }
 
   return {
     repository: options.repo,
     pullRequestNumber: Number(options.pr),
-    output: options.output
+    output: options.output,
+    format: options.format ?? "json"
   };
 }
 export async function runGitHubCli(args = process.argv.slice(2)) {
   const options = parseGitHubArguments(args);
   const snapshot = await collectGitHubPullRequest(options);
   const input = mapGitHubPullRequestToEvidenceInput(snapshot);
-  const output = `${canonicalJson(buildEvidencePacket(input))}\n`;
+  const packet = buildEvidencePacket(input);
+  const output = options.format === "human"
+    ? renderHumanReport(packet)
+    : canonicalJson(packet) + "\n";
 
   if (options.output === undefined) {
     process.stdout.write(output);
