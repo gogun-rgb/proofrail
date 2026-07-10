@@ -1,0 +1,118 @@
+{
+  "task": {
+    "id": "STATIC-KERNEL-CLI-001",
+    "class": "static_phase1_kernel_delivery",
+    "objective": "Deliver complete Phase 1 kernel input through a bounded local CLI."
+  },
+  "scope": {
+    "write": [
+      "governance/tasks/STATIC-KERNEL-CLI-001.json",
+      "packages/static-evaluator/**",
+      "tests/static-evaluator/**",
+      "examples/static-evaluator/**",
+      "package.json",
+      "pnpm-lock.yaml",
+      "README.md",
+      "docs/engineering/validation-evidence.md"
+    ],
+    "read_only_authority": [
+      "AGENTS.md",
+      "docs/constitution/**",
+      "docs/architecture/**",
+      "docs/product/**",
+      "docs/protocols/**",
+      "docs/quality/**",
+      "docs/engineering/machine-task-contract.md",
+      "docs/engineering/kernel-vertical-slice.md",
+      "packages/contracts/**",
+      "packages/kernel/**",
+      "packages/evidence-gate/**",
+      "scripts/**",
+      ".github/**",
+      "pnpm-workspace.yaml",
+      "tsconfig.json",
+      "governance/generated/**",
+      "existing governance/tasks/**"
+    ],
+    "forbidden": [
+      "all paths outside scope.write",
+      "modification of existing Machine Task Contracts",
+      "authority-bearing documentation or schemas",
+      "new external dependencies",
+      "repository inspection, target execution, verification execution, network, GitHub, or external services",
+      "Trusted Configuration, Evidence Contract, or Policy establishment, discovery, selection, or defaulting",
+      "authoritative record, reason-code, lineage, identity, or Verdict creation outside the accepted kernel",
+      "inference, product-semantic, protocol, readiness, release, or broad-admissibility changes or claims"
+    ]
+  },
+  "authority": {
+    "read": [
+      "governance/tasks/STATIC-KERNEL-CLI-001.json",
+      "AGENTS.md",
+      "docs/engineering/machine-task-contract.md",
+      "docs/engineering/kernel-vertical-slice.md",
+      "docs/constitution/product-constitution.md",
+      "docs/constitution/trust-model.md",
+      "docs/architecture/dependency-rules.md",
+      "docs/architecture/execution-boundary.md",
+      "docs/architecture/inference-boundary.md",
+      "docs/product/verdict-semantics.md",
+      "docs/protocols/evidence-schema.md",
+      "docs/protocols/bundle-format.md",
+      "packages/contracts/src/index.d.ts",
+      "packages/kernel/src/index.js"
+    ],
+    "mayChangeAuthority": false,
+    "mayChangeProductSemantics": false
+  },
+  "acceptance": {
+    "requirements": [
+      "Commit this contract alone as the first branch commit.",
+      "Add private @proofrail/static-evaluator whose only runtime workspace dependency is @proofrail/kernel.",
+      "Require --input, optionally accept --output, and reject unknown, duplicate, or missing-value arguments.",
+      "Read one regular local file up to 1 MiB as strict UTF-8, parse JSON, and pass the value unchanged to exactly one evaluateKernel call.",
+      "Emit only the returned finalized bundle as deterministic JSON with exactly one trailing newline; stdout and file bytes must match.",
+      "Use fixed bounded errors that reveal no input content, paths, kernel details, or secret-like values.",
+      "Add sanitized input and golden fixtures plus tests for direct-kernel equality, stdout/file output, determinism, invalid arguments, malformed/oversized/non-UTF-8 input, invalid kernel shape, and secret non-disclosure.",
+      "Add root evaluate, demo, and test scripts; include focused tests in pnpm verify; update only the workspace lock link and concise README boundary text.",
+      "Preserve contracts, kernel, Evidence Gate, authority documents, existing outputs, and existing task contracts byte-for-byte.",
+      "Do not inspect or execute targets, use network/GitHub/models/credentials/cost-risk services, establish trust, select Policy or Evidence Contracts, or create or alter authoritative records."
+    ]
+  },
+  "verification": {
+    "commands": [
+      "pnpm governance:check",
+      "pnpm test:static-evaluator",
+      "pnpm static-evaluate:demo",
+      "pnpm test:kernel",
+      "pnpm verify",
+      "git diff --check"
+    ],
+    "requiredInvariants": [
+      "Every changed path is writable and this contract is the first branch commit.",
+      "The CLI only performs bounded file I/O, strict decoding, JSON parsing, one kernel call, and unchanged result serialization.",
+      "Identical accepted input produces byte-identical output with one trailing newline.",
+      "No external dependency, target execution, network, inference, semantic, authority, readiness, or release change is introduced."
+    ]
+  },
+  "requiredArtifacts": [
+    "contract",
+    "static evaluator package",
+    "sanitized fixtures",
+    "focused tests",
+    "root scripts and workspace lock link",
+    "README and validation evidence",
+    "independent exact-head review"
+  ],
+  "stopConditions": [
+    "Contracts, kernel, authority, protocol, Verdict, Trust, Evidence authority, or product semantics must change: BLOCKED_SCOPE",
+    "Trust establishment, selection, authoritative record creation, receipts, or target execution is required: BLOCKED_SCOPE",
+    "External dependencies, network, credentials, billing, credits, paid cloud, or paid SaaS are required: BLOCKED_COST_RISK",
+    "The accepted kernel result must be altered or reinterpreted: BLOCKED_SCOPE",
+    "Codex usage limit is reached: LIMIT_REACHED"
+  ],
+  "review": {
+    "expectation": "independent_review_required",
+    "reviewerMustNotRelyOnBuilderClaim": true
+  }
+}
