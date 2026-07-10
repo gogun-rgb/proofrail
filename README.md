@@ -26,6 +26,16 @@ The current product focus is Phase 2 AI PR Evidence Gate: a practical first prod
 
 Proofrail still does not have the complete product runtime. Any implementation beyond these bounded local workflows requires a later valid Machine Task Contract and independent review.
 
+## Static Phase 1 Kernel Evaluation
+
+Evaluate one complete caller-supplied Phase 1 kernel input and write the finalized bundle to stdout:
+
+```bash
+pnpm static-evaluate --input examples/static-evaluator/input.json
+```
+
+Use `--output bundle.json` to write the same bytes to a local file. This bounded CLI only decodes, parses, and evaluates the supplied static input with the accepted kernel. It does not inspect or execute a target, use the network, establish trust, select Policy or Evidence Contracts, or claim product readiness, trusted release, or independent acceptance.
+
 ## Start Here
 
 Read [AGENTS.md](AGENTS.md) first. It is the operational map for future agents.

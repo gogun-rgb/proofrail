@@ -1,0 +1,13 @@
+{
+  "name": "@proofrail/static-evaluator",
+  "version": "0.1.0-phase1",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "static-evaluate": "./src/cli.mjs"
+  },
+  "dependencies": {
+    "@proofrail/kernel": "workspace:*"
+  },
+  "sideEffects": false
+}

@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "proofrail.kernel.input.phase1.v1",
+  "evaluation": {
+    "id": "eval.static-example"
+  },
+  "claims": [
+    {
+      "id": "claim.lockfile",
+      "targetScopeId": "scope.example",
+      "statement": "The supplied static observation states that a lockfile is present."
+    }
+  ],
+  "evidenceContracts": [
+    {
+      "id": "contract.static-example",
+      "version": "1.0.0",
+      "targetScopeId": "scope.example",
+      "selectionProvenance": {
+        "source": "TRUSTED_CONFIGURATION",
+        "configurationId": "config.static-example",
+        "configurationVersion": "1.0.0"
+      },
+      "requirementIds": [
+        "requirement.lockfile"
+      ]
+    }
+  ],
+  "evidenceRequirements": [
+    {
+      "id": "requirement.lockfile",
+      "evidenceContractId": "contract.static-example",
+      "targetScopeId": "scope.example",
+      "requiredObserver": {
+        "id": "observer.static-example",
+        "version": "1.0.0"
+      },
+      "factKey": "lockfile.present",
+      "expectedValue": true
+    }
+  ],
+  "observations": [
+    {
+      "id": "observation.lockfile",
+      "observer": {
+        "id": "observer.static-example",
+        "version": "1.0.0"
+      },
+      "targetScopeId": "scope.example",
+      "factKey": "lockfile.present",
+      "factValue": true,
+      "sourceInputId": "source.static-example",
+      "orderingKey": "001",
+      "limitations": []
+    }
+  ],
+  "rules": []
+}
