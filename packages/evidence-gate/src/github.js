@@ -1,38 +1,14 @@
 import { execFile } from "node:child_process";
 
-const GH_FIELDS = [
-  "author",
-  "baseRefName",
-  "changedFiles",
-  "commits",
-  "files",
-  "headRefName",
-  "headRefOid",
-  "isDraft",
-  "number",
-  "reviews",
-  "state",
-  "statusCheckRollup",
-  "title"
-].join(",");
-
-const GH_PROJECTION = [
-  "{",
-  "number,title,state,isDraft,",
-  "authorLogin:(.author.login // null),",
-  "baseRefName,headRefName,headOid:.headRefOid,changedFiles,",
-  "files:[(.files // [])[]|select(. != null)|{path,additions,deletions}],",
-  "commits:[(.commits // [])[]|select(. != null)|{oid}],",
-  "checks:[(.statusCheckRollup // [])[]|select(. != null)|",
-  "if .__typename==\"CheckRun\" then ",
-  "{kind:\"check-run\",name,status,conclusion} ",
-  "else {kind:\"status-context\",name:(.context // .name),status:(.state // .status),conclusion:null} end],",
-  "reviews:[(.reviews // [])[]|select(. != null)|{authorLogin:(.author.login // null),state,submittedAt,commitOid:(.commit.oid // null)}]",
-  "}"
-].join("");
-
 const TIMEOUT_MS = 30_000;
 const MAX_BUFFER = 4 * 1024 * 1024;
+const MAX_PAGES = 100;
+
+const METADATA_QUERY = `query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){number title state isDraft changedFiles baseRefName headRefName headRefOid}}}`;
+const FILES_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){files(first:100,after:$cursor){nodes{path additions deletions}pageInfo{hasNextPage endCursor}}}}}`;
+const COMMITS_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){commits(first:100,after:$cursor){nodes{commit{oid}}pageInfo{hasNextPage endCursor}}}}}`;
+const REVIEWS_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){reviews(first:100,after:$cursor){nodes{state submittedAt author{login}commit{oid}}pageInfo{hasNextPage endCursor}}}}}`;
+const CHECKS_QUERY = `query($owner:String!,$name:String!,$expression:String!,$cursor:String){repository(owner:$owner,name:$name){object(expression:$expression){... on Commit{oid statusCheckRollup{contexts(first:100,after:$cursor){nodes{__typename ... on CheckRun{name status conclusion}... on StatusContext{context state}}pageInfo{hasNextPage endCursor}}}}}}}`;
 
 export async function collectGitHubPullRequest({
   repository,
@@ -41,35 +17,73 @@ export async function collectGitHubPullRequest({
 }) {
   const normalizedRepository = normalizeRepository(repository);
   const number = positiveInteger(pullRequestNumber, "pull request number");
-  const args = [
-    "pr",
-    "view",
-    String(number),
-    "--repo",
-    normalizedRepository,
-    "--json",
-    GH_FIELDS,
-    "--jq",
-    GH_PROJECTION
-  ];
+  const [owner, name] = normalizedRepository.split("/");
+  const common = { owner, name, number };
+  const metadataResult = await queryGraphql(
+    runGh,
+    METADATA_QUERY,
+    common,
+    "pull request metadata"
+  );
+  const metadata = requirePullRequest(metadataResult, "pull request metadata");
+  const headOid = commitOid(metadata.headRefOid, "pull request metadata head");
 
-  let output;
-  try {
-    output = await runGh(args);
-  } catch {
-    throw new Error("could not read pull request metadata with the local gh CLI");
-  }
-
-  let projected;
-  try {
-    projected = JSON.parse(output);
-  } catch {
-    throw new Error("local gh returned malformed pull request metadata");
-  }
+  const files = await collectConnection({
+    runGh,
+    query: FILES_QUERY,
+    variables: common,
+    stage: "changed files",
+    select: (result) => requirePullRequest(result, "changed files").files,
+    map: (node) => ({
+      path: node?.path,
+      additions: node?.additions,
+      deletions: node?.deletions
+    })
+  });
+  const commits = await collectConnection({
+    runGh,
+    query: COMMITS_QUERY,
+    variables: common,
+    stage: "commits",
+    select: (result) => requirePullRequest(result, "commits").commits,
+    map: (node) => ({ oid: node?.commit?.oid })
+  });
+  const reviews = await collectConnection({
+    runGh,
+    query: REVIEWS_QUERY,
+    variables: common,
+    stage: "reviews",
+    select: (result) => requirePullRequest(result, "reviews").reviews,
+    map: (node) => ({
+      authorLogin: node?.author?.login ?? null,
+      state: node?.state,
+      submittedAt: node?.submittedAt,
+      commitOid: node?.commit?.oid ?? null
+    })
+  });
+  const checks = await collectConnection({
+    runGh,
+    query: CHECKS_QUERY,
+    variables: { owner, name, expression: headOid },
+    stage: "checks",
+    select: (result) => requireCheckConnection(result, headOid),
+    map: mapCheckNode
+  });
 
   return normalizeSnapshot({
-    ...projected,
-    repository: normalizedRepository
+    repository: normalizedRepository,
+    number: metadata.number,
+    title: metadata.title,
+    state: metadata.state,
+    isDraft: metadata.isDraft,
+    baseRefName: metadata.baseRefName,
+    headRefName: metadata.headRefName,
+    headOid,
+    changedFiles: metadata.changedFiles,
+    files,
+    commits,
+    checks,
+    reviews
   });
 }
 
@@ -246,6 +260,108 @@ export function normalizeGitHubSnapshot(value) {
   return normalizeSnapshot(value);
 }
 
+async function queryGraphql(runGh, query, variables, stage) {
+  const args = ["api", "graphql", "-f", `query=${query}`];
+  for (const [name, value] of Object.entries(variables).sort(([left], [right]) => compare(left, right))) {
+    if (value === undefined || value === null) {
+      continue;
+    }
+    args.push(typeof value === "number" ? "-F" : "-f", `${name}=${value}`);
+  }
+
+  let source;
+  try {
+    source = await runGh(args);
+  } catch {
+    throw new Error(`GitHub collection failed while reading ${stage}`);
+  }
+
+  let result;
+  try {
+    result = JSON.parse(source);
+  } catch {
+    throw new Error(`GitHub collection returned invalid ${stage}`);
+  }
+  if (!isObject(result) || (Array.isArray(result.errors) && result.errors.length > 0)) {
+    throw new Error(`GitHub collection returned invalid ${stage}`);
+  }
+  return result;
+}
+
+async function collectConnection({ runGh, query, variables, stage, select, map }) {
+  const values = [];
+  const seenCursors = new Set();
+  let cursor;
+
+  for (let page = 0; page < MAX_PAGES; page += 1) {
+    const result = await queryGraphql(runGh, query, { ...variables, cursor }, stage);
+    const connection = select(result);
+    if (!isObject(connection)
+        || !Array.isArray(connection.nodes)
+        || !isObject(connection.pageInfo)) {
+      throw new Error(`GitHub collection returned invalid ${stage}`);
+    }
+    values.push(...connection.nodes.filter((node) => node !== null).map(map));
+    if (connection.pageInfo.hasNextPage !== true) {
+      return values;
+    }
+    const nextCursor = connection.pageInfo.endCursor;
+    if (typeof nextCursor !== "string"
+        || nextCursor === ""
+        || seenCursors.has(nextCursor)) {
+      throw new Error(`GitHub collection returned invalid ${stage}`);
+    }
+    seenCursors.add(nextCursor);
+    cursor = nextCursor;
+  }
+
+  throw new Error(`GitHub collection exceeded the ${stage} pagination limit`);
+}
+
+function requirePullRequest(result, stage) {
+  const pullRequest = result?.data?.repository?.pullRequest;
+  if (!isObject(pullRequest)) {
+    throw new Error(`GitHub collection returned invalid ${stage}`);
+  }
+  return pullRequest;
+}
+
+function requireCheckConnection(result, expectedHeadOid) {
+  const commit = result?.data?.repository?.object;
+  if (!isObject(commit)
+      || typeof commit.oid !== "string"
+      || commit.oid.toLowerCase() !== expectedHeadOid.toLowerCase()) {
+    throw new Error("GitHub collection returned invalid checks");
+  }
+  if (commit.statusCheckRollup === null || commit.statusCheckRollup === undefined) {
+    return {
+      nodes: [],
+      pageInfo: { hasNextPage: false, endCursor: null }
+    };
+  }
+  return commit.statusCheckRollup.contexts;
+}
+
+function mapCheckNode(node) {
+  if (node?.__typename === "CheckRun") {
+    return {
+      kind: "check-run",
+      name: node.name,
+      status: node.status,
+      conclusion: node.conclusion ?? null
+    };
+  }
+  if (node?.__typename === "StatusContext") {
+    return {
+      kind: "status-context",
+      name: node.context,
+      status: node.state,
+      conclusion: null
+    };
+  }
+  throw new Error("GitHub collection returned invalid checks");
+}
+
 async function runGhCommand(args) {
   return new Promise((resolve, reject) => {
     execFile("gh", args, {
@@ -256,7 +372,7 @@ async function runGhCommand(args) {
       shell: false
     }, (error, stdout) => {
       if (error) {
-        reject(error);
+        reject(new Error("GitHub command failed"));
         return;
       }
       resolve(stdout);
@@ -274,7 +390,6 @@ function normalizeSnapshot(value) {
     title: safeText(value.title, "snapshot.title", 500),
     state: enumValue(value.state, "snapshot.state", ["OPEN", "CLOSED", "MERGED"]),
     isDraft: Boolean(value.isDraft),
-    authorLogin: optionalIdentity(value.authorLogin, "(unknown-author)", "snapshot.authorLogin"),
     baseRefName: safeText(value.baseRefName, "snapshot.baseRefName", 255),
     headRefName: safeText(value.headRefName, "snapshot.headRefName", 255),
     headOid: commitOid(value.headOid, "snapshot.headOid"),

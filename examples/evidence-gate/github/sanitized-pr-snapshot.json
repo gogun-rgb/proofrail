@@ -4,7 +4,6 @@
   "title": "Claim: importer change is ready",
   "state": "OPEN",
   "isDraft": false,
-  "authorLogin": "fixture-builder",
   "baseRefName": "main",
   "headRefName": "feature/local-importer",
   "headOid": "2222222222222222222222222222222222222222",

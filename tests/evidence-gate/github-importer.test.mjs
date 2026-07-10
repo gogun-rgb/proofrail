@@ -21,7 +21,12 @@ const STATIC_CLI = path.join(ROOT, "packages/evidence-gate/src/cli.mjs");
 const FIXTURE_PATH = path.join(ROOT, "examples/evidence-gate/github/sanitized-pr-snapshot.json");
 const STATIC_INPUT = path.join(ROOT, "examples/evidence-gate/input.json");
 const STATIC_EXPECTED = path.join(ROOT, "examples/evidence-gate/expected-output.json");
-const GH_FIELDS = "author,baseRefName,changedFiles,commits,files,headRefName,headRefOid,isDraft,number,reviews,state,statusCheckRollup,title";
+const METADATA_QUERY = `query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){number title state isDraft changedFiles baseRefName headRefName headRefOid}}}`;
+const FILES_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){files(first:100,after:$cursor){nodes{path additions deletions}pageInfo{hasNextPage endCursor}}}}}`;
+const COMMITS_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){commits(first:100,after:$cursor){nodes{commit{oid}}pageInfo{hasNextPage endCursor}}}}}`;
+const REVIEWS_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){reviews(first:100,after:$cursor){nodes{state submittedAt author{login}commit{oid}}pageInfo{hasNextPage endCursor}}}}}`;
+const CHECKS_QUERY = `query($owner:String!,$name:String!,$expression:String!,$cursor:String){repository(owner:$owner,name:$name){object(expression:$expression){... on Commit{oid statusCheckRollup{contexts(first:100,after:$cursor){nodes{__typename ... on CheckRun{name status conclusion}... on StatusContext{context state}}pageInfo{hasNextPage endCursor}}}}}}}`;
+const ALL_QUERIES = [METADATA_QUERY, FILES_QUERY, COMMITS_QUERY, REVIEWS_QUERY, CHECKS_QUERY];
 
 function fixture() {
   return JSON.parse(readFileSync(FIXTURE_PATH, "utf8"));
@@ -44,29 +49,160 @@ function withTempDirectory(run) {
   }
 }
 
+function parseGraphqlArgs(args) {
+  assert.deepEqual(args.slice(0, 3), ["api", "graphql", "-f"]);
+  assert.match(args[3], /^query=/);
+  const variables = {};
+  for (let index = 4; index < args.length; index += 2) {
+    const flag = args[index];
+    const assignment = args[index + 1];
+    assert.ok(flag === "-f" || flag === "-F");
+    const separator = assignment.indexOf("=");
+    const name = assignment.slice(0, separator);
+    const value = assignment.slice(separator + 1);
+    variables[name] = flag === "-F" ? Number(value) : value;
+  }
+  return { query: args[3].slice("query=".length), variables };
+}
+
+function connectionPage(values, cursor, prefix, map) {
+  const offset = cursor === undefined ? 0 : cursor === `${prefix}-2` ? 1 : -1;
+  assert.notEqual(offset, -1, `unexpected ${prefix} cursor: ${cursor}`);
+  const hasNextPage = offset === 0 && values.length > 1;
+  return {
+    nodes: (offset === 0 ? values.slice(0, 1) : values.slice(1)).map(map),
+    pageInfo: {
+      hasNextPage,
+      endCursor: hasNextPage ? `${prefix}-2` : null
+    }
+  };
+}
+
+function graphqlEnvelope(query, variables, snapshot) {
+  if (query === METADATA_QUERY) {
+    return { data: { repository: { pullRequest: {
+      number: snapshot.number,
+      title: snapshot.title,
+      state: snapshot.state,
+      isDraft: snapshot.isDraft,
+      changedFiles: snapshot.changedFiles,
+      baseRefName: snapshot.baseRefName,
+      headRefName: snapshot.headRefName,
+      headRefOid: snapshot.headOid
+    } } } };
+  }
+  if (query === FILES_QUERY) {
+    return { data: { repository: { pullRequest: { files: connectionPage(
+      snapshot.files,
+      variables.cursor,
+      "files",
+      (file) => file
+    ) } } } };
+  }
+  if (query === COMMITS_QUERY) {
+    return { data: { repository: { pullRequest: { commits: connectionPage(
+      snapshot.commits,
+      variables.cursor,
+      "commits",
+      (commit) => ({ commit })
+    ) } } } };
+  }
+  if (query === REVIEWS_QUERY) {
+    return { data: { repository: { pullRequest: { reviews: connectionPage(
+      snapshot.reviews,
+      variables.cursor,
+      "reviews",
+      (review) => ({
+        state: review.state,
+        submittedAt: review.submittedAt,
+        author: review.authorLogin === null ? null : { login: review.authorLogin },
+        commit: review.commitOid === null ? null : { oid: review.commitOid }
+      })
+    ) } } } };
+  }
+  if (query === CHECKS_QUERY) {
+    return { data: { repository: { object: {
+      oid: snapshot.headOid,
+      statusCheckRollup: { contexts: connectionPage(
+        snapshot.checks,
+        variables.cursor,
+        "checks",
+        (check) => check.kind === "check-run"
+          ? {
+              __typename: "CheckRun",
+              name: check.name,
+              status: check.status,
+              conclusion: check.conclusion
+            }
+          : {
+              __typename: "StatusContext",
+              context: check.name,
+              state: check.status
+            }
+      ) }
+    } } } };
+  }
+  throw new Error("unexpected query");
+}
+
+function createGraphqlRunGh(snapshot, calls = []) {
+  return async (args) => {
+    calls.push(args);
+    const { query, variables } = parseGraphqlArgs(args);
+    return JSON.stringify(graphqlEnvelope(query, variables, snapshot));
+  };
+}
+
 function runGitHubCliWithFakeGh({ args, mode = "success", payload = fixture(), writeOutput = false } = {}) {
   return withTempDirectory((directory) => {
     const ghName = process.platform === "win32" ? "gh.exe" : "gh";
     const ghPath = path.join(directory, ghName);
-    const markerPath = path.join(directory, "argv.json");
+    const markerPath = path.join(directory, "argv.jsonl");
     const outputPath = path.join(directory, "packet.json");
     copyFileSync(process.execPath, ghPath);
     if (process.platform !== "win32") chmodSync(ghPath, 0o755);
-    writeFileSync(path.join(directory, "pr"), [
+    writeFileSync(path.join(directory, "api"), [
       'const fs = require("node:fs");',
-      'fs.writeFileSync(process.env.FAKE_GH_MARKER, JSON.stringify(process.argv.slice(2)));',
+      'const raw = process.argv.slice(2);',
+      'fs.appendFileSync(process.env.FAKE_GH_MARKER, JSON.stringify(raw) + "\\n");',
       'if (process.env.FAKE_GH_MODE === "failure") {',
       '  process.stderr.write(process.env.FAKE_GH_STDERR);',
-      '  process.exitCode = 1;',
-      '} else {',
-      '  process.stdout.write(process.env.FAKE_GH_PAYLOAD);',
-      '}'
+      '  process.exit(1);',
+      '}',
+      'if (process.env.FAKE_GH_MODE === "malformed") { process.stdout.write("{not-json"); process.exit(0); }',
+      'if (process.env.FAKE_GH_MODE === "shape") { process.stdout.write(JSON.stringify({data:{repository:{pullRequest:{title:"secret=SYNTHETIC_SECRET_CANARY_DO_NOT_DISCLOSE"}}}})); process.exit(0); }',
+      'const fields = {};',
+      'for (let index = 1; index < raw.length; index += 2) {',
+      '  const assignment = raw[index + 1];',
+      '  const separator = assignment.indexOf("=");',
+      '  fields[assignment.slice(0, separator)] = assignment.slice(separator + 1);',
+      '}',
+      'const query = fields.query;',
+      'const snapshot = JSON.parse(process.env.FAKE_GH_PAYLOAD);',
+      'function page(values, prefix, map) {',
+      '  const second = fields.cursor === prefix + "-2";',
+      '  const nodes = (second ? values.slice(1) : values.slice(0, 1)).map(map);',
+      '  const hasNextPage = !second && values.length > 1;',
+      '  return {nodes,pageInfo:{hasNextPage,endCursor:hasNextPage ? prefix + "-2" : null}};',
+      '}',
+      'let result;',
+      'if (query.includes("pullRequest(number:$number){number title")) {',
+      '  result={data:{repository:{pullRequest:{number:snapshot.number,title:snapshot.title,state:snapshot.state,isDraft:snapshot.isDraft,changedFiles:snapshot.changedFiles,baseRefName:snapshot.baseRefName,headRefName:snapshot.headRefName,headRefOid:snapshot.headOid}}}};',
+      '} else if (query.includes("files(first:100")) {',
+      '  result={data:{repository:{pullRequest:{files:page(snapshot.files,"files",value=>value)}}}};',
+      '} else if (query.includes("commits(first:100")) {',
+      '  result={data:{repository:{pullRequest:{commits:page(snapshot.commits,"commits",value=>({commit:value}))}}}};',
+      '} else if (query.includes("reviews(first:100")) {',
+      '  result={data:{repository:{pullRequest:{reviews:page(snapshot.reviews,"reviews",value=>({state:value.state,submittedAt:value.submittedAt,author:value.authorLogin===null?null:{login:value.authorLogin},commit:value.commitOid===null?null:{oid:value.commitOid}}))}}}};',
+      '} else if (query.includes("contexts(first:100")) {',
+      '  result={data:{repository:{object:{oid:snapshot.headOid,statusCheckRollup:{contexts:page(snapshot.checks,"checks",value=>value.kind==="check-run"?{__typename:"CheckRun",name:value.name,status:value.status,conclusion:value.conclusion}:{__typename:"StatusContext",context:value.name,state:value.status})}}}}};',
+      '} else { throw new Error("unexpected GraphQL operation"); }',
+      'process.stdout.write(JSON.stringify(result));'
     ].join("\n"), "utf8");
 
-    const identity = typeof payload === "string" ? fixture() : payload;
     const cliArgs = args ?? [
-      "--repo", identity.repository,
-      "--pr", String(identity.number),
+      "--repo", payload.repository,
+      "--pr", String(payload.number),
       ...(writeOutput ? ["--output", outputPath] : [])
     ];
     const result = spawnSync(process.execPath, [GITHUB_CLI, ...cliArgs], {
@@ -77,13 +213,20 @@ function runGitHubCliWithFakeGh({ args, mode = "success", payload = fixture(), w
         PATH: `${directory}${delimiter}${process.env.PATH ?? ""}`,
         FAKE_GH_MARKER: markerPath,
         FAKE_GH_MODE: mode,
-        FAKE_GH_PAYLOAD: typeof payload === "string" ? payload : JSON.stringify(payload),
+        FAKE_GH_PAYLOAD: JSON.stringify(payload),
         FAKE_GH_STDERR: "gh auth failure: SYNTHETIC_SECRET_CANARY_DO_NOT_DISCLOSE"
       }
     });
+    const captured = existsSync(markerPath)
+      ? readFileSync(markerPath, "utf8")
+        .trim()
+        .split(/\r?\n/)
+        .filter(Boolean)
+        .map((line) => JSON.parse(line))
+      : null;
     return {
       ...result,
-      ghArgs: existsSync(markerPath) ? JSON.parse(readFileSync(markerPath, "utf8")) : null,
+      ghArgs: captured,
       fileOutput: existsSync(outputPath) ? readFileSync(outputPath, "utf8") : null
     };
   });
@@ -115,7 +258,7 @@ test("sanitized fixture contains only the collector allowlist", () => {
   const snapshot = fixture();
   assertSanitizedFixture(snapshot);
   assert.deepEqual(Object.keys(snapshot).sort(), [
-    "authorLogin", "baseRefName", "changedFiles", "checks", "commits", "files",
+    "baseRefName", "changedFiles", "checks", "commits", "files",
     "headOid", "headRefName", "isDraft", "number", "repository", "reviews", "state", "title"
   ]);
   assert.deepEqual(Object.keys(snapshot.files[0]).sort(), ["additions", "deletions", "path"]);
@@ -124,31 +267,173 @@ test("sanitized fixture contains only the collector allowlist", () => {
   assert.deepEqual(Object.keys(snapshot.reviews[0]).sort(), ["authorLogin", "commitOid", "state", "submittedAt"]);
 });
 
-test("collector uses one exact argv vector and a nested allowlisted projection", async () => {
-  let receivedArgs;
-  const expected = fixture();
-  const snapshot = await collectGitHubPullRequest({
-    repository: expected.repository,
-    pullRequestNumber: expected.number,
-    runGh: async (args) => {
-      receivedArgs = args;
-      return JSON.stringify(expected);
+test("collector uses exact minimized queries and completes every connection page", async () => {
+  const input = fixture();
+  input.reviews = [
+    {
+      authorLogin: "fixture-reviewer",
+      state: "APPROVED",
+      submittedAt: "2026-01-01T00:00:00Z",
+      commitOid: input.headOid
+    },
+    {
+      authorLogin: "fixture-reviewer",
+      state: "CHANGES_REQUESTED",
+      submittedAt: "2026-01-02T00:00:00Z",
+      commitOid: input.headOid
     }
+  ];
+  const calls = [];
+  const snapshot = await collectGitHubPullRequest({
+    repository: input.repository,
+    pullRequestNumber: input.number,
+    runGh: createGraphqlRunGh(input, calls)
   });
 
-  assert.deepEqual(receivedArgs.slice(0, 7), [
-    "pr", "view", "17", "--repo", "example/proofrail-fixture", "--json", GH_FIELDS
+  assert.equal(calls.length, 9);
+  const parsed = calls.map(parseGraphqlArgs);
+  assert.deepEqual([...new Set(parsed.map((call) => call.query))], ALL_QUERIES);
+  assert.deepEqual(calls[0], [
+    "api", "graphql", "-f", `query=${METADATA_QUERY}`,
+    "-f", "name=proofrail-fixture", "-F", "number=17", "-f", "owner=example"
   ]);
-  assert.equal(receivedArgs[7], "--jq");
-  assert.equal(receivedArgs.length, 9);
-  assert.match(receivedArgs[8], /files:\[\(\.files \/\/ \[\]\)\[\]\|select\(\. != null\)/);
-  assert.match(receivedArgs[8], /checks:\[\(\.statusCheckRollup \/\/ \[\]\)\[\]\|select\(\. != null\)/);
-  assert.match(receivedArgs[8], /kind:"check-run"/);
-  assert.match(receivedArgs[8], /kind:"status-context"/);
-  assert.match(receivedArgs[8], /conclusion:null/);
-  assert.doesNotMatch(receivedArgs[8], /\b(?:body|bodyText|patch|message|detailsUrl|authorEmail)\b/);
-  assert.deepEqual(snapshot, normalizeGitHubSnapshot(expected));
+  for (const [query, cursor] of [
+    [FILES_QUERY, "files-2"],
+    [COMMITS_QUERY, "commits-2"],
+    [REVIEWS_QUERY, "reviews-2"],
+    [CHECKS_QUERY, "checks-2"]
+  ]) {
+    const pages = parsed.filter((call) => call.query === query);
+    assert.equal(pages.length, 2);
+    assert.equal(pages[0].variables.cursor, undefined);
+    assert.equal(pages[1].variables.cursor, cursor);
+  }
+  const checkCalls = parsed.filter((call) => call.query === CHECKS_QUERY);
+  assert.ok(checkCalls.every((call) => call.variables.expression === input.headOid));
+
+  for (const query of ALL_QUERIES) {
+    assert.doesNotMatch(query, /\b(?:body|bodyText|message|email|detailsUrl|log|logs|patch)\b/);
+  }
+  assert.doesNotMatch(COMMITS_QUERY, /\bauthor\b/);
+  assert.deepEqual(
+    ALL_QUERIES.filter((query) => query.includes("author{")),
+    [REVIEWS_QUERY]
+  );
+  assert.match(REVIEWS_QUERY, /author\{login\}/);
+
+  assert.equal(snapshot.files.length, 2);
+  assert.equal(snapshot.commits.length, 2);
+  assert.equal(snapshot.reviews.length, 2);
+  assert.deepEqual(snapshot.checks, [
+    { kind: "check-run", name: "unit-tests", status: "COMPLETED", conclusion: "SUCCESS" },
+    { kind: "status-context", name: "lint", status: "FAILURE", conclusion: null }
+  ]);
+
+  const packet = packetFor(snapshot);
+  assert.ok(missingIds(packet).includes("github-reported-checks-successful"));
+  assert.ok(missingIds(packet).includes("github-exact-head-approval-reported"));
+  assert.ok(missingIds(packet).includes("independent-review-confirmed"));
+  assert.ok(packet.reviewNeeds.includes("Review non-success reported check: lint (FAILURE)."));
+  assert.ok(packet.reviewNeeds.includes("No approval was reported for the collected exact pull request head."));
 });
+
+test("checks are bound to the exact collected head and null rollup means no checks", async (t) => {
+  await t.test("different check object head is rejected", async () => {
+    const input = fixture();
+    const base = createGraphqlRunGh(input);
+    await assert.rejects(
+      collectGitHubPullRequest({
+        repository: input.repository,
+        pullRequestNumber: input.number,
+        runGh: async (args) => {
+          const { query } = parseGraphqlArgs(args);
+          const result = JSON.parse(await base(args));
+          if (query === CHECKS_QUERY) {
+            result.data.repository.object.oid = "1111111111111111111111111111111111111111";
+          }
+          return JSON.stringify(result);
+        }
+      }),
+      /GitHub collection returned invalid checks/
+    );
+  });
+
+  await t.test("missing status rollup normalizes to an empty check set", async () => {
+    const input = fixture();
+    const base = createGraphqlRunGh(input);
+    const snapshot = await collectGitHubPullRequest({
+      repository: input.repository,
+      pullRequestNumber: input.number,
+      runGh: async (args) => {
+        const { query } = parseGraphqlArgs(args);
+        const result = JSON.parse(await base(args));
+        if (query === CHECKS_QUERY) {
+          result.data.repository.object.statusCheckRollup = null;
+        }
+        return JSON.stringify(result);
+      }
+    });
+    assert.deepEqual(snapshot.checks, []);
+    const packet = packetFor(snapshot);
+    assert.ok(missingIds(packet).includes("github-reported-checks-successful"));
+    assert.ok(packet.reviewNeeds.includes("No checks were reported for the collected pull request head."));
+  });
+});
+
+test("pagination rejects missing and repeated cursors", async (t) => {
+  for (const [name, firstCursor, nextCursor] of [
+    ["missing cursor", null, null],
+    ["repeated cursor", "repeat-cursor", "repeat-cursor"]
+  ]) {
+    await t.test(name, async () => {
+      const input = fixture();
+      const base = createGraphqlRunGh(input);
+      await assert.rejects(
+        collectGitHubPullRequest({
+          repository: input.repository,
+          pullRequestNumber: input.number,
+          runGh: async (args) => {
+            const { query, variables } = parseGraphqlArgs(args);
+            if (query !== FILES_QUERY) return base(args);
+            return JSON.stringify({
+              data: {
+                repository: {
+                  pullRequest: {
+                    files: {
+                      nodes: [],
+                      pageInfo: {
+                        hasNextPage: true,
+                        endCursor: variables.cursor === undefined ? firstCursor : nextCursor
+                      }
+                    }
+                  }
+                }
+              }
+            });
+          }
+        }),
+        /GitHub collection returned invalid changed files/
+      );
+    });
+  }
+});
+
+test("GraphQL error envelopes are rejected without exposing service text", async () => {
+  const canary = "SYNTHETIC_SECRET_CANARY_DO_NOT_DISCLOSE";
+  await assert.rejects(
+    collectGitHubPullRequest({
+      repository: fixture().repository,
+      pullRequestNumber: fixture().number,
+      runGh: async () => JSON.stringify({ errors: [{ message: canary }] })
+    }),
+    (error) => {
+      assert.equal(error.message, "GitHub collection returned invalid pull request metadata");
+      assert.doesNotMatch(error.message, new RegExp(canary));
+      return true;
+    }
+  );
+});
+
 
 test("repository and PR validation happens before gh and rejects shell-shaped input", async () => {
   let calls = 0;
@@ -165,24 +450,6 @@ test("repository and PR validation happens before gh and rejects shell-shaped in
     /pull request number must be a positive integer/
   );
   assert.equal(calls, 0);
-});
-
-test("CheckRun, StatusContext, and nullable union fields normalize without overclaim", async () => {
-  let projection;
-  const snapshot = await collectGitHubPullRequest({
-    repository: fixture().repository,
-    pullRequestNumber: fixture().number,
-    runGh: async (args) => {
-      projection = args[8];
-      return JSON.stringify(fixture());
-    }
-  });
-  assert.match(projection, /select\(\. != null\)/);
-  assert.deepEqual(snapshot.checks, [
-    { kind: "check-run", name: "unit-tests", status: "COMPLETED", conclusion: "SUCCESS" },
-    { kind: "status-context", name: "lint", status: "FAILURE", conclusion: null }
-  ]);
-  assert.ok(snapshot.reviews.some((review) => review.authorLogin === "(unknown-reviewer)" && review.commitOid === null));
 });
 
 test("mapper keeps the PR title as a Claim and scope explicit and conservative", () => {
@@ -256,7 +523,7 @@ test("collector safely collapses missing gh, auth, and nonzero failures", async 
           runGh: async () => { throw new Error(raw); }
         }),
         (error) => {
-          assert.equal(error.message, "could not read pull request metadata with the local gh CLI");
+          assert.equal(error.message, "GitHub collection failed while reading pull request metadata");
           assert.doesNotMatch(error.message, /SYNTHETIC_SECRET_CANARY_DO_NOT_DISCLOSE|authentication required|raw service failure/);
           return true;
         }
@@ -272,20 +539,25 @@ test("malformed output and shape drift fail readably without disclosing values",
       pullRequestNumber: fixture().number,
       runGh: async () => "{not-json"
     }),
-    /local gh returned malformed pull request metadata/
+    /GitHub collection returned invalid pull request metadata/
   );
 
-  const drifted = fixture();
-  drifted.title = "token=SYNTHETIC_SECRET_CANARY_DO_NOT_DISCLOSE";
-  delete drifted.files;
   await assert.rejects(
     collectGitHubPullRequest({
       repository: fixture().repository,
       pullRequestNumber: fixture().number,
-      runGh: async () => JSON.stringify(drifted)
+      runGh: async () => JSON.stringify({
+        data: {
+          repository: {
+            pullRequest: {
+              title: "token=SYNTHETIC_SECRET_CANARY_DO_NOT_DISCLOSE"
+            }
+          }
+        }
+      })
     }),
     (error) => {
-      assert.match(error.message, /snapshot\.files must be an array/);
+      assert.match(error.message, /pull request metadata head must be a commit identifier/);
       assert.doesNotMatch(error.message, /SYNTHETIC_SECRET_CANARY_DO_NOT_DISCLOSE/);
       return true;
     }
@@ -299,7 +571,7 @@ test("secret-shaped projected text is redacted before packet output", async () =
   const snapshot = await collectGitHubPullRequest({
     repository: projected.repository,
     pullRequestNumber: projected.number,
-    runGh: async () => JSON.stringify(projected)
+    runGh: createGraphqlRunGh(projected)
   });
   const serialized = canonicalJson(packetFor(snapshot));
   assert.doesNotMatch(serialized, new RegExp(secret));
@@ -326,7 +598,11 @@ test("GitHub CLI writes canonical packet JSON to stdout", () => {
   assert.match(result.stdout, /[^\n]\n$/);
   assert.doesNotMatch(result.stdout, /\n\n$/);
   assert.equal(result.fileOutput, null);
-  assert.deepEqual(result.ghArgs.slice(0, 5), ["view", "17", "--repo", "example/proofrail-fixture", "--json"]);
+  assert.equal(result.ghArgs.length, 9);
+  assert.deepEqual(
+    result.ghArgs[0].slice(0, 3),
+    ["graphql", "-f", `query=${METADATA_QUERY}`]
+  );
   const packet = JSON.parse(result.stdout);
   assert.equal(packet.pullRequest.id, "example/proofrail-fixture#17");
   assert.ok(missingIds(packet).includes("independent-review-confirmed"));
@@ -364,7 +640,7 @@ test("GitHub CLI reports missing gh without raw platform details", () => {
     });
     assert.notEqual(result.status, 0);
     assert.equal(result.stdout, "");
-    assert.equal(result.stderr, "evidence-gate-github: could not read pull request metadata with the local gh CLI\n");
+    assert.equal(result.stderr, "evidence-gate-github: GitHub collection failed while reading pull request metadata\n");
   });
 });
 
@@ -372,21 +648,18 @@ test("GitHub CLI hides raw auth and nonzero stderr", () => {
   const result = runGitHubCliWithFakeGh({ mode: "failure" });
   assert.notEqual(result.status, 0);
   assert.equal(result.stdout, "");
-  assert.equal(result.stderr, "evidence-gate-github: could not read pull request metadata with the local gh CLI\n");
+  assert.equal(result.stderr, "evidence-gate-github: GitHub collection failed while reading pull request metadata\n");
   assert.doesNotMatch(result.stderr, /SYNTHETIC_SECRET_CANARY_DO_NOT_DISCLOSE/);
 });
 
 test("GitHub CLI reports malformed output and shape drift without raw input", () => {
-  const malformed = runGitHubCliWithFakeGh({ payload: "{not-json" });
+  const malformed = runGitHubCliWithFakeGh({ mode: "malformed" });
   assert.notEqual(malformed.status, 0);
-  assert.equal(malformed.stderr, "evidence-gate-github: local gh returned malformed pull request metadata\n");
+  assert.equal(malformed.stderr, "evidence-gate-github: GitHub collection returned invalid pull request metadata\n");
 
-  const drifted = fixture();
-  drifted.title = "secret=SYNTHETIC_SECRET_CANARY_DO_NOT_DISCLOSE";
-  delete drifted.reviews;
-  const shape = runGitHubCliWithFakeGh({ payload: drifted });
+  const shape = runGitHubCliWithFakeGh({ mode: "shape" });
   assert.notEqual(shape.status, 0);
-  assert.match(shape.stderr, /evidence-gate-github: snapshot\.reviews must be an array/);
+  assert.match(shape.stderr, /evidence-gate-github: pull request metadata head must be a commit identifier/);
   assert.doesNotMatch(shape.stderr, /SYNTHETIC_SECRET_CANARY_DO_NOT_DISCLOSE/);
 });
 
