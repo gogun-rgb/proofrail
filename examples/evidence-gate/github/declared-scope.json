@@ -1,0 +1,5 @@
+{
+  "declaredWriteScope": [
+    "packages/evidence-gate/**"
+  ]
+}
