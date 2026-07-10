@@ -401,7 +401,7 @@ function normalizeSnapshot(value) {
     number: positiveInteger(value.number, "snapshot.number"),
     title: safeText(value.title, "snapshot.title", 500),
     state: enumValue(value.state, "snapshot.state", ["OPEN", "CLOSED", "MERGED"]),
-    isDraft: Boolean(value.isDraft),
+    isDraft: booleanValue(value.isDraft, "snapshot.isDraft"),
     baseRefName: safeText(value.baseRefName, "snapshot.baseRefName", 255),
     headRefName: safeText(value.headRefName, "snapshot.headRefName", 255),
     headOid: commitOid(value.headOid, "snapshot.headOid"),
@@ -538,6 +538,13 @@ function enumValue(value, name, allowed) {
     throw new TypeError(`${name} has an unsupported value`);
   }
   return normalized;
+}
+
+function booleanValue(value, name) {
+  if (typeof value !== "boolean") {
+    throw new TypeError(`${name} must be a boolean`);
+  }
+  return value;
 }
 
 function commitOid(value, name) {

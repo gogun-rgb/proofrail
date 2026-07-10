@@ -473,6 +473,7 @@ test("pagination rejects missing and repeated cursors", async (t) => {
               data: {
                 repository: {
                   pullRequest: {
+                    headRefOid: input.headOid,
                     files: {
                       nodes: [],
                       pageInfo: {
@@ -508,6 +509,7 @@ test("pagination rejects missing and non-boolean hasNextPage values", async (t) 
               data: {
                 repository: {
                   pullRequest: {
+                    headRefOid: input.headOid,
                     files: {
                       nodes: [],
                       pageInfo: {
@@ -671,6 +673,26 @@ test("malformed output and shape drift fail readably without disclosing values",
       return true;
     }
   );
+
+  {
+    const input = fixture();
+    const base = createGraphqlRunGh(input);
+    await assert.rejects(
+      collectGitHubPullRequest({
+        repository: input.repository,
+        pullRequestNumber: input.number,
+        runGh: async (args) => {
+          const { query } = parseGraphqlArgs(args);
+          const result = JSON.parse(await base(args));
+          if (query === METADATA_QUERY) {
+            result.data.repository.pullRequest.isDraft = "false";
+          }
+          return JSON.stringify(result);
+        }
+      }),
+      /snapshot\.isDraft must be a boolean/
+    );
+  }
 });
 
 test("secret-shaped projected text is redacted before packet output", async () => {
