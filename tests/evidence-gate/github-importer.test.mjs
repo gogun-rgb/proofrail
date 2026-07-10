@@ -337,6 +337,24 @@ test("collector uses exact minimized queries and completes every connection page
   assert.ok(packet.reviewNeeds.includes("No approval was reported for the collected exact pull request head."));
 });
 
+test("pending reviews without submitted timestamps remain explicit metadata", async () => {
+  const input = fixture();
+  input.reviews = [{
+    authorLogin: "pending-reviewer",
+    state: "PENDING",
+    submittedAt: null,
+    commitOid: null
+  }];
+  const snapshot = await collectGitHubPullRequest({
+    repository: input.repository,
+    pullRequestNumber: input.number,
+    runGh: createGraphqlRunGh(input)
+  });
+  assert.equal(snapshot.reviews[0].submittedAt, null);
+  const packet = packetFor(snapshot);
+  assert.match(packet.observedEvidence[packet.observedEvidence.length - 1].summary, /not submitted/);
+});
+
 test("every files, commits, and reviews page remains bound to the collected head", async (t) => {
   for (const [queryUnderTest, stage] of [
     [FILES_QUERY, "changed files"],

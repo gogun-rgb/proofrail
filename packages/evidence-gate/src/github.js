@@ -170,7 +170,7 @@ export function mapGitHubPullRequestToEvidenceInput(value) {
     observedEvidence.push({
       id: numberedId("github-review", index),
       kind: "reported-review",
-      summary: `${review.state} review by ${review.authorLogin} at ${review.submittedAt} (${headRelationship}).`,
+      summary: `${review.state} review by ${review.authorLogin} at ${review.submittedAt ?? "(not submitted)"} (${headRelationship}).`,
       source: "local-gh",
       satisfies: []
     });
@@ -480,13 +480,13 @@ function normalizeReviews(value) {
         `snapshot.reviews[${index}].authorLogin`
       ),
       state: safeText(review.state, `snapshot.reviews[${index}].state`, 64).toUpperCase(),
-      submittedAt: isoTimestamp(review.submittedAt, `snapshot.reviews[${index}].submittedAt`),
+      submittedAt: optionalIsoTimestamp(review.submittedAt, `snapshot.reviews[${index}].submittedAt`),
       commitOid: review.commitOid == null
         ? null
         : commitOid(review.commitOid, `snapshot.reviews[${index}].commitOid`)
     });
   }).sort((left, right) => compare(left.authorLogin, right.authorLogin)
-    || compare(left.submittedAt, right.submittedAt)
+    || compare(left.submittedAt ?? "", right.submittedAt ?? "")
     || compare(left.state, right.state)
     || compare(left.commitOid ?? "", right.commitOid ?? ""));
 }
@@ -565,6 +565,10 @@ function isoTimestamp(value, name) {
     throw new TypeError(`${name} must be an ISO timestamp`);
   }
   return new Date(normalized).toISOString();
+}
+
+function optionalIsoTimestamp(value, name) {
+  return value == null ? null : isoTimestamp(value, name);
 }
 
 function positiveInteger(value, name) {
