@@ -1,0 +1,161 @@
+{
+  "task": {
+    "id": "GATE-V01-001",
+    "class": "ai_pr_evidence_gate_v0_1_completion",
+    "objective": "Complete the existing static-input packet builder as a usable local CLI that reads a JSON input file and writes deterministic evidence packet JSON to stdout or a file, with validation, examples, tests, and documentation for Proofrail AI PR Evidence Gate v0.1."
+  },
+  "scope": {
+    "write": [
+      "governance/tasks/GATE-V01-001.json",
+      "packages/evidence-gate/**",
+      "tests/evidence-gate/**",
+      "examples/evidence-gate/**",
+      "package.json",
+      "README.md",
+      "docs/plans/active/phase-2-ai-pr-evidence-gate.md",
+      "docs/engineering/validation-evidence.md"
+    ],
+    "read_only_authority": [
+      "AGENTS.md",
+      "docs/constitution/**",
+      "docs/architecture/**",
+      "docs/product/**",
+      "docs/protocols/**",
+      "docs/quality/**",
+      "docs/engineering/machine-task-contract.md",
+      "packages/contracts/**",
+      "packages/kernel/**",
+      "scripts/**",
+      ".github/**",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "tsconfig.json",
+      "governance/generated/**",
+      "existing governance/tasks/**"
+    ],
+    "forbidden": [
+      "packages/contracts/**",
+      "packages/kernel/**",
+      "scripts/**",
+      ".github/**",
+      "docs/constitution/**",
+      "docs/architecture/**",
+      "docs/product/**",
+      "docs/protocols/**",
+      "docs/quality/**",
+      "governance/generated/**",
+      "modification of existing Machine Task Contracts",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "tsconfig.json",
+      "new external dependencies",
+      "live GitHub or repository inspection",
+      "PR data collection using gh",
+      "network requests in the product",
+      "target repository code or command execution",
+      "adapter, API, MCP, web, GitHub App, SARIF, or other delivery surface implementation",
+      "model provider calls",
+      "Inference Zone implementation",
+      "canonical terminology changes",
+      "Verdict semantic changes",
+      "Trust semantic changes",
+      "Evidence authority class changes",
+      "complete product Verdict runtime implementation",
+      "product readiness or trusted release claims"
+    ]
+  },
+  "authority": {
+    "read": [
+      "governance/tasks/GATE-V01-001.json",
+      "governance/tasks/GATE-MVP-001.json",
+      "AGENTS.md",
+      "package.json",
+      "docs/engineering/machine-task-contract.md",
+      "docs/constitution/product-constitution.md",
+      "docs/constitution/terminology.md",
+      "docs/constitution/trust-model.md",
+      "docs/architecture/dependency-rules.md",
+      "docs/architecture/inference-boundary.md",
+      "docs/product/verdict-semantics.md",
+      "docs/protocols/evidence-schema.md",
+      "docs/plans/active/phase-2-ai-pr-evidence-gate.md"
+    ],
+    "mayChangeAuthority": false,
+    "mayChangeProductSemantics": false
+  },
+  "acceptance": {
+    "requirements": [
+      "Add GATE-V01-001 as the first commit on the work branch.",
+      "Preserve the existing buildEvidencePacket(input) behavior and compatibility.",
+      "Add a local CLI supporting pnpm evidence-gate --input <input.json>.",
+      "When --output <packet.json> is supplied, write the packet to that file.",
+      "When --output is absent, write the packet JSON to stdout.",
+      "Successful output is canonical and deterministic and ends with exactly one newline.",
+      "The CLI exits with code 0 on success.",
+      "JSON syntax and input-shape errors produce readable stderr output and a non-zero exit code.",
+      "Error messages do not disclose complete secret-like values from the input file.",
+      "The packet keeps claims, observedEvidence, missingEvidence, scope, reviewNeeds, and boundaries separate.",
+      "A Claim is not promoted to Evidence by itself.",
+      "Missing evidence is not converted into confidence or success state.",
+      "Identically normalized inputs produce byte-identical JSON output.",
+      "Provide example input JSON and expected output JSON under examples/evidence-gate/.",
+      "Provide tests for malformed JSON, invalid shape, deterministic output, stdout, output file, missing evidence, scope violation, and readiness overclaim prevention.",
+      "Use only Node standard-library behavior without adding dependencies or changing the lockfile.",
+      "Provide root commands equivalent to pnpm evidence-gate, pnpm evidence-gate:demo, and pnpm test:evidence-gate.",
+      "Include evidence-gate tests in pnpm verify.",
+      "Provide a README path that a new user can run within three minutes.",
+      "Record v0.1 implementation status and explicit non-goals in the active Phase 2 plan.",
+      "Record only commands actually run in validation evidence.",
+      "Do not claim product readiness, trusted release, or an authoritative Proofrail product Verdict."
+    ]
+  },
+  "verification": {
+    "commands": [
+      "pnpm governance:check",
+      "pnpm governance:check-json",
+      "pnpm test:governance",
+      "pnpm test:evidence-gate",
+      "pnpm evidence-gate:demo",
+      "pnpm typecheck:phase1",
+      "pnpm test:kernel",
+      "pnpm verify",
+      "git diff --check"
+    ],
+    "requiredInvariants": [
+      "The existing buildEvidencePacket(input) interface and behavior remain compatible.",
+      "Claims remain distinct from observed evidence and missing evidence remains explicit.",
+      "Identically normalized inputs produce byte-identical JSON output with one trailing newline.",
+      "No external dependency or lockfile change is introduced.",
+      "No live repository inspection, target-code execution, delivery surface, model provider, or Inference Zone behavior is implemented.",
+      "No product semantic, canonical terminology, Verdict, Trust, or Evidence authority change is introduced.",
+      "No product readiness, trusted release, or authoritative Proofrail product Verdict is claimed."
+    ]
+  },
+  "requiredArtifacts": [
+    "governance/tasks/GATE-V01-001.json",
+    "CLI entrypoint",
+    "input validation",
+    "deterministic JSON serialization",
+    "example input",
+    "expected example output",
+    "CLI tests",
+    "packet behavior tests",
+    "root package scripts",
+    "README usage",
+    "Phase 2 v0.1 plan update",
+    "validation evidence"
+  ],
+  "stopConditions": [
+    "An external dependency or lockfile change is required",
+    "Live GitHub or repository collection is required",
+    "Target repository command execution is required",
+    "Canonical terminology, Verdict, Trust, Evidence authority, or product semantics must change",
+    "API keys, credits, billing, paid cloud, or SaaS are required: BLOCKED_COST_RISK",
+    "Codex usage limit is reached: LIMIT_REACHED",
+    "An existing test exposes a product defect that cannot be resolved without an out-of-scope change: BLOCKED_SCOPE"
+  ],
+  "review": {
+    "expectation": "independent_review_required",
+    "reviewerMustNotRelyOnBuilderClaim": true
+  }
+}
