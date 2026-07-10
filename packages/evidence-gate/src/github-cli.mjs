@@ -52,7 +52,6 @@ export function parseGitHubArguments(args) {
     output: options.output
   };
 }
-
 export async function runGitHubCli(args = process.argv.slice(2)) {
   const options = parseGitHubArguments(args);
   const snapshot = await collectGitHubPullRequest(options);
@@ -80,4 +79,3 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     process.exitCode = 1;
   }
 }
-
