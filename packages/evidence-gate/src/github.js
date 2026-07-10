@@ -529,7 +529,7 @@ function safeText(value, name, maxLength) {
   }
   let normalized = value.replace(/[\u0000-\u001f\u007f]/g, " ").trim();
   normalized = normalized
-    .replace(/\b(?:gh[opsu]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/g, "[REDACTED]")
+    .replace(/\b(?:gh[oprsu]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/g, "[REDACTED]")
     .replace(/\b(Bearer\s+)[A-Za-z0-9._~+\/-]{16,}/gi, "$1[REDACTED]")
     .replace(/\b((?:api[_-]?key|token|secret|password)\s*[=:]\s*)\S+/gi, "$1[REDACTED]");
   return normalized.length <= maxLength

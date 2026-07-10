@@ -729,8 +729,9 @@ test("malformed output and shape drift fail readably without disclosing values",
 
 test("secret-shaped projected text is redacted before packet output", async () => {
   const secret = "SYNTHETIC_SECRET_CANARY_DO_NOT_DISCLOSE";
+  const refreshToken = `ghr_${"A".repeat(30)}`;
   const projected = fixture();
-  projected.title = `Claim token=${secret}`;
+  projected.title = `Claim token=${secret} refresh=${refreshToken}`;
   const snapshot = await collectGitHubPullRequest({
     repository: projected.repository,
     pullRequestNumber: projected.number,
@@ -738,6 +739,7 @@ test("secret-shaped projected text is redacted before packet output", async () =
   });
   const serialized = canonicalJson(packetFor(snapshot));
   assert.doesNotMatch(serialized, new RegExp(secret));
+  assert.doesNotMatch(serialized, new RegExp(refreshToken));
   assert.match(serialized, /token=\[REDACTED\]/);
 });
 
