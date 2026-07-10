@@ -22,9 +22,9 @@ const FIXTURE_PATH = path.join(ROOT, "examples/evidence-gate/github/sanitized-pr
 const STATIC_INPUT = path.join(ROOT, "examples/evidence-gate/input.json");
 const STATIC_EXPECTED = path.join(ROOT, "examples/evidence-gate/expected-output.json");
 const METADATA_QUERY = `query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){number title state isDraft changedFiles baseRefName headRefName headRefOid}}}`;
-const FILES_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){files(first:100,after:$cursor){nodes{path additions deletions}pageInfo{hasNextPage endCursor}}}}}`;
-const COMMITS_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){commits(first:100,after:$cursor){nodes{commit{oid}}pageInfo{hasNextPage endCursor}}}}}`;
-const REVIEWS_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){reviews(first:100,after:$cursor){nodes{state submittedAt author{login}commit{oid}}pageInfo{hasNextPage endCursor}}}}}`;
+const FILES_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){headRefOid files(first:100,after:$cursor){nodes{path additions deletions}pageInfo{hasNextPage endCursor}}}}}`;
+const COMMITS_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){headRefOid commits(first:100,after:$cursor){nodes{commit{oid}}pageInfo{hasNextPage endCursor}}}}}`;
+const REVIEWS_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){headRefOid reviews(first:100,after:$cursor){nodes{state submittedAt author{login}commit{oid}}pageInfo{hasNextPage endCursor}}}}}`;
 const CHECKS_QUERY = `query($owner:String!,$name:String!,$expression:String!,$cursor:String){repository(owner:$owner,name:$name){object(expression:$expression){... on Commit{oid statusCheckRollup{contexts(first:100,after:$cursor){nodes{__typename ... on CheckRun{name status conclusion}... on StatusContext{context state}}pageInfo{hasNextPage endCursor}}}}}}}`;
 const ALL_QUERIES = [METADATA_QUERY, FILES_QUERY, COMMITS_QUERY, REVIEWS_QUERY, CHECKS_QUERY];
 
@@ -92,7 +92,7 @@ function graphqlEnvelope(query, variables, snapshot) {
     } } } };
   }
   if (query === FILES_QUERY) {
-    return { data: { repository: { pullRequest: { files: connectionPage(
+    return { data: { repository: { pullRequest: { headRefOid: snapshot.headOid, files: connectionPage(
       snapshot.files,
       variables.cursor,
       "files",
@@ -100,7 +100,7 @@ function graphqlEnvelope(query, variables, snapshot) {
     ) } } } };
   }
   if (query === COMMITS_QUERY) {
-    return { data: { repository: { pullRequest: { commits: connectionPage(
+    return { data: { repository: { pullRequest: { headRefOid: snapshot.headOid, commits: connectionPage(
       snapshot.commits,
       variables.cursor,
       "commits",
@@ -108,7 +108,7 @@ function graphqlEnvelope(query, variables, snapshot) {
     ) } } } };
   }
   if (query === REVIEWS_QUERY) {
-    return { data: { repository: { pullRequest: { reviews: connectionPage(
+    return { data: { repository: { pullRequest: { headRefOid: snapshot.headOid, reviews: connectionPage(
       snapshot.reviews,
       variables.cursor,
       "reviews",
@@ -189,11 +189,11 @@ function runGitHubCliWithFakeGh({ args, mode = "success", payload = fixture(), w
       'if (query.includes("pullRequest(number:$number){number title")) {',
       '  result={data:{repository:{pullRequest:{number:snapshot.number,title:snapshot.title,state:snapshot.state,isDraft:snapshot.isDraft,changedFiles:snapshot.changedFiles,baseRefName:snapshot.baseRefName,headRefName:snapshot.headRefName,headRefOid:snapshot.headOid}}}};',
       '} else if (query.includes("files(first:100")) {',
-      '  result={data:{repository:{pullRequest:{files:page(snapshot.files,"files",value=>value)}}}};',
+      '  result={data:{repository:{pullRequest:{headRefOid:snapshot.headOid,files:page(snapshot.files,"files",value=>value)}}}};',
       '} else if (query.includes("commits(first:100")) {',
-      '  result={data:{repository:{pullRequest:{commits:page(snapshot.commits,"commits",value=>({commit:value}))}}}};',
+      '  result={data:{repository:{pullRequest:{headRefOid:snapshot.headOid,commits:page(snapshot.commits,"commits",value=>({commit:value}))}}}};',
       '} else if (query.includes("reviews(first:100")) {',
-      '  result={data:{repository:{pullRequest:{reviews:page(snapshot.reviews,"reviews",value=>({state:value.state,submittedAt:value.submittedAt,author:value.authorLogin===null?null:{login:value.authorLogin},commit:value.commitOid===null?null:{oid:value.commitOid}}))}}}};',
+      '  result={data:{repository:{pullRequest:{headRefOid:snapshot.headOid,reviews:page(snapshot.reviews,"reviews",value=>({state:value.state,submittedAt:value.submittedAt,author:value.authorLogin===null?null:{login:value.authorLogin},commit:value.commitOid===null?null:{oid:value.commitOid}}))}}}};',
       '} else if (query.includes("contexts(first:100")) {',
       '  result={data:{repository:{object:{oid:snapshot.headOid,statusCheckRollup:{contexts:page(snapshot.checks,"checks",value=>value.kind==="check-run"?{__typename:"CheckRun",name:value.name,status:value.status,conclusion:value.conclusion}:{__typename:"StatusContext",context:value.name,state:value.status})}}}}};',
       '} else { throw new Error("unexpected GraphQL operation"); }',
@@ -335,6 +335,80 @@ test("collector uses exact minimized queries and completes every connection page
   assert.ok(missingIds(packet).includes("independent-review-confirmed"));
   assert.ok(packet.reviewNeeds.includes("Review non-success reported check: lint (FAILURE)."));
   assert.ok(packet.reviewNeeds.includes("No approval was reported for the collected exact pull request head."));
+});
+
+test("every files, commits, and reviews page remains bound to the collected head", async (t) => {
+  for (const [queryUnderTest, stage] of [
+    [FILES_QUERY, "changed files"],
+    [COMMITS_QUERY, "commits"],
+    [REVIEWS_QUERY, "reviews"]
+  ]) {
+    for (const changedPage of [1, 2]) {
+      await t.test(`${stage} page ${changedPage}`, async () => {
+        const input = fixture();
+        const base = createGraphqlRunGh(input);
+        let page = 0;
+        await assert.rejects(
+          collectGitHubPullRequest({
+            repository: input.repository,
+            pullRequestNumber: input.number,
+            runGh: async (args) => {
+              const { query } = parseGraphqlArgs(args);
+              const result = JSON.parse(await base(args));
+              if (query === queryUnderTest) {
+                page += 1;
+                if (page === changedPage) {
+                  result.data.repository.pullRequest.headRefOid =
+                    "1111111111111111111111111111111111111111";
+                }
+              }
+              return JSON.stringify(result);
+            }
+          }),
+          new RegExp(`GitHub collection returned invalid ${stage}`)
+        );
+      });
+    }
+  }
+});
+
+test("null and non-object connection nodes fail closed", async (t) => {
+  function selectedConnection(result, query) {
+    if (query === FILES_QUERY) return result.data.repository.pullRequest.files;
+    if (query === COMMITS_QUERY) return result.data.repository.pullRequest.commits;
+    if (query === REVIEWS_QUERY) return result.data.repository.pullRequest.reviews;
+    if (query === CHECKS_QUERY) return result.data.repository.object.statusCheckRollup.contexts;
+    throw new Error("unexpected connection query");
+  }
+
+  for (const [queryUnderTest, stage] of [
+    [FILES_QUERY, "changed files"],
+    [COMMITS_QUERY, "commits"],
+    [REVIEWS_QUERY, "reviews"],
+    [CHECKS_QUERY, "checks"]
+  ]) {
+    for (const badNode of [null, 42]) {
+      await t.test(`${stage} ${badNode === null ? "null" : "scalar"}`, async () => {
+        const input = fixture();
+        const base = createGraphqlRunGh(input);
+        await assert.rejects(
+          collectGitHubPullRequest({
+            repository: input.repository,
+            pullRequestNumber: input.number,
+            runGh: async (args) => {
+              const { query } = parseGraphqlArgs(args);
+              const result = JSON.parse(await base(args));
+              if (query === queryUnderTest) {
+                selectedConnection(result, query).nodes = [badNode];
+              }
+              return JSON.stringify(result);
+            }
+          }),
+          new RegExp(`GitHub collection returned invalid ${stage}`)
+        );
+      });
+    }
+  }
 });
 
 test("checks are bound to the exact collected head and null rollup means no checks", async (t) => {

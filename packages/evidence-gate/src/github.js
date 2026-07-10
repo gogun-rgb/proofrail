@@ -5,9 +5,9 @@ const MAX_BUFFER = 4 * 1024 * 1024;
 const MAX_PAGES = 100;
 
 const METADATA_QUERY = `query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){number title state isDraft changedFiles baseRefName headRefName headRefOid}}}`;
-const FILES_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){files(first:100,after:$cursor){nodes{path additions deletions}pageInfo{hasNextPage endCursor}}}}}`;
-const COMMITS_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){commits(first:100,after:$cursor){nodes{commit{oid}}pageInfo{hasNextPage endCursor}}}}}`;
-const REVIEWS_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){reviews(first:100,after:$cursor){nodes{state submittedAt author{login}commit{oid}}pageInfo{hasNextPage endCursor}}}}}`;
+const FILES_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){headRefOid files(first:100,after:$cursor){nodes{path additions deletions}pageInfo{hasNextPage endCursor}}}}}`;
+const COMMITS_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){headRefOid commits(first:100,after:$cursor){nodes{commit{oid}}pageInfo{hasNextPage endCursor}}}}}`;
+const REVIEWS_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){headRefOid reviews(first:100,after:$cursor){nodes{state submittedAt author{login}commit{oid}}pageInfo{hasNextPage endCursor}}}}}`;
 const CHECKS_QUERY = `query($owner:String!,$name:String!,$expression:String!,$cursor:String){repository(owner:$owner,name:$name){object(expression:$expression){... on Commit{oid statusCheckRollup{contexts(first:100,after:$cursor){nodes{__typename ... on CheckRun{name status conclusion}... on StatusContext{context state}}pageInfo{hasNextPage endCursor}}}}}}}`;
 
 export async function collectGitHubPullRequest({
@@ -33,7 +33,7 @@ export async function collectGitHubPullRequest({
     query: FILES_QUERY,
     variables: common,
     stage: "changed files",
-    select: (result) => requirePullRequest(result, "changed files").files,
+    select: (result) => requireHeadConnection(result, "changed files", headOid, "files"),
     map: (node) => ({
       path: node?.path,
       additions: node?.additions,
@@ -45,7 +45,7 @@ export async function collectGitHubPullRequest({
     query: COMMITS_QUERY,
     variables: common,
     stage: "commits",
-    select: (result) => requirePullRequest(result, "commits").commits,
+    select: (result) => requireHeadConnection(result, "commits", headOid, "commits"),
     map: (node) => ({ oid: node?.commit?.oid })
   });
   const reviews = await collectConnection({
@@ -53,7 +53,7 @@ export async function collectGitHubPullRequest({
     query: REVIEWS_QUERY,
     variables: common,
     stage: "reviews",
-    select: (result) => requirePullRequest(result, "reviews").reviews,
+    select: (result) => requireHeadConnection(result, "reviews", headOid, "reviews"),
     map: (node) => ({
       authorLogin: node?.author?.login ?? null,
       state: node?.state,
@@ -302,7 +302,10 @@ async function collectConnection({ runGh, query, variables, stage, select, map }
         || typeof connection.pageInfo.hasNextPage !== "boolean") {
       throw new Error(`GitHub collection returned invalid ${stage}`);
     }
-    values.push(...connection.nodes.filter((node) => node !== null).map(map));
+    if (connection.nodes.some((node) => !isObject(node))) {
+      throw new Error(`GitHub collection returned invalid ${stage}`);
+    }
+    values.push(...connection.nodes.map(map));
     if (connection.pageInfo.hasNextPage !== true) {
       return values;
     }
@@ -325,6 +328,14 @@ function requirePullRequest(result, stage) {
     throw new Error(`GitHub collection returned invalid ${stage}`);
   }
   return pullRequest;
+}
+
+function requireHeadConnection(result, stage, expectedHeadOid, field) {
+  const pullRequest = requirePullRequest(result, stage);
+  if (pullRequest.headRefOid !== expectedHeadOid) {
+    throw new Error(`GitHub collection returned invalid ${stage}`);
+  }
+  return pullRequest[field];
 }
 
 function requireCheckConnection(result, expectedHeadOid) {
