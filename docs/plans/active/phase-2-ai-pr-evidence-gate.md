@@ -83,13 +83,21 @@ An explicit output path writes the same packet to a file:
 pnpm evidence-gate:github --repo owner/name --pr 123 --output packet.json
 ```
 
+GATE-SCOPE-001 adds an optional caller-declared scope file for existing changed-path reporting:
+
+```bash
+pnpm evidence-gate:github --repo owner/name --pr 123 --scope-file declared-scope.json
+```
+
+The caller declaration only feeds the existing `outsideDeclaredScope` reporting. It never decides authorization, Policy, Evidence, readiness, trusted release, independent acceptance, or a Proofrail product Verdict.
+
 The importer collects only selected PR metadata, changed-file summaries, commit identities, reported checks, and review metadata. It records the exact pull request head SHA, so the packet applies only to that point-in-time snapshot. A later push requires a new collection.
 
 The importer must not collect PR or review bodies, patches, check logs, or repository file contents. It must not execute target-project commands or perform GitHub writes. These exclusions reduce the chance of copying instruction-shaped or secret-bearing source content into a packet; they do not turn the remaining metadata into trusted Evidence.
 
 The collector freezes and sanitizes live metadata before calling the existing packet evaluator. Consequently, `boundaries.staticInputOnly: true` describes the evaluator's input boundary, not the complete v0.2 command: the evaluator receives a static snapshot even though the preceding collector used local `gh` to query GitHub.
 
-v0.2 reports changed paths but does not yet apply a local scope policy. A path appearing in the packet is not a finding that the path was authorized or unauthorized.
+v0.2 reports changed paths and, when supplied, caller-declared scope boundaries, but does not apply a local scope policy. A path appearing in the packet or `outsideDeclaredScope` is not a finding that the path was authorized or unauthorized.
 
 ## Human Report View
 

@@ -107,6 +107,14 @@ To write the packet to a file instead:
 pnpm evidence-gate:github --repo owner/name --pr 123 --output packet.json
 ```
 
+To report paths outside a caller-declared scope, pass one local scope JSON file:
+
+```bash
+pnpm evidence-gate:github --repo owner/name --pr 123 --scope-file declared-scope.json
+```
+
+The caller declaration only feeds the existing `outsideDeclaredScope` reporting. It never decides authorization, Policy, Evidence, readiness, trusted release, independent acceptance, or a Proofrail product Verdict.
+
 The same importer can render the collected packet as a deterministic human report:
 
     pnpm evidence-gate:github --repo owner/name --pr 123 --format human

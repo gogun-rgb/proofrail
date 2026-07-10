@@ -92,8 +92,9 @@ export async function collectGitHubPullRequest({
   });
 }
 
-export function mapGitHubPullRequestToEvidenceInput(value) {
+export function mapGitHubPullRequestToEvidenceInput(value, declaredWriteScope = []) {
   const snapshot = normalizeSnapshot(value);
+  const normalizedDeclaredWriteScope = normalizeDeclaredWriteScope(declaredWriteScope);
   const observedEvidence = [
     {
       id: "github-pr-snapshot",
@@ -196,7 +197,7 @@ export function mapGitHubPullRequestToEvidenceInput(value) {
       `GitHub reported ${snapshot.changedFiles} changed files but the collector received ${snapshot.files.length}; review collection completeness.`
     );
   }
-  if (snapshot.files.length > 0) {
+  if (normalizedDeclaredWriteScope.length === 0 && snapshot.files.length > 0) {
     reviewNeeds.add("No declared write scope was supplied; review every changed path.");
   }
   if (snapshot.isDraft) {
@@ -254,7 +255,7 @@ export function mapGitHubPullRequestToEvidenceInput(value) {
       }
     ],
     scope: {
-      declaredWriteScope: [],
+      declaredWriteScope: normalizedDeclaredWriteScope,
       changedPaths: snapshot.files.map((file) => file.path)
     },
     reviewNeeds: [...reviewNeeds]
@@ -263,6 +264,21 @@ export function mapGitHubPullRequestToEvidenceInput(value) {
 
 export function normalizeGitHubSnapshot(value) {
   return normalizeSnapshot(value);
+}
+
+export function normalizeDeclaredWriteScope(value) {
+  if (!Array.isArray(value)
+      || value.length > 100
+      || value.some((pattern) => !isSafePathPattern(pattern))) {
+    throw new TypeError("declaredWriteScope must be an array of safe path patterns");
+  }
+
+  const uniquePatterns = new Set(value);
+  if (uniquePatterns.size !== value.length) {
+    throw new TypeError("declaredWriteScope must not contain duplicate path patterns");
+  }
+
+  return [...uniquePatterns].sort(compare);
 }
 
 async function queryGraphql(runGh, query, variables, stage) {
@@ -517,6 +533,23 @@ function normalizeRepository(value) {
     throw new TypeError("repository must use owner/name format");
   }
   return value;
+}
+
+function isSafePathPattern(value) {
+  if (typeof value !== "string"
+      || value.length === 0
+      || value.length > 4096
+      || value !== value.trim()
+      || /[\\\\\u0000-\u001f\u007f]/.test(value)) {
+    return false;
+  }
+
+  const prefix = value.endsWith("/**") ? value.slice(0, -3) : value;
+  if (prefix === "" || prefix.includes("*")) {
+    return false;
+  }
+
+  return prefix.split("/").every((segment) => segment !== "" && segment !== "." && segment !== "..");
 }
 
 function optionalIdentity(value, fallback, name) {

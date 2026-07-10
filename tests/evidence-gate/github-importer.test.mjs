@@ -14,11 +14,13 @@ import {
   normalizeGitHubSnapshot
 } from "../../packages/evidence-gate/src/github.js";
 import { parseGitHubArguments } from "../../packages/evidence-gate/src/github-cli.mjs";
+import { renderHumanReport } from "../../packages/evidence-gate/src/report.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const GITHUB_CLI = path.join(ROOT, "packages/evidence-gate/src/github-cli.mjs");
 const STATIC_CLI = path.join(ROOT, "packages/evidence-gate/src/cli.mjs");
 const FIXTURE_PATH = path.join(ROOT, "examples/evidence-gate/github/sanitized-pr-snapshot.json");
+const DECLARED_SCOPE_FIXTURE_PATH = path.join(ROOT, "examples/evidence-gate/github/declared-scope.json");
 const STATIC_INPUT = path.join(ROOT, "examples/evidence-gate/input.json");
 const STATIC_EXPECTED = path.join(ROOT, "examples/evidence-gate/expected-output.json");
 const METADATA_QUERY = `query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){number title state isDraft changedFiles baseRefName headRefName headRefOid}}}`;
@@ -30,6 +32,10 @@ const ALL_QUERIES = [METADATA_QUERY, FILES_QUERY, COMMITS_QUERY, REVIEWS_QUERY, 
 
 function fixture() {
   return JSON.parse(readFileSync(FIXTURE_PATH, "utf8"));
+}
+
+function declaredScopeFixture() {
+  return JSON.parse(readFileSync(DECLARED_SCOPE_FIXTURE_PATH, "utf8"));
 }
 
 function packetFor(snapshot) {
@@ -158,15 +164,24 @@ function runGitHubCliWithFakeGh({
   mode = "success",
   payload = fixture(),
   writeOutput = false,
-  format
+  format,
+  scopeFile
 } = {}) {
   return withTempDirectory((directory) => {
     const ghName = process.platform === "win32" ? "gh.exe" : "gh";
     const ghPath = path.join(directory, ghName);
     const markerPath = path.join(directory, "argv.jsonl");
     const outputPath = path.join(directory, "packet.json");
+    const scopeFilePath = path.join(directory, "declared-scope.json");
     copyFileSync(process.execPath, ghPath);
     if (process.platform !== "win32") chmodSync(ghPath, 0o755);
+    if (scopeFile !== undefined) {
+      writeFileSync(
+        scopeFilePath,
+        typeof scopeFile === "string" ? scopeFile : JSON.stringify(scopeFile),
+        "utf8"
+      );
+    }
     writeFileSync(path.join(directory, "api"), [
       'const fs = require("node:fs");',
       'const raw = process.argv.slice(2);',
@@ -210,6 +225,7 @@ function runGitHubCliWithFakeGh({
       "--repo", payload.repository,
       "--pr", String(payload.number),
       ...(format ? ["--format", format] : []),
+      ...(scopeFile !== undefined ? ["--scope-file", scopeFilePath] : []),
       ...(writeOutput ? ["--output", outputPath] : [])
     ];
     const result = spawnSync(process.execPath, [GITHUB_CLI, ...cliArgs], {
@@ -776,20 +792,189 @@ test("secret-shaped projected text is redacted before packet output", async () =
 test("GitHub CLI argument parsing is strict", () => {
   assert.deepEqual(
     parseGitHubArguments(["--repo", "example/repo", "--pr", "17", "--output", "packet.json"]),
-    { repository: "example/repo", pullRequestNumber: 17, output: "packet.json", format: "json" }
+    {
+      repository: "example/repo",
+      pullRequestNumber: 17,
+      output: "packet.json",
+      format: "json",
+      scopeFile: undefined
+    }
   );
   assert.equal(
     parseGitHubArguments(["--repo", "example/repo", "--pr", "17", "--format", "human"]).format,
     "human"
   );
+  assert.equal(
+    parseGitHubArguments([
+      "--repo", "example/repo", "--pr", "17", "--scope-file", "declared-scope.json"
+    ]).scopeFile,
+    "declared-scope.json"
+  );
   assert.throws(() => parseGitHubArguments(["--pr", "17"]), /--repo <owner\/name> is required/);
   assert.throws(() => parseGitHubArguments(["--repo", "example/repo", "--pr", "0"]), /--pr must be a positive integer/);
   assert.throws(() => parseGitHubArguments(["--repo", "example\/repo;owned", "--pr", "17"]), /--repo must use owner\/name format/);
   assert.throws(() => parseGitHubArguments(["--repo", "example/repo", "--pr", "17", "--pr", "18"]), /--pr may be supplied only once/);
+  assert.throws(() => parseGitHubArguments([
+    "--repo", "example/repo", "--pr", "17",
+    "--scope-file", "one.json", "--scope-file", "two.json"
+  ]), /--scope-file may be supplied only once/);
   assert.throws(() => parseGitHubArguments(["--repo", "example/repo", "--pr"]), /--pr requires a value/);
+  assert.throws(() => parseGitHubArguments(["--repo", "example/repo", "--pr", "17", "--scope-file"]), /--scope-file requires a value/);
   assert.throws(() => parseGitHubArguments(["--repo", "example/repo", "--pr", "17", "--format", "yaml"]), /--format must be json or human/);
   assert.throws(() => parseGitHubArguments(["--repo", "example/repo", "--pr", "17", "--format", "json", "--format", "human"]), /--format may be supplied only once/);
   assert.throws(() => parseGitHubArguments(["--wat"]), /expected --repo/);
+});
+
+test("declared scope fixture is a bounded local scope object", () => {
+  assert.deepEqual(declaredScopeFixture(), {
+    declaredWriteScope: ["packages/evidence-gate/**"]
+  });
+});
+
+test("GitHub CLI maps a declared scope only to deterministic packet scope", () => {
+  const scope = declaredScopeFixture();
+  const unscopedPacket = packetFor(fixture());
+  const scopedPacket = buildEvidencePacket(
+    mapGitHubPullRequestToEvidenceInput(fixture(), scope.declaredWriteScope)
+  );
+
+  assert.deepEqual(scopedPacket.scope, {
+    declaredWriteScope: ["packages/evidence-gate/**"],
+    changedPaths: ["packages/evidence-gate/src/github.js", "README.md"],
+    outsideDeclaredScope: ["README.md"]
+  });
+  assert.ok(scopedPacket.reviewNeeds.includes("Review path outside declared scope: README.md"));
+  assert.equal(
+    scopedPacket.reviewNeeds.includes("No declared write scope was supplied; review every changed path."),
+    false
+  );
+  assert.deepEqual(scopedPacket.claims, unscopedPacket.claims);
+  assert.deepEqual(scopedPacket.missingEvidence, unscopedPacket.missingEvidence);
+  assert.deepEqual(scopedPacket.boundaries, unscopedPacket.boundaries);
+});
+
+test("GitHub CLI keeps omitted scope output byte-compatible", () => {
+  const json = runGitHubCliWithFakeGh();
+  const human = runGitHubCliWithFakeGh({ format: "human" });
+  const expectedPacket = packetFor(fixture());
+
+  assert.equal(json.status, 0);
+  assert.equal(json.stdout, `${canonicalJson(expectedPacket)}\n`);
+  assert.equal(human.status, 0);
+  assert.equal(human.stdout, renderHumanReport(expectedPacket));
+});
+
+test("GitHub CLI accepts the declared scope fixture in JSON and human stdout and files", () => {
+  const scope = declaredScopeFixture();
+  const jsonStdout = runGitHubCliWithFakeGh({ scopeFile: scope });
+  const jsonFile = runGitHubCliWithFakeGh({ scopeFile: scope, writeOutput: true });
+  const humanStdout = runGitHubCliWithFakeGh({ scopeFile: scope, format: "human" });
+  const humanFile = runGitHubCliWithFakeGh({ scopeFile: scope, format: "human", writeOutput: true });
+
+  assert.equal(jsonStdout.status, 0);
+  assert.equal(jsonStdout.stderr, "");
+  assert.equal(jsonStdout.ghArgs.length, 9);
+  const packet = JSON.parse(jsonStdout.stdout);
+  assert.deepEqual(packet.scope, {
+    declaredWriteScope: ["packages/evidence-gate/**"],
+    changedPaths: ["packages/evidence-gate/src/github.js", "README.md"],
+    outsideDeclaredScope: ["README.md"]
+  });
+  assert.ok(packet.reviewNeeds.includes("Review path outside declared scope: README.md"));
+
+  assert.equal(jsonFile.status, 0);
+  assert.equal(jsonFile.stdout, "");
+  assert.equal(jsonFile.fileOutput, jsonStdout.stdout);
+
+  assert.equal(humanStdout.status, 0);
+  assert.equal(humanStdout.stderr, "");
+  assert.match(humanStdout.stdout, /^Proofrail AI PR Evidence Report\n/);
+  assert.match(humanStdout.stdout, /- Declared write scope: packages\/evidence-gate\/\*\*/);
+  assert.match(humanStdout.stdout, /- Outside declared scope: README\.md/);
+
+  assert.equal(humanFile.status, 0);
+  assert.equal(humanFile.stdout, "");
+  assert.equal(humanFile.fileOutput, humanStdout.stdout);
+});
+
+test("GitHub CLI canonicalizes declared scope pattern order", () => {
+  const first = runGitHubCliWithFakeGh({
+    scopeFile: { declaredWriteScope: ["README.md", "packages/evidence-gate/**"] }
+  });
+  const reordered = runGitHubCliWithFakeGh({
+    scopeFile: { declaredWriteScope: ["packages/evidence-gate/**", "README.md"] }
+  });
+
+  assert.equal(first.status, 0);
+  assert.equal(reordered.status, 0);
+  assert.equal(first.stdout, reordered.stdout);
+});
+
+test("GitHub CLI rejects declared scope input before invoking gh without disclosure", async (t) => {
+  const secret = "SYNTHETIC_SECRET_CANARY_DO_NOT_DISCLOSE";
+  const cases = [
+    [
+      "malformed JSON",
+      { scopeFile: `{"declaredWriteScope":["${secret}"` },
+      "declared scope file contains malformed JSON"
+    ],
+    [
+      "unknown key",
+      { scopeFile: { declaredWriteScope: ["README.md"], unexpected: secret } },
+      "declared scope file must contain only declaredWriteScope"
+    ],
+    [
+      "duplicate scope file",
+      {
+        args: [
+          "--repo", "example/proofrail-fixture", "--pr", "17",
+          "--scope-file", "first.json", "--scope-file", "second.json"
+        ]
+      },
+      "--scope-file may be supplied only once"
+    ],
+    [
+      "unsafe pattern",
+      { scopeFile: { declaredWriteScope: [`../${secret}`] } },
+      "declared scope file declaredWriteScope must be an array of safe path patterns"
+    ],
+    [
+      "non-string pattern",
+      { scopeFile: { declaredWriteScope: ["README.md", 17] } },
+      "declared scope file declaredWriteScope must be an array of safe path patterns"
+    ],
+    [
+      "empty pattern",
+      { scopeFile: { declaredWriteScope: [""] } },
+      "declared scope file declaredWriteScope must be an array of safe path patterns"
+    ],
+    [
+      "empty scope array",
+      { scopeFile: { declaredWriteScope: [] } },
+      "declared scope file declaredWriteScope must be an array of safe path patterns"
+    ],
+    [
+      "unreadable file",
+      {
+        args: [
+          "--repo", "example/proofrail-fixture", "--pr", "17",
+          "--scope-file", `missing-${secret}.json`
+        ]
+      },
+      "could not read the declared scope file"
+    ]
+  ];
+
+  for (const [name, options, message] of cases) {
+    await t.test(name, () => {
+      const result = runGitHubCliWithFakeGh(options);
+      assert.notEqual(result.status, 0);
+      assert.equal(result.stdout, "");
+      assert.equal(result.ghArgs, null);
+      assert.equal(result.stderr, `evidence-gate-github: ${message}\n`);
+      assert.doesNotMatch(result.stderr, new RegExp(secret));
+    });
+  }
 });
 
 test("GitHub CLI writes canonical packet JSON to stdout", () => {
