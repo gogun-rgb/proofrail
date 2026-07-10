@@ -418,6 +418,41 @@ test("pagination rejects missing and repeated cursors", async (t) => {
   }
 });
 
+test("pagination rejects missing and non-boolean hasNextPage values", async (t) => {
+  for (const value of [undefined, null, "false", 0]) {
+    await t.test(String(value), async () => {
+      const input = fixture();
+      const base = createGraphqlRunGh(input);
+      await assert.rejects(
+        collectGitHubPullRequest({
+          repository: input.repository,
+          pullRequestNumber: input.number,
+          runGh: async (args) => {
+            const { query } = parseGraphqlArgs(args);
+            if (query !== FILES_QUERY) return base(args);
+            return JSON.stringify({
+              data: {
+                repository: {
+                  pullRequest: {
+                    files: {
+                      nodes: [],
+                      pageInfo: {
+                        hasNextPage: value,
+                        endCursor: null
+                      }
+                    }
+                  }
+                }
+              }
+            });
+          }
+        }),
+        /GitHub collection returned invalid changed files/
+      );
+    });
+  }
+});
+
 test("GraphQL error envelopes are rejected without exposing service text", async () => {
   const canary = "SYNTHETIC_SECRET_CANARY_DO_NOT_DISCLOSE";
   await assert.rejects(

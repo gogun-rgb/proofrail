@@ -298,7 +298,8 @@ async function collectConnection({ runGh, query, variables, stage, select, map }
     const connection = select(result);
     if (!isObject(connection)
         || !Array.isArray(connection.nodes)
-        || !isObject(connection.pageInfo)) {
+        || !isObject(connection.pageInfo)
+        || typeof connection.pageInfo.hasNextPage !== "boolean") {
       throw new Error(`GitHub collection returned invalid ${stage}`);
     }
     values.push(...connection.nodes.filter((node) => node !== null).map(map));
