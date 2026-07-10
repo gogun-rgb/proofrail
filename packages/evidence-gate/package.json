@@ -3,6 +3,9 @@
   "version": "0.1.0-mvp",
   "private": true,
   "type": "module",
+  "bin": {
+    "evidence-gate": "./src/cli.mjs"
+  },
   "exports": {
     ".": {
       "default": "./src/index.js"

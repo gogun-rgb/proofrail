@@ -6,6 +6,8 @@ Active narrowed product focus. `PRODUCT-FOCUS-001` defined the next Proofrail di
 
 `GATE-MVP-001` starts the smallest useful implementation: a local static-input evidence packet builder. This MVP is not product readiness, trusted release status, or a Proofrail product Verdict.
 
+`GATE-V01-001` defines v0.1 as the usable local CLI workflow around that builder. It reads caller-provided JSON from a file and writes deterministic packet JSON to stdout or an explicitly selected output file. This remains a static-input-only implementation, not product readiness, a trusted release, or an authoritative Proofrail product Verdict.
+
 ## Objective
 
 The Phase 2 AI PR Evidence Gate is a small, practical first product direction for AI-authored pull requests.
@@ -37,6 +39,32 @@ The MVP may:
 
 The MVP does not implement the complete product runtime. It does not collect facts from a live repository, run target project commands, integrate with delivery channels, use model judgment, or produce an authoritative Proofrail product Verdict.
 
+## v0.1 Local Workflow
+
+After checkout and dependency installation, a new user can complete this workflow in under three minutes. From the repository root, run the checked-in example directly:
+
+```bash
+pnpm evidence-gate --input examples/evidence-gate/input.json
+```
+
+The command writes canonical JSON to stdout. To write the packet to a file instead:
+
+```bash
+pnpm evidence-gate --input examples/evidence-gate/input.json --output packet.json
+```
+
+The complete example input and expected deterministic packet are stored at [../../../examples/evidence-gate/input.json](../../../examples/evidence-gate/input.json) and [../../../examples/evidence-gate/expected-output.json](../../../examples/evidence-gate/expected-output.json). Focused tests remain available through `pnpm test:evidence-gate`.
+
+v0.1 provides:
+
+- local JSON-file input validation with readable failures
+- deterministic packet JSON written to stdout or an explicit output file
+- separate claims, observed evidence, missing evidence, scope, review needs, and boundaries
+- explicit preservation of missing evidence and changed paths outside declared scope
+- checked-in example input and expected output
+
+These features organize caller-provided records for review. They do not collect or verify those records and do not promote a Claim to Evidence.
+
 ## Evidence Packet Orientation
 
 The evidence packet must keep these separations explicit:
@@ -57,7 +85,7 @@ The following remain out of scope until separately authorized:
 - Inference Zone behavior
 - model providers
 - adapters
-- delivery surfaces
+- APIs, MCP, web, GitHub integration, and other delivery surfaces
 - live repository fact collection
 - target project command execution
 

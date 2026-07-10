@@ -1,0 +1,54 @@
+{
+  "pullRequest": {
+    "id": "PR-42",
+    "title": "AI-authored dependency update",
+    "sourceRef": "feature/dependency-update"
+  },
+  "claims": [
+    {
+      "id": "claim-ready",
+      "text": "Builder claims the change is ready for release.",
+      "source": "builder-summary",
+      "observedEvidenceIds": [
+        "ev-diff"
+      ],
+      "requiredEvidenceIds": [
+        "req-diff",
+        "req-independent-review"
+      ]
+    }
+  ],
+  "observedEvidence": [
+    {
+      "id": "ev-diff",
+      "kind": "diff-summary",
+      "summary": "The supplied static input lists the changed paths.",
+      "source": "provided-static-input",
+      "satisfies": [
+        "req-diff"
+      ]
+    }
+  ],
+  "requiredEvidence": [
+    {
+      "id": "req-diff",
+      "description": "A concrete changed-path summary must be present."
+    },
+    {
+      "id": "req-independent-review",
+      "description": "Independent review must inspect the exact change."
+    }
+  ],
+  "scope": {
+    "declaredWriteScope": [
+      "packages/evidence-gate/**"
+    ],
+    "changedPaths": [
+      "packages/evidence-gate/src/index.js",
+      "README.md"
+    ]
+  },
+  "reviewNeeds": [
+    "Confirm the static input came from an authorized collector."
+  ]
+}
