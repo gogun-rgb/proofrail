@@ -22,7 +22,9 @@ The current product focus is Phase 2 AI PR Evidence Gate: a practical first prod
 
 `GATE-V01-001` adds the v0.1 local CLI for reading those facts from a JSON file and writing deterministic packet JSON to stdout or a file.
 
-Proofrail still does not have the complete product runtime. Any implementation beyond this static-input MVP requires a later valid Machine Task Contract and independent review.
+`GATE-GH-001` adds a bounded v0.2 local GitHub PR importer. It uses an already-authenticated local `gh` CLI to freeze selected pull request facts into the existing deterministic packet workflow.
+
+Proofrail still does not have the complete product runtime. Any implementation beyond these bounded local workflows requires a later valid Machine Task Contract and independent review.
 
 ## Start Here
 
@@ -82,6 +84,37 @@ pnpm test:evidence-gate
 v0.1 validates local JSON input, preserves claims, observed evidence, missing evidence, scope, review needs, and boundaries as separate packet fields, and produces deterministic JSON for identically normalized input. It uses only caller-provided static input.
 
 v0.1 does not inspect a live repository, collect GitHub pull request data, execute target-project commands, provide adapters, APIs, MCP, web, or GitHub integration, call models, or implement the Inference Zone or the complete product Verdict runtime. It is not product readiness, a trusted release, or an authoritative Proofrail product Verdict.
+
+## AI PR Evidence Gate v0.2 Local GitHub Import
+
+Prerequisites: install the GitHub CLI as `gh` and authenticate it locally before running Proofrail. Proofrail does not request, accept, or manage an API key or token.
+
+From the repository root, collect a sanitized point-in-time snapshot of a pull request and write its deterministic evidence packet to stdout:
+
+```bash
+pnpm evidence-gate:github --repo owner/name --pr 123
+```
+
+To write the packet to a file instead:
+
+```bash
+pnpm evidence-gate:github --repo owner/name --pr 123 --output packet.json
+```
+
+The importer collects selected PR metadata, changed-file summaries, commit identities, reported checks, and review metadata through local `gh`. It records the pull request head SHA; the resulting packet describes only that point-in-time snapshot. Run the command again after any new push.
+
+The collection boundary is intentionally narrow. Proofrail does not collect PR or review bodies, patches, check logs, or repository file contents. It does not execute target-project commands and does not write to GitHub.
+
+The packet boundary remains equally important:
+
+- a Claim is not Evidence
+- a reported successful check is an observed fact, not authority or independent acceptance
+- a GitHub approval is review metadata, not independent Proofrail acceptance
+- changed paths are reported, but v0.2 has no local scope policy that can decide whether those paths were authorized
+
+The packet field `boundaries.staticInputOnly: true` describes the deterministic packet evaluator: after the live collector freezes a sanitized snapshot, the evaluator receives that snapshot as static input. It does not mean the v0.2 command avoided live GitHub collection.
+
+v0.2 remains a bounded local workflow. It is not product readiness, a trusted release, or an authoritative Proofrail product Verdict.
 
 See [docs/engineering/foundation-mechanization.md](docs/engineering/foundation-mechanization.md) for the current governance mechanics.
 

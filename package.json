@@ -10,6 +10,7 @@
     "governance:check-json": "node scripts/governance/verify-json-output.mjs",
     "test:governance": "node --test tests/governance/*.test.mjs",
     "evidence-gate": "node packages/evidence-gate/src/cli.mjs",
+    "evidence-gate:github": "node packages/evidence-gate/src/github-cli.mjs",
     "evidence-gate:demo": "node packages/evidence-gate/src/cli.mjs --input examples/evidence-gate/input.json",
     "test:evidence-gate": "node --test tests/evidence-gate/*.test.mjs",
     "typecheck:phase1": "tsc -p tsconfig.json",

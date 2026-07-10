@@ -8,6 +8,8 @@ Active narrowed product focus. `PRODUCT-FOCUS-001` defined the next Proofrail di
 
 `GATE-V01-001` defines v0.1 as the usable local CLI workflow around that builder. It reads caller-provided JSON from a file and writes deterministic packet JSON to stdout or an explicitly selected output file. This remains a static-input-only implementation, not product readiness, a trusted release, or an authoritative Proofrail product Verdict.
 
+`GATE-GH-001` defines v0.2 as a bounded local GitHub PR importer. It uses an installed, already-authenticated local `gh` CLI to freeze selected pull request facts into the existing deterministic packet workflow. This is not product readiness, a trusted release, or an authoritative Proofrail product Verdict.
+
 ## Objective
 
 The Phase 2 AI PR Evidence Gate is a small, practical first product direction for AI-authored pull requests.
@@ -65,13 +67,39 @@ v0.1 provides:
 
 These features organize caller-provided records for review. They do not collect or verify those records and do not promote a Claim to Evidence.
 
+## v0.2 Local GitHub PR Import
+
+Prerequisites: `gh` must be installed and already authenticated in the local environment. Proofrail does not request or manage API keys, tokens, billing, credits, or paid services.
+
+The one-command workflow writes a deterministic packet to stdout:
+
+```bash
+pnpm evidence-gate:github --repo owner/name --pr 123
+```
+
+An explicit output path writes the same packet to a file:
+
+```bash
+pnpm evidence-gate:github --repo owner/name --pr 123 --output packet.json
+```
+
+The importer collects only selected PR metadata, changed-file summaries, commit identities, reported checks, and review metadata. It records the exact pull request head SHA, so the packet applies only to that point-in-time snapshot. A later push requires a new collection.
+
+The importer must not collect PR or review bodies, patches, check logs, or repository file contents. It must not execute target-project commands or perform GitHub writes. These exclusions reduce the chance of copying instruction-shaped or secret-bearing source content into a packet; they do not turn the remaining metadata into trusted Evidence.
+
+The collector freezes and sanitizes live metadata before calling the existing packet evaluator. Consequently, `boundaries.staticInputOnly: true` describes the evaluator's input boundary, not the complete v0.2 command: the evaluator receives a static snapshot even though the preceding collector used local `gh` to query GitHub.
+
+v0.2 reports changed paths but does not yet apply a local scope policy. A path appearing in the packet is not a finding that the path was authorized or unauthorized.
+
 ## Evidence Packet Orientation
 
 The evidence packet must keep these separations explicit:
 
 - a claim is an assertion, not Evidence by itself
 - passing tests are evidence, not authority
+- reported successful checks are observed facts, not independent Proofrail acceptance
 - Builder output is provisional until reviewed under the applicable gate
+- GitHub approval metadata is not independent Proofrail acceptance
 - PR merge is not a trusted release
 - missing evidence remains visible instead of being converted into confidence
 - review needs are preserved for independent review rather than hidden behind model judgment
@@ -85,8 +113,10 @@ The following remain out of scope until separately authorized:
 - Inference Zone behavior
 - model providers
 - adapters
-- APIs, MCP, web, GitHub integration, and other delivery surfaces
-- live repository fact collection
+- APIs, MCP, web, GitHub App behavior, and other delivery surfaces beyond the bounded local `gh` importer
+- PR or review bodies, patches, check logs, and repository file-content collection
+- GitHub writes
+- local scope-policy evaluation
 - target project command execution
 
 ## Relationship to Phase 2 Boundary Definition
@@ -97,7 +127,7 @@ Neither this plan nor PR #14 is product readiness, trusted release status, or an
 
 ## Future Implementation Preconditions
 
-Any implementation beyond the static-input MVP requires a later valid Machine Task Contract that defines exact write scope, forbidden scope, acceptance criteria, required verification, stop conditions, and independent review.
+Any implementation beyond the v0.1 static-input CLI and bounded v0.2 local importer requires a later valid Machine Task Contract that defines exact write scope, forbidden scope, acceptance criteria, required verification, stop conditions, and independent review.
 
 Future implementation must not change canonical terminology, Verdict semantics, Evidence authority classes, Trust semantics, or product protocols unless a later valid Machine Task Contract explicitly authorizes that exact authority-bearing change.
 
@@ -111,6 +141,6 @@ Stop instead of expanding this focus if work requires:
 - Trust semantic changes
 - canonical terminology changes
 - production work outside the authorized package and tests
-- live repository fact collection, target project command execution, adapters, delivery channels, model-provider behavior, or Inference Zone implementation
+- collection of bodies, patches, logs, or repository file contents; target project command execution; GitHub writes; adapters; additional delivery channels; model-provider behavior; or Inference Zone implementation
 - treating this MVP as product readiness, trusted release status, or an authoritative Proofrail product Verdict
 - cost-risk setup
