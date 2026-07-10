@@ -562,9 +562,9 @@ function safeText(value, name, maxLength) {
   }
   let normalized = value.replace(/[\u0000-\u001f\u007f]/g, " ").trim();
   normalized = normalized
-    .replace(/\b(?:gh[oprsu]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/g, "[REDACTED]")
+    .replace(/(?:gh[oprsu]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})/g, "[REDACTED]")
     .replace(/\b(Bearer\s+)[A-Za-z0-9._~+\/-]{16,}/gi, "$1[REDACTED]")
-    .replace(/\b((?:api[_-]?key|token|secret|password)\s*[=:]\s*)\S+/gi, "$1[REDACTED]");
+    .replace(/\b((?:(?:[A-Za-z0-9]+)[_-])*(?:api[_-]?key|token|secret|password)\s*[=:]\s*)\S+/gi, "$1[REDACTED]");
   return normalized.length <= maxLength
     ? normalized
     : `${normalized.slice(0, maxLength - 3)}...`;
@@ -637,5 +637,19 @@ function isObject(value) {
 }
 
 function compare(left, right) {
-  return left.localeCompare(right, "en", { sensitivity: "variant" });
+  const foldedLeft = foldAsciiCase(left);
+  const foldedRight = foldAsciiCase(right);
+  return foldedLeft < foldedRight
+    ? -1
+    : foldedLeft > foldedRight
+      ? 1
+      : left < right
+        ? -1
+        : left > right
+          ? 1
+          : 0;
+}
+
+function foldAsciiCase(value) {
+  return value.replace(/[A-Z]/g, (character) => character.toLowerCase());
 }

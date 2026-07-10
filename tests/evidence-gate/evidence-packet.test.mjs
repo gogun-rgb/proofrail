@@ -115,6 +115,96 @@ test("buildEvidencePacket produces deterministic packets for reordered input", (
   assert.equal(canonicalJson(first), canonicalJson(second));
 });
 
+test("buildEvidencePacket rejects duplicate declaration ids without disclosure", () => {
+  const secret = "SYNTHETIC_DUPLICATE_ID_CANARY_DO_NOT_DISCLOSE";
+
+  for (const collection of ["claims", "observedEvidence", "requiredEvidence"]) {
+    const input = structuredClone(sampleInput());
+    input[collection][0].id = secret;
+    input[collection][1].id = secret;
+
+    assert.throws(
+      () => buildEvidencePacket(input),
+      (error) => {
+        assert.equal(error.message, `${collection} must use unique ids`);
+        assert.doesNotMatch(error.message, new RegExp(secret));
+        return true;
+      }
+    );
+  }
+});
+
+test("buildEvidencePacket rejects dangling references without disclosure", () => {
+  const secret = "SYNTHETIC_DANGLING_ID_CANARY_DO_NOT_DISCLOSE";
+  const cases = [
+    [
+      "claims.observedEvidenceIds",
+      (input) => { input.claims[0].observedEvidenceIds = [secret]; }
+    ],
+    [
+      "claims.requiredEvidenceIds",
+      (input) => { input.claims[0].requiredEvidenceIds = [secret]; }
+    ],
+    [
+      "observedEvidence.satisfies",
+      (input) => { input.observedEvidence[0].satisfies = [secret]; }
+    ]
+  ];
+
+  for (const [name, mutate] of cases) {
+    const input = structuredClone(sampleInput());
+    mutate(input);
+
+    assert.throws(
+      () => buildEvidencePacket(input),
+      (error) => {
+        assert.equal(error.message, `${name} must reference declared ids`);
+        assert.doesNotMatch(error.message, new RegExp(secret));
+        return true;
+      }
+    );
+  }
+});
+
+test("buildEvidencePacket keeps id namespaces and duplicate references separate", () => {
+  const sharedId = "shared-id";
+  const input = structuredClone(sampleInput());
+  input.claims[0].id = sharedId;
+  input.observedEvidence[0].id = sharedId;
+  input.requiredEvidence[0].id = sharedId;
+  input.claims[0].observedEvidenceIds = [sharedId, sharedId];
+  input.claims[0].requiredEvidenceIds = [sharedId, sharedId, "req-independent-review"];
+  input.observedEvidence[0].satisfies = [sharedId, sharedId];
+
+  const packet = buildEvidencePacket(input);
+  const claim = packet.claims.find((item) => item.id === sharedId);
+
+  assert.ok(claim);
+  assert.deepEqual(claim.observedEvidenceIds, [sharedId, sharedId]);
+  assert.equal(packet.observedEvidence.some((item) => item.id === sharedId), true);
+  assert.equal(input.requiredEvidence.some((item) => item.id === sharedId), true);
+});
+
+test("buildEvidencePacket uses deterministic binary ordering with ASCII compatibility", () => {
+  const paths = ["b.js", "A.js", "a.js", "é.js", "e\u0301.js", "!.js"];
+  const packet = buildEvidencePacket(sampleInput({
+    scope: {
+      declaredWriteScope: [...paths].reverse(),
+      changedPaths: [...paths].reverse()
+    }
+  }));
+
+  assert.deepEqual(packet.scope.changedPaths, [
+    "!.js",
+    "A.js",
+    "a.js",
+    "b.js",
+    "e\u0301.js",
+    "é.js"
+  ]);
+  assert.deepEqual(packet.scope.outsideDeclaredScope, []);
+});
+
 test("buildEvidencePacket does not overclaim readiness or release state", () => {
   const packet = buildEvidencePacket(sampleInput());
 

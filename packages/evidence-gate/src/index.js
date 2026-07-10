@@ -75,15 +75,69 @@ function canonicalize(value) {
 function normalizeInput(input) {
   assertPlainObject(input, "input");
   const record = input;
+  const pullRequest = normalizePullRequest(record.pullRequest);
+  const claims = normalizeClaims(record.claims);
+  const observedEvidence = normalizeObservedEvidence(record.observedEvidence);
+  const requiredEvidence = normalizeRequiredEvidence(record.requiredEvidence);
+  const scope = normalizeScope(record.scope);
+  const reviewNeeds = normalizeStringArray(record.reviewNeeds, "reviewNeeds");
+
+  validateIdentityIntegrity({ claims, observedEvidence, requiredEvidence });
 
   return freezeDeep({
-    pullRequest: normalizePullRequest(record.pullRequest),
-    claims: normalizeClaims(record.claims),
-    observedEvidence: normalizeObservedEvidence(record.observedEvidence),
-    requiredEvidence: normalizeRequiredEvidence(record.requiredEvidence),
-    scope: normalizeScope(record.scope),
-    reviewNeeds: normalizeStringArray(record.reviewNeeds, "reviewNeeds")
+    pullRequest,
+    claims,
+    observedEvidence,
+    requiredEvidence,
+    scope,
+    reviewNeeds
   });
+}
+
+function validateIdentityIntegrity({ claims, observedEvidence, requiredEvidence }) {
+  identitySet(claims, "claims");
+  const observedEvidenceIds = identitySet(observedEvidence, "observedEvidence");
+  const requiredEvidenceIds = identitySet(requiredEvidence, "requiredEvidence");
+
+  for (const claim of claims) {
+    assertDeclaredReferences(
+      claim.observedEvidenceIds,
+      observedEvidenceIds,
+      "claims.observedEvidenceIds"
+    );
+    assertDeclaredReferences(
+      claim.requiredEvidenceIds,
+      requiredEvidenceIds,
+      "claims.requiredEvidenceIds"
+    );
+  }
+
+  for (const evidence of observedEvidence) {
+    assertDeclaredReferences(
+      evidence.satisfies,
+      requiredEvidenceIds,
+      "observedEvidence.satisfies"
+    );
+  }
+}
+
+function identitySet(items, name) {
+  const ids = new Set();
+  for (const item of items) {
+    if (ids.has(item.id)) {
+      throw new TypeError(`${name} must use unique ids`);
+    }
+    ids.add(item.id);
+  }
+  return ids;
+}
+
+function assertDeclaredReferences(references, declaredIds, name) {
+  for (const reference of references) {
+    if (!declaredIds.has(reference)) {
+      throw new TypeError(`${name} must reference declared ids`);
+    }
+  }
 }
 
 function normalizePullRequest(value) {
@@ -245,7 +299,21 @@ function freezeDeep(value) {
 }
 
 function compareText(left, right) {
-  return left.localeCompare(right, "en", { sensitivity: "variant" });
+  const foldedLeft = foldAsciiCase(left);
+  const foldedRight = foldAsciiCase(right);
+  return foldedLeft < foldedRight
+    ? -1
+    : foldedLeft > foldedRight
+      ? 1
+      : left < right
+        ? -1
+        : left > right
+          ? 1
+          : 0;
+}
+
+function foldAsciiCase(value) {
+  return value.replace(/[A-Z]/g, (character) => character.toLowerCase());
 }
 
 function compareByIdThenText(left, right) {

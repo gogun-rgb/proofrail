@@ -144,6 +144,8 @@ The packet boundary remains equally important:
 
 The packet field `boundaries.staticInputOnly: true` describes the deterministic packet evaluator: after the live collector freezes a sanitized snapshot, the evaluator receives that snapshot as static input. It does not mean the v0.2 command avoided live GitHub collection.
 
+`GATE-INTEGRITY-001` fails closed when declaration IDs are duplicated or existing packet references are dangling, uses locale-independent deterministic ordering while preserving checked-in ASCII outputs, and redacts supported GitHub token shapes and prefixed secret assignments from projected text. This hardening does not change packet schema, collection fields, authority, readiness, release, or Verdict behavior.
+
 v0.2 remains a bounded local workflow. It is not product readiness, a trusted release, or an authoritative Proofrail product Verdict.
 
 See [docs/engineering/foundation-mechanization.md](docs/engineering/foundation-mechanization.md) for the current governance mechanics.
