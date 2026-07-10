@@ -20,6 +20,8 @@ The current product focus is Phase 2 AI PR Evidence Gate: a practical first prod
 
 `GATE-MVP-001` starts the smallest local static-input implementation: `@proofrail/evidence-gate` builds an evidence packet from caller-provided pull request facts. It is not product readiness, trusted release status, or an authoritative Proofrail product Verdict.
 
+`GATE-V01-001` adds the v0.1 local CLI for reading those facts from a JSON file and writing deterministic packet JSON to stdout or a file.
+
 Proofrail still does not have the complete product runtime. Any implementation beyond this static-input MVP requires a later valid Machine Task Contract and independent review.
 
 ## Start Here
@@ -57,11 +59,29 @@ node scripts/validate-foundation.mjs
 node scripts/validate-foundation.mjs --format json
 ```
 
-For the static-input AI PR Evidence Gate MVP:
+## AI PR Evidence Gate v0.1 Quick Start
+
+After checkout and dependency installation, this workflow takes under three minutes. From the repository root, generate a packet from the checked-in example:
+
+```bash
+pnpm evidence-gate --input examples/evidence-gate/input.json
+```
+
+The command writes canonical packet JSON to stdout. To save the same output instead:
+
+```bash
+pnpm evidence-gate --input examples/evidence-gate/input.json --output packet.json
+```
+
+See [the example input](examples/evidence-gate/input.json) and [its expected output](examples/evidence-gate/expected-output.json) for the complete input and packet shapes. Run the focused tests with:
 
 ```bash
 pnpm test:evidence-gate
 ```
+
+v0.1 validates local JSON input, preserves claims, observed evidence, missing evidence, scope, review needs, and boundaries as separate packet fields, and produces deterministic JSON for identically normalized input. It uses only caller-provided static input.
+
+v0.1 does not inspect a live repository, collect GitHub pull request data, execute target-project commands, provide adapters, APIs, MCP, web, or GitHub integration, call models, or implement the Inference Zone or the complete product Verdict runtime. It is not product readiness, a trusted release, or an authoritative Proofrail product Verdict.
 
 See [docs/engineering/foundation-mechanization.md](docs/engineering/foundation-mechanization.md) for the current governance mechanics.
 
