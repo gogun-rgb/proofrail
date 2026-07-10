@@ -91,6 +91,17 @@ The collector freezes and sanitizes live metadata before calling the existing pa
 
 v0.2 reports changed paths but does not yet apply a local scope policy. A path appearing in the packet is not a finding that the path was authorized or unauthorized.
 
+## Human Report View
+
+GATE-REPORT-001 adds an optional deterministic human-readable rendering alongside the existing packet JSON.
+
+    pnpm evidence-gate --input examples/evidence-gate/input.json --format human
+    pnpm evidence-gate:github --repo owner/name --pr 123 --format human
+
+The default and explicit --format json modes remain byte-identical to the existing JSON output. Human mode uses a package-local pure renderer with fixed sections for pull-request identity, packet identity, attention counts, claims, observed evidence, missing evidence, scope, review needs, and explicit product-boundary statements. Empty collections render as (none), and control, ANSI, and embedded newline characters are escaped so untrusted text cannot forge report structure.
+
+The report is a deterministic review aid only. It does not alter packet schema, collection fields, Evidence authority, scope authorization, product readiness, trusted release state, or an authoritative Proofrail product Verdict.
+
 ## Evidence Packet Orientation
 
 The evidence packet must keep these separations explicit:

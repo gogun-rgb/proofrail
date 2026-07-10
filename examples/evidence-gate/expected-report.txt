@@ -1,0 +1,48 @@
+Proofrail AI PR Evidence Report
+
+Pull request
+- ID: PR-42
+- Title: AI-authored dependency update
+- Source ref: feature/dependency-update
+
+Packet identity
+- Version: ai-pr-evidence-gate.v0
+- Input digest: 25591f63eb8c864373b3eed6b23e193e05e2bed557de62d5e322fb930c739c24
+
+Attention counts
+- Missing evidence: 1
+- Review needs: 4
+- Outside declared scope paths: 1
+
+Claims
+- [claim-ready] Builder claims the change is ready for release.
+  Source: builder-summary
+  Observed evidence: ev-diff
+  Missing evidence: req-independent-review
+
+Observed evidence
+- [ev-diff] diff-summary: The supplied static input lists the changed paths.
+  Source: provided-static-input
+  Satisfies: req-diff
+
+Missing evidence
+- [req-independent-review] Independent review must inspect the exact change.
+  Needed for claims: claim-ready
+
+Scope
+- Declared write scope: packages/evidence-gate/**
+- Changed paths: packages/evidence-gate/src/index.js, README.md
+- Outside declared scope: README.md
+
+Review needs
+- Confirm the static input came from an authorized collector.
+- Do not accept claim without missing evidence: claim-ready
+- Review missing evidence requirement: req-independent-review
+- Review path outside declared scope: README.md
+
+Boundaries
+- Static-input evaluator: yes
+- Product Verdict: not produced
+- Product readiness: no
+- Trusted release: no
+- Changed-path reporting is not an authorization decision

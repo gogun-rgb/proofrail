@@ -3,19 +3,20 @@
 import { readFile, writeFile } from "node:fs/promises";
 
 import { buildEvidencePacket, canonicalJson } from "./index.js";
+import { renderHumanReport } from "./report.js";
 
-function parseArguments(args) {
+export function parseArguments(args) {
   const options = {};
 
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
-    if (argument !== "--input" && argument !== "--output") {
-      throw new TypeError("expected --input <input.json> and optional --output <packet.json>");
+    if (argument !== "--input" && argument !== "--output" && argument !== "--format") {
+      throw new TypeError("expected --input <input.json>, optional --output <packet.json>, and optional --format json|human");
     }
 
     const value = args[index + 1];
     if (!value || value.startsWith("--")) {
-      throw new TypeError(`${argument} requires a file path`);
+      throw new TypeError(argument + " requires a value");
     }
 
     const name = argument.slice(2);
@@ -29,6 +30,9 @@ function parseArguments(args) {
 
   if (options.input === undefined) {
     throw new TypeError("--input <input.json> is required");
+  }
+  if (options.format !== undefined && !["json", "human"].includes(options.format)) {
+    throw new TypeError("--format must be json or human");
   }
 
   return options;
@@ -52,7 +56,10 @@ async function readInput(path) {
 async function run() {
   const options = parseArguments(process.argv.slice(2));
   const input = await readInput(options.input);
-  const output = `${canonicalJson(buildEvidencePacket(input))}\n`;
+  const packet = buildEvidencePacket(input);
+  const output = options.format === "human"
+    ? renderHumanReport(packet)
+    : canonicalJson(packet) + "\n";
 
   if (options.output === undefined) {
     process.stdout.write(output);
