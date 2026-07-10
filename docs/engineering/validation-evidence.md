@@ -6102,3 +6102,34 @@ GitHub Actions `foundation-governance` run `#45` completed successfully for exac
 The independent read-only review of that head returned repository engineering status `REVISION_REQUIRED` solely because this GATE-V01-001 validation-evidence record was absent. The Reviewer found no implementation, compatibility, scope, dependency, lockfile, network, live-repository, target-execution, delivery-surface, or overclaim defect. A new exact-head CI result and independent review are required after this remediation is committed.
 
 No external dependency, lockfile change, target repository execution, live repository collection, model provider, paid service, API key, credit, delivery integration, or Inference Zone behavior was used or added. These Builder checks are provisional evidence for independent review; they are not product readiness, a trusted release, independent acceptance, or an authoritative Proofrail product Verdict.
+
+## STATIC-KERNEL-CLI-001 Validation Evidence
+
+Date: 2026-07-10.
+
+Task identity: `STATIC-KERNEL-CLI-001`.
+
+Baseline `origin/main`: `10b6e5efd5199e3fcf3b790d8390bbd5cdbc0d50`.
+
+Task-contract first commit: `ff28aa4`.
+
+### Commands And Results
+
+The following commands were executed from the repository root with the bundled local Node.js and pnpm runtime:
+
+```text
+pnpm governance:check                 exit 0
+pnpm install --offline --frozen-lockfile
+                                      exit 0; no registry resolution
+pnpm static-evaluate:demo             exit 0; finalized bundle JSON written to stdout
+pnpm test:static-evaluator            exit 0; 10 passed, 0 failed
+pnpm verify                           exit 0
+```
+
+The observed full verification totals were governance tests 37 passed, Evidence Gate tests 85 passed, static evaluator tests 10 passed, and kernel tests 475 passed. Phase 1 type checking and `git diff --check` also exited 0.
+
+Focused static-evaluator coverage includes direct-kernel result equality, golden stdout and output-file byte identity, exactly one trailing newline, repeated and semantically reordered input determinism, successful `REVISION_REQUIRED` output, strict argument rejection, regular-file and 1 MiB bounds, fatal UTF-8 decoding, malformed JSON, invalid kernel input, preservation of an existing output file on failed evaluation, fixed non-disclosing errors, and secret-like-value non-disclosure.
+
+The workspace install also projected an unrelated empty Evidence Gate importer. That empty importer was removed before final verification so the retained lockfile delta adds only the `packages/static-evaluator` workspace importer linking `@proofrail/kernel` to `../kernel`. No registry package or snapshot entry was added.
+
+No target repository inspection or execution, verification execution, network request, GitHub call, model provider, credential, API key, billing, credit, paid cloud, or paid SaaS was used. The CLI accepts only caller-supplied complete Phase 1 input and does not establish Trusted Configuration, select Policy or Evidence Contracts, create Verification Receipts, alter the accepted kernel result, claim product readiness or trusted release, or provide independent acceptance. These Builder checks remain provisional until exact-head independent review.

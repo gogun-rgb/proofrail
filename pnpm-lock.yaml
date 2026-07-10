@@ -26,6 +26,12 @@ importers:
         specifier: workspace:*
         version: link:../contracts
 
+  packages/static-evaluator:
+    dependencies:
+      '@proofrail/kernel':
+        specifier: workspace:*
+        version: link:../kernel
+
 packages:
 
   '@types/node@24.13.2':

@@ -13,10 +13,13 @@
     "evidence-gate:github": "node packages/evidence-gate/src/github-cli.mjs",
     "evidence-gate:demo": "node packages/evidence-gate/src/cli.mjs --input examples/evidence-gate/input.json",
     "test:evidence-gate": "node --test tests/evidence-gate/*.test.mjs",
+    "static-evaluate": "node packages/static-evaluator/src/cli.mjs",
+    "static-evaluate:demo": "node packages/static-evaluator/src/cli.mjs --input examples/static-evaluator/input.json",
+    "test:static-evaluator": "node --test tests/static-evaluator/*.test.mjs",
     "typecheck:phase1": "tsc -p tsconfig.json",
     "test:kernel": "node --test packages/kernel/test/*.test.js",
     "validate:foundation": "node scripts/validate-foundation.mjs",
-    "verify": "pnpm governance:check && pnpm governance:check-json && pnpm test:governance && pnpm test:evidence-gate && pnpm typecheck:phase1 && pnpm test:kernel && git diff --check"
+    "verify": "pnpm governance:check && pnpm governance:check-json && pnpm test:governance && pnpm test:evidence-gate && pnpm test:static-evaluator && pnpm typecheck:phase1 && pnpm test:kernel && git diff --check"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
