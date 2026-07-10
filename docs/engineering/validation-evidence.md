@@ -6060,3 +6060,45 @@ After the final observed `pnpm verify`, the same hash command returned:
 ```
 
 The untracked file list after final observed `pnpm verify` matched the pre-verify list. No additional untracked repository artifact was created by `pnpm verify`.
+
+## GATE-V01-001 Validation Evidence
+
+Date: 2026-07-10.
+
+Task identity: `GATE-V01-001`.
+
+Baseline `origin/main`: `0a19fe1cd781a0e504af763686638a23e637d6ce`.
+
+Task-contract first commit: `1b11afbc6092487a8dbabf456bbcb8b1424c9d5f`.
+
+Validated implementation head before this evidence-only remediation: `e0c6b219560aeba5575b01c2c3be26206a9f0bd6`.
+
+The externally supplied task contract includes this file in `scope.write` but sets `authority.mayChangeAuthority` to `false`. After that conflict and its self-grant risk were reported, the user explicitly approved the GATE-V01-001 validation-evidence edit on 2026-07-10. That approval is applied only to this bounded record; it does not authorize any other authority or product-semantic change.
+
+### Commands And Results
+
+The following task-contract commands were executed from the repository root using the installed local pnpm runtime with its automatic dependency-install preflight disabled. No repository script or test was skipped.
+
+```text
+pnpm governance:check        exit 0
+pnpm governance:check-json   exit 0
+pnpm test:governance         exit 0; 37 passed, 0 failed
+pnpm test:evidence-gate      exit 0; 11 passed, 0 failed
+pnpm evidence-gate:demo      exit 0; canonical JSON written to stdout
+pnpm typecheck:phase1        exit 0
+pnpm test:kernel             exit 0; 475 passed, 0 failed
+pnpm verify                  exit 0
+git diff --check             exit 0
+```
+
+The root command `pnpm evidence-gate --input examples/evidence-gate/input.json --output <temporary-path>` also exited 0. Its output was byte-identical to `examples/evidence-gate/expected-output.json` and the temporary output was removed.
+
+Focused coverage observed in `pnpm test:evidence-gate` includes stdout, output-file byte identity, exactly one trailing newline, normalized-input determinism, malformed JSON, invalid input shape, secret-like-value non-disclosure, missing evidence retention, scope violation visibility, and product-readiness, trusted-release, and authoritative-Verdict overclaim prevention.
+
+### Exact-Head CI And Review State Before Remediation
+
+GitHub Actions `foundation-governance` run `#45` completed successfully for exact head `e0c6b219560aeba5575b01c2c3be26206a9f0bd6`.
+
+The independent read-only review of that head returned repository engineering status `REVISION_REQUIRED` solely because this GATE-V01-001 validation-evidence record was absent. The Reviewer found no implementation, compatibility, scope, dependency, lockfile, network, live-repository, target-execution, delivery-surface, or overclaim defect. A new exact-head CI result and independent review are required after this remediation is committed.
+
+No external dependency, lockfile change, target repository execution, live repository collection, model provider, paid service, API key, credit, delivery integration, or Inference Zone behavior was used or added. These Builder checks are provisional evidence for independent review; they are not product readiness, a trusted release, independent acceptance, or an authoritative Proofrail product Verdict.
