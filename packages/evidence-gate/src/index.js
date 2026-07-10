@@ -75,15 +75,69 @@ function canonicalize(value) {
 function normalizeInput(input) {
   assertPlainObject(input, "input");
   const record = input;
+  const pullRequest = normalizePullRequest(record.pullRequest);
+  const claims = normalizeClaims(record.claims);
+  const observedEvidence = normalizeObservedEvidence(record.observedEvidence);
+  const requiredEvidence = normalizeRequiredEvidence(record.requiredEvidence);
+  const scope = normalizeScope(record.scope);
+  const reviewNeeds = normalizeStringArray(record.reviewNeeds, "reviewNeeds");
+
+  validateIdentityIntegrity({ claims, observedEvidence, requiredEvidence });
 
   return freezeDeep({
-    pullRequest: normalizePullRequest(record.pullRequest),
-    claims: normalizeClaims(record.claims),
-    observedEvidence: normalizeObservedEvidence(record.observedEvidence),
-    requiredEvidence: normalizeRequiredEvidence(record.requiredEvidence),
-    scope: normalizeScope(record.scope),
-    reviewNeeds: normalizeStringArray(record.reviewNeeds, "reviewNeeds")
+    pullRequest,
+    claims,
+    observedEvidence,
+    requiredEvidence,
+    scope,
+    reviewNeeds
   });
+}
+
+function validateIdentityIntegrity({ claims, observedEvidence, requiredEvidence }) {
+  identitySet(claims, "claims");
+  const observedEvidenceIds = identitySet(observedEvidence, "observedEvidence");
+  const requiredEvidenceIds = identitySet(requiredEvidence, "requiredEvidence");
+
+  for (const claim of claims) {
+    assertDeclaredReferences(
+      claim.observedEvidenceIds,
+      observedEvidenceIds,
+      "claims.observedEvidenceIds"
+    );
+    assertDeclaredReferences(
+      claim.requiredEvidenceIds,
+      requiredEvidenceIds,
+      "claims.requiredEvidenceIds"
+    );
+  }
+
+  for (const evidence of observedEvidence) {
+    assertDeclaredReferences(
+      evidence.satisfies,
+      requiredEvidenceIds,
+      "observedEvidence.satisfies"
+    );
+  }
+}
+
+function identitySet(items, name) {
+  const ids = new Set();
+  for (const item of items) {
+    if (ids.has(item.id)) {
+      throw new TypeError(`${name} must use unique ids`);
+    }
+    ids.add(item.id);
+  }
+  return ids;
+}
+
+function assertDeclaredReferences(references, declaredIds, name) {
+  for (const reference of references) {
+    if (!declaredIds.has(reference)) {
+      throw new TypeError(`${name} must reference declared ids`);
+    }
+  }
 }
 
 function normalizePullRequest(value) {
@@ -244,8 +298,34 @@ function freezeDeep(value) {
   return value;
 }
 
+const ASCII_COLLATION_ORDER =
+  " _-,;:!?.'\"()[]{}@*/\\&#%`^+<=>|~$0123456789abcdefghijklmnopqrstuvwxyz";
+
 function compareText(left, right) {
-  return left.localeCompare(right, "en", { sensitivity: "variant" });
+  const leftKey = textSortKey(left);
+  const rightKey = textSortKey(right);
+  return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
+}
+
+function textSortKey(value) {
+  let primary = "";
+  let caseLevel = "";
+  for (let index = 0; index < value.length; index += 1) {
+    const codeUnit = value.charCodeAt(index);
+    primary += String(asciiPrimaryWeight(codeUnit)).padStart(5, "0");
+    caseLevel += codeUnit >= 65 && codeUnit <= 90 ? "1" : "0";
+  }
+  return `${primary}!${caseLevel}!${value}`;
+}
+
+function asciiPrimaryWeight(codeUnit) {
+  const foldedCodeUnit = codeUnit >= 65 && codeUnit <= 90
+    ? codeUnit + 32
+    : codeUnit;
+  const asciiWeight = ASCII_COLLATION_ORDER.indexOf(String.fromCharCode(foldedCodeUnit));
+  return asciiWeight >= 0
+    ? asciiWeight
+    : ASCII_COLLATION_ORDER.length + foldedCodeUnit;
 }
 
 function compareByIdThenText(left, right) {

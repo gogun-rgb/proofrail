@@ -562,9 +562,9 @@ function safeText(value, name, maxLength) {
   }
   let normalized = value.replace(/[\u0000-\u001f\u007f]/g, " ").trim();
   normalized = normalized
-    .replace(/\b(?:gh[oprsu]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/g, "[REDACTED]")
+    .replace(/(?:gh[oprsu]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})/g, "[REDACTED]")
     .replace(/\b(Bearer\s+)[A-Za-z0-9._~+\/-]{16,}/gi, "$1[REDACTED]")
-    .replace(/\b((?:api[_-]?key|token|secret|password)\s*[=:]\s*)\S+/gi, "$1[REDACTED]");
+    .replace(/\b((?:(?:[A-Za-z0-9]+)[_-])*(?:api[_-]?key|token|secret|password)\s*[=:]\s*)\S+/gi, "$1[REDACTED]");
   return normalized.length <= maxLength
     ? normalized
     : `${normalized.slice(0, maxLength - 3)}...`;
@@ -636,6 +636,32 @@ function isObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+const ASCII_COLLATION_ORDER =
+  " _-,;:!?.'\"()[]{}@*/\\&#%`^+<=>|~$0123456789abcdefghijklmnopqrstuvwxyz";
+
 function compare(left, right) {
-  return left.localeCompare(right, "en", { sensitivity: "variant" });
+  const leftKey = textSortKey(left);
+  const rightKey = textSortKey(right);
+  return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
+}
+
+function textSortKey(value) {
+  let primary = "";
+  let caseLevel = "";
+  for (let index = 0; index < value.length; index += 1) {
+    const codeUnit = value.charCodeAt(index);
+    primary += String(asciiPrimaryWeight(codeUnit)).padStart(5, "0");
+    caseLevel += codeUnit >= 65 && codeUnit <= 90 ? "1" : "0";
+  }
+  return `${primary}!${caseLevel}!${value}`;
+}
+
+function asciiPrimaryWeight(codeUnit) {
+  const foldedCodeUnit = codeUnit >= 65 && codeUnit <= 90
+    ? codeUnit + 32
+    : codeUnit;
+  const asciiWeight = ASCII_COLLATION_ORDER.indexOf(String.fromCharCode(foldedCodeUnit));
+  return asciiWeight >= 0
+    ? asciiWeight
+    : ASCII_COLLATION_ORDER.length + foldedCodeUnit;
 }

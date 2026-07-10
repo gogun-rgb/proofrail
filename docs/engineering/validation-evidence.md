@@ -6133,3 +6133,36 @@ Focused static-evaluator coverage includes direct-kernel result equality, golden
 The workspace install also projected an unrelated empty Evidence Gate importer. That empty importer was removed before final verification so the retained lockfile delta adds only the `packages/static-evaluator` workspace importer linking `@proofrail/kernel` to `../kernel`. No registry package or snapshot entry was added.
 
 No target repository inspection or execution, verification execution, network request, GitHub call, model provider, credential, API key, billing, credit, paid cloud, or paid SaaS was used. The CLI accepts only caller-supplied complete Phase 1 input and does not establish Trusted Configuration, select Policy or Evidence Contracts, create Verification Receipts, alter the accepted kernel result, claim product readiness or trusted release, or provide independent acceptance. These Builder checks remain provisional until exact-head independent review.
+
+## GATE-INTEGRITY-001 Validation Evidence
+
+Date: 2026-07-10.
+
+Task identity: `GATE-INTEGRITY-001`.
+
+Baseline `origin/main`: `afda5cedd81d80d67393b5eb6ad7201efecd6ebf`.
+
+Task-contract first commit: `f4451f78bf744d3241456b4ae39fe6092a5c2ac2`.
+
+### Commands And Results
+
+The task-contract verification was executed from the repository root with the bundled local Node.js and pnpm runtime:
+
+```text
+pnpm governance:check                 exit 0
+pnpm governance:check-json            exit 0
+pnpm test:governance                  exit 0; 37 passed, 0 failed
+pnpm test:evidence-gate               exit 0; 94 passed, 0 failed
+pnpm evidence-gate:demo               exit 0; canonical packet JSON written to stdout
+pnpm test:static-evaluator            exit 0; 10 passed, 0 failed
+pnpm typecheck:phase1                 exit 0
+pnpm test:kernel                      exit 0; 475 passed, 0 failed
+pnpm verify                           exit 0
+git diff --check                      exit 0
+```
+
+Focused Evidence Gate coverage includes duplicate declaration rejection in each ID namespace, all three existing dangling-reference directions, fixed non-disclosing errors, accepted cross-namespace ID reuse and duplicate reference entries, locale-independent total ordering, printable ASCII 95-character pair matrices and representative multi-character baseline compatibility across both public normalization paths, prefixed assignment redaction, every previously supported GitHub token prefix embedded next to word characters, and ordinary non-secret lookalike compatibility. Existing JSON, human-report, CLI, importer, and packet compatibility tests also passed.
+
+The pnpm workspace preflight projected an unrelated empty `packages/evidence-gate` lockfile importer. That empty importer was removed before final exact-tree verification; this task retains no lockfile or dependency change.
+
+This task did not change the packet schema, packet version, public exports, queries, field allowlist, collection boundary, report renderer, CLI interface, CLI argument or I/O handling, filesystem behavior, authority, protocol, Trust, Evidence authority, Verdict, target, network, inference, readiness, or release behavior. For matching secret-shaped projected text, normalized snapshot content intentionally changes only by replacing the secret value with `[REDACTED]`. The redacted value propagates to packet and rendered report content only when that sanitized field is mapped into the packet; snapshot-only fields remain sanitized at the snapshot boundary. Ordinary non-secret text remains compatible. No target repository execution, live GitHub write, model provider, credential, API key, paid cloud, or paid SaaS was used. These Builder checks are provisional evidence and do not establish product readiness, a trusted release, independent acceptance, or an authoritative Proofrail product Verdict.

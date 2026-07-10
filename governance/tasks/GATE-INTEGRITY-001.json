@@ -1,0 +1,129 @@
+{
+  "task": {
+    "id": "GATE-INTEGRITY-001",
+    "class": "ai_pr_evidence_gate_integrity_hardening",
+    "objective": "Fail closed on ambiguous or dangling Evidence Gate identifiers, replace locale-dependent ordering, and harden projected GitHub text redaction."
+  },
+  "scope": {
+    "write": [
+      "governance/tasks/GATE-INTEGRITY-001.json",
+      "packages/evidence-gate/src/index.js",
+      "packages/evidence-gate/src/github.js",
+      "tests/evidence-gate/evidence-packet.test.mjs",
+      "tests/evidence-gate/github-importer.test.mjs",
+      "README.md",
+      "docs/plans/active/phase-2-ai-pr-evidence-gate.md",
+      "docs/engineering/validation-evidence.md"
+    ],
+    "read_only_authority": [
+      "AGENTS.md",
+      "docs/constitution/**",
+      "docs/architecture/**",
+      "docs/product/**",
+      "docs/protocols/**",
+      "docs/quality/**",
+      "docs/engineering/machine-task-contract.md",
+      "packages/contracts/**",
+      "packages/kernel/**",
+      "packages/evidence-gate/src/cli.mjs",
+      "packages/evidence-gate/src/github-cli.mjs",
+      "packages/evidence-gate/src/report.js",
+      "tests/evidence-gate/cli.test.mjs",
+      "tests/evidence-gate/report.test.mjs",
+      "examples/**",
+      "scripts/**",
+      ".github/**",
+      "package.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "tsconfig.json",
+      "governance/generated/**",
+      "existing governance/tasks/**"
+    ],
+    "forbidden": [
+      "all paths outside scope.write",
+      "modification of existing Machine Task Contracts",
+      "authority-bearing documentation or schemas",
+      "packet schema, version, public export, Trust, Evidence authority, Verdict, protocol, or product-semantic changes",
+      "report, CLI argument, filesystem, stdout, stderr, or atomic-write hardening",
+      "collection query, field allowlist, or collection-boundary expansion",
+      "new dependencies, lockfile, workspace, TypeScript, scripts, CI, or generated governance changes",
+      "network, GitHub writes, target inspection or execution, verification execution, inference, models, credentials, or cost-risk services"
+    ]
+  },
+  "authority": {
+    "read": [
+      "governance/tasks/GATE-INTEGRITY-001.json",
+      "AGENTS.md",
+      "docs/engineering/machine-task-contract.md",
+      "docs/constitution/product-constitution.md",
+      "docs/constitution/trust-model.md",
+      "docs/architecture/dependency-rules.md",
+      "docs/architecture/execution-boundary.md",
+      "docs/architecture/inference-boundary.md",
+      "docs/product/verdict-semantics.md",
+      "docs/plans/active/phase-2-ai-pr-evidence-gate.md",
+      "packages/evidence-gate/src/index.js",
+      "packages/evidence-gate/src/github.js"
+    ],
+    "mayChangeAuthority": false,
+    "mayChangeProductSemantics": false
+  },
+  "acceptance": {
+    "requirements": [
+      "Commit this contract alone as the first branch commit from afda5cedd81d80d67393b5eb6ad7201efecd6ebf.",
+      "Reject duplicate declaration IDs independently within claims, observedEvidence, and requiredEvidence using fixed errors that never echo supplied values.",
+      "Reject dangling claim.observedEvidenceIds, claim.requiredEvidenceIds, and observedEvidence.satisfies references before digest or output construction.",
+      "Keep declaration namespaces separate and continue accepting identical IDs across different collections; do not add duplicate reference-array or reverse-coverage rules.",
+      "Replace localeCompare in index.js and github.js with the same binary string comparator that returns zero only for identical strings.",
+      "Preserve existing valid ASCII fixtures, packet JSON and report goldens, packet version, boundaries, exports, and GitHub collection behavior byte-for-byte.",
+      "Redact values assigned to prefixed secret labels such as CI_GITHUB_TOKEN and OPENAI_API_KEY while retaining the label.",
+      "Redact every already-supported GitHub token prefix ghp_, gho_, ghu_, ghs_, ghr_, and github_pat_ even when embedded next to word characters.",
+      "Preserve existing Bearer and assignment redaction and ordinary non-secret lookalike text.",
+      "Add focused tests for each duplicate collection, each dangling reference edge, cross-namespace ID reuse, non-disclosing errors, binary ordering, every supported token prefix, prefixed assignments, embedded canaries, and non-secret compatibility.",
+      "Add concise README and Phase 2 integrity notes and record only actual verification evidence without readiness, release, authority, or Verdict claims."
+    ]
+  },
+  "verification": {
+    "commands": [
+      "pnpm governance:check",
+      "pnpm governance:check-json",
+      "pnpm test:governance",
+      "pnpm test:evidence-gate",
+      "pnpm evidence-gate:demo",
+      "pnpm typecheck:phase1",
+      "pnpm test:kernel",
+      "pnpm verify",
+      "git diff --check"
+    ],
+    "requiredInvariants": [
+      "Every changed path is writable and this contract is the first branch commit.",
+      "Formerly valid ASCII outputs remain byte-identical while invalid duplicate or dangling inputs fail closed.",
+      "The comparator is locale-independent, total for strings, and shared in behavior across packet and GitHub normalization.",
+      "Secret canaries never reach normalized snapshots, packets, reports, or thrown diagnostics.",
+      "No dependency, lockfile, collection, query, report, CLI, filesystem, authority, semantic, target, network, inference, readiness, or release change is introduced."
+    ]
+  },
+  "requiredArtifacts": [
+    "contract",
+    "identifier integrity validation",
+    "binary comparators",
+    "GitHub text redaction hardening",
+    "focused regression tests",
+    "README and Phase 2 notes",
+    "validation evidence",
+    "independent exact-head review"
+  ],
+  "stopConditions": [
+    "A change outside the eight writable paths is required: BLOCKED_SCOPE",
+    "Authority, contracts, kernel, schema, version, protocol, Trust, Evidence authority, Verdict, or product semantics must change: BLOCKED_SCOPE",
+    "Report, CLI, filesystem, argument, query, field allowlist, or collection behavior must change: BLOCKED_SCOPE",
+    "Valid ASCII golden bytes cannot remain unchanged or broader reference semantics are required: BLOCKED_SCOPE",
+    "A dependency, lockfile, network, credential, GitHub write, target execution, model, paid cloud, or paid SaaS is required: BLOCKED_COST_RISK",
+    "Codex usage limit is reached: LIMIT_REACHED"
+  ],
+  "review": {
+    "expectation": "independent_review_required",
+    "reviewerMustNotRelyOnBuilderClaim": true
+  }
+}

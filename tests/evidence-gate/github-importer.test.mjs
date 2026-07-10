@@ -698,6 +698,67 @@ test("reordered collector data produces byte-identical packet JSON", () => {
   assert.equal(canonicalJson(packetFor(first)), canonicalJson(packetFor(reordered)));
 });
 
+test("GitHub snapshot normalization uses deterministic ordering with baseline ASCII compatibility", () => {
+  const snapshot = fixture();
+  const paths = ["b.js", "A.js", "a.js", "é.js", "e\u0301.js", "!.js"];
+  snapshot.changedFiles = paths.length;
+  snapshot.files = paths.map((filePath) => ({
+    path: filePath,
+    additions: 1,
+    deletions: 0
+  })).reverse();
+
+  const normalized = normalizeGitHubSnapshot(snapshot);
+
+  assert.deepEqual(normalized.files.map((file) => file.path), [
+    "!.js",
+    "a.js",
+    "A.js",
+    "b.js",
+    "e\u0301.js",
+    "é.js"
+  ]);
+});
+
+test("GitHub snapshot normalization matches baseline printable ASCII pairs and representative paths", () => {
+  const printableAsciiOrder = [
+    " ", "_", "-", ",", ";", ":", "!", "?", ".", "'", "\"",
+    "(", ")", "[", "]", "{", "}", "@", "*", "/", "\\", "&",
+    "#", "%", "`", "^", "+", "<", "=", ">", "|", "~", "$",
+    ..."0123456789",
+    ...[..."abcdefghijklmnopqrstuvwxyz"].flatMap((letter) => [letter, letter.toUpperCase()])
+  ];
+  const pathForCharacter = (character) => `prefix${character}suffix`;
+  const normalizePaths = (paths) => {
+    const snapshot = fixture();
+    snapshot.changedFiles = paths.length;
+    snapshot.files = [...paths].reverse().map((path) => ({
+      path,
+      additions: 1,
+      deletions: 0
+    }));
+    return normalizeGitHubSnapshot(snapshot).files.map((file) => file.path);
+  };
+
+  assert.equal(printableAsciiOrder.length, 95);
+  assert.equal(new Set(printableAsciiOrder).size, 95);
+  for (let leftIndex = 0; leftIndex < printableAsciiOrder.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < printableAsciiOrder.length; rightIndex += 1) {
+      const expected = [
+        pathForCharacter(printableAsciiOrder[leftIndex]),
+        pathForCharacter(printableAsciiOrder[rightIndex])
+      ];
+      assert.deepEqual(normalizePaths(expected), expected);
+    }
+  }
+
+  const representativePaths = [
+    "a", "A", "a_", "A_", "a-", "A-", "a.js", "A.js", "a0",
+    "A0", "aa", "aA", "Aa", "AA", "docs/x", "README.md", "z", "Z"
+  ];
+  assert.deepEqual(normalizePaths(representativePaths), representativePaths);
+});
+
 test("collector safely collapses missing gh, auth, and nonzero failures", async (t) => {
   for (const [name, raw] of [
     ["missing gh", "ENOENT: gh was not found"],
@@ -787,6 +848,47 @@ test("secret-shaped projected text is redacted before packet output", async () =
   assert.doesNotMatch(serialized, new RegExp(secret));
   assert.doesNotMatch(serialized, new RegExp(refreshToken));
   assert.match(serialized, /token=\[REDACTED\]/);
+});
+
+test("prefixed assignments and embedded GitHub tokens are redacted", () => {
+  const assignmentSecret = "SYNTHETIC_ASSIGNMENT_SECRET_CANARY_DO_NOT_DISCLOSE";
+  const tokens = [
+    "ghp_" + "A".repeat(30),
+    "gho_" + "B".repeat(30),
+    "ghu_" + "C".repeat(30),
+    "ghs_" + "D".repeat(30),
+    "ghr_" + "E".repeat(30),
+    "github_pat_" + "F".repeat(30)
+  ];
+  const snapshot = fixture();
+  snapshot.title = [
+    "CI_GITHUB_TOKEN=" + assignmentSecret,
+    "OPENAI_API_KEY:" + assignmentSecret,
+    ...tokens.map((token) => "prefix_" + token)
+  ].join(" ");
+
+  const normalized = normalizeGitHubSnapshot(snapshot);
+  const serialized = JSON.stringify(normalized);
+
+  assert.doesNotMatch(serialized, new RegExp(assignmentSecret));
+  for (const token of tokens) {
+    assert.doesNotMatch(serialized, new RegExp(token));
+  }
+  assert.match(normalized.title, /CI_GITHUB_TOKEN=\[REDACTED\]/);
+  assert.match(normalized.title, /OPENAI_API_KEY:\[REDACTED\]/);
+});
+
+test("non-secret assignment and token lookalikes remain unchanged", () => {
+  const title = [
+    "CI_GITHUB_TOKENIZED=value",
+    "OPENAI_API_KEYS:value",
+    "prefix_ghp_short",
+    "tokenization=visible"
+  ].join(" ");
+  const snapshot = fixture();
+  snapshot.title = title;
+
+  assert.equal(normalizeGitHubSnapshot(snapshot).title, title);
 });
 
 test("GitHub CLI argument parsing is strict", () => {
