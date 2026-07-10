@@ -185,7 +185,7 @@ test("buildEvidencePacket keeps id namespaces and duplicate references separate"
   assert.equal(input.requiredEvidence.some((item) => item.id === sharedId), true);
 });
 
-test("buildEvidencePacket uses deterministic binary ordering with ASCII compatibility", () => {
+test("buildEvidencePacket uses deterministic ordering with baseline ASCII compatibility", () => {
   const paths = ["b.js", "A.js", "a.js", "é.js", "e\u0301.js", "!.js"];
   const packet = buildEvidencePacket(sampleInput({
     scope: {
@@ -196,13 +196,54 @@ test("buildEvidencePacket uses deterministic binary ordering with ASCII compatib
 
   assert.deepEqual(packet.scope.changedPaths, [
     "!.js",
-    "A.js",
     "a.js",
+    "A.js",
     "b.js",
     "e\u0301.js",
     "é.js"
   ]);
   assert.deepEqual(packet.scope.outsideDeclaredScope, []);
+});
+
+test("buildEvidencePacket matches baseline printable ASCII pairs and representative paths", () => {
+  const printableAsciiOrder = [
+    " ", "_", "-", ",", ";", ":", "!", "?", ".", "'", "\"",
+    "(", ")", "[", "]", "{", "}", "@", "*", "/", "\\", "&",
+    "#", "%", "`", "^", "+", "<", "=", ">", "|", "~", "$",
+    ..."0123456789",
+    ...[..."abcdefghijklmnopqrstuvwxyz"].flatMap((letter) => [letter, letter.toUpperCase()])
+  ];
+  const pathForCharacter = (character) => `prefix${character}suffix`;
+
+  assert.equal(printableAsciiOrder.length, 95);
+  assert.equal(new Set(printableAsciiOrder).size, 95);
+  for (let leftIndex = 0; leftIndex < printableAsciiOrder.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < printableAsciiOrder.length; rightIndex += 1) {
+      const expected = [
+        pathForCharacter(printableAsciiOrder[leftIndex]),
+        pathForCharacter(printableAsciiOrder[rightIndex])
+      ];
+      const packet = buildEvidencePacket(sampleInput({
+        scope: {
+          declaredWriteScope: expected,
+          changedPaths: [...expected].reverse()
+        }
+      }));
+      assert.deepEqual(packet.scope.changedPaths, expected);
+    }
+  }
+
+  const representativePaths = [
+    "a", "A", "a_", "A_", "a-", "A-", "a.js", "A.js", "a0",
+    "A0", "aa", "aA", "Aa", "AA", "docs/x", "README.md", "z", "Z"
+  ];
+  const packet = buildEvidencePacket(sampleInput({
+    scope: {
+      declaredWriteScope: representativePaths,
+      changedPaths: [...representativePaths].reverse()
+    }
+  }));
+  assert.deepEqual(packet.scope.changedPaths, representativePaths);
 });
 
 test("buildEvidencePacket does not overclaim readiness or release state", () => {

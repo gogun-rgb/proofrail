@@ -698,7 +698,7 @@ test("reordered collector data produces byte-identical packet JSON", () => {
   assert.equal(canonicalJson(packetFor(first)), canonicalJson(packetFor(reordered)));
 });
 
-test("GitHub snapshot normalization uses deterministic binary ordering", () => {
+test("GitHub snapshot normalization uses deterministic ordering with baseline ASCII compatibility", () => {
   const snapshot = fixture();
   const paths = ["b.js", "A.js", "a.js", "é.js", "e\u0301.js", "!.js"];
   snapshot.changedFiles = paths.length;
@@ -712,12 +712,51 @@ test("GitHub snapshot normalization uses deterministic binary ordering", () => {
 
   assert.deepEqual(normalized.files.map((file) => file.path), [
     "!.js",
-    "A.js",
     "a.js",
+    "A.js",
     "b.js",
     "e\u0301.js",
     "é.js"
   ]);
+});
+
+test("GitHub snapshot normalization matches baseline printable ASCII pairs and representative paths", () => {
+  const printableAsciiOrder = [
+    " ", "_", "-", ",", ";", ":", "!", "?", ".", "'", "\"",
+    "(", ")", "[", "]", "{", "}", "@", "*", "/", "\\", "&",
+    "#", "%", "`", "^", "+", "<", "=", ">", "|", "~", "$",
+    ..."0123456789",
+    ...[..."abcdefghijklmnopqrstuvwxyz"].flatMap((letter) => [letter, letter.toUpperCase()])
+  ];
+  const pathForCharacter = (character) => `prefix${character}suffix`;
+  const normalizePaths = (paths) => {
+    const snapshot = fixture();
+    snapshot.changedFiles = paths.length;
+    snapshot.files = [...paths].reverse().map((path) => ({
+      path,
+      additions: 1,
+      deletions: 0
+    }));
+    return normalizeGitHubSnapshot(snapshot).files.map((file) => file.path);
+  };
+
+  assert.equal(printableAsciiOrder.length, 95);
+  assert.equal(new Set(printableAsciiOrder).size, 95);
+  for (let leftIndex = 0; leftIndex < printableAsciiOrder.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < printableAsciiOrder.length; rightIndex += 1) {
+      const expected = [
+        pathForCharacter(printableAsciiOrder[leftIndex]),
+        pathForCharacter(printableAsciiOrder[rightIndex])
+      ];
+      assert.deepEqual(normalizePaths(expected), expected);
+    }
+  }
+
+  const representativePaths = [
+    "a", "A", "a_", "A_", "a-", "A-", "a.js", "A.js", "a0",
+    "A0", "aa", "aA", "Aa", "AA", "docs/x", "README.md", "z", "Z"
+  ];
+  assert.deepEqual(normalizePaths(representativePaths), representativePaths);
 });
 
 test("collector safely collapses missing gh, auth, and nonzero failures", async (t) => {

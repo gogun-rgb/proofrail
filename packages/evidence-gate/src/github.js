@@ -636,20 +636,32 @@ function isObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+const ASCII_COLLATION_ORDER =
+  " _-,;:!?.'\"()[]{}@*/\\&#%`^+<=>|~$0123456789abcdefghijklmnopqrstuvwxyz";
+
 function compare(left, right) {
-  const foldedLeft = foldAsciiCase(left);
-  const foldedRight = foldAsciiCase(right);
-  return foldedLeft < foldedRight
-    ? -1
-    : foldedLeft > foldedRight
-      ? 1
-      : left < right
-        ? -1
-        : left > right
-          ? 1
-          : 0;
+  const leftKey = textSortKey(left);
+  const rightKey = textSortKey(right);
+  return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
 }
 
-function foldAsciiCase(value) {
-  return value.replace(/[A-Z]/g, (character) => character.toLowerCase());
+function textSortKey(value) {
+  let primary = "";
+  let caseLevel = "";
+  for (let index = 0; index < value.length; index += 1) {
+    const codeUnit = value.charCodeAt(index);
+    primary += String(asciiPrimaryWeight(codeUnit)).padStart(5, "0");
+    caseLevel += codeUnit >= 65 && codeUnit <= 90 ? "1" : "0";
+  }
+  return `${primary}!${caseLevel}!${value}`;
+}
+
+function asciiPrimaryWeight(codeUnit) {
+  const foldedCodeUnit = codeUnit >= 65 && codeUnit <= 90
+    ? codeUnit + 32
+    : codeUnit;
+  const asciiWeight = ASCII_COLLATION_ORDER.indexOf(String.fromCharCode(foldedCodeUnit));
+  return asciiWeight >= 0
+    ? asciiWeight
+    : ASCII_COLLATION_ORDER.length + foldedCodeUnit;
 }
