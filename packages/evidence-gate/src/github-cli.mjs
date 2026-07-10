@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
-import { readFile, stat, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
+import { assertDistinctFiles, readBoundedUtf8File } from "./file-io.js";
 import { buildEvidencePacket, canonicalJson } from "./index.js";
 import { renderHumanReport } from "./report.js";
 import {
@@ -12,6 +13,12 @@ import {
 } from "./github.js";
 
 const MAX_SCOPE_FILE_BYTES = 64 * 1024;
+const DECLARED_SCOPE_FILE_ERRORS = {
+  READ_FAILED: "could not read the declared scope file",
+  NOT_REGULAR: "declared scope file must be a regular file",
+  TOO_LARGE: "declared scope file exceeds 64 KiB",
+  INVALID_UTF8: "declared scope file is not valid UTF-8"
+};
 
 export function parseGitHubArguments(args) {
   const options = {};
@@ -66,6 +73,13 @@ export async function runGitHubCli(args = process.argv.slice(2)) {
   const declaredWriteScope = options.scopeFile === undefined
     ? []
     : await readDeclaredScopeFile(options.scopeFile);
+  if (options.scopeFile !== undefined && options.output !== undefined) {
+    try {
+      await assertDistinctFiles(options.scopeFile, options.output);
+    } catch {
+      throw new Error("declared scope and output files must be different");
+    }
+  }
   const snapshot = await collectGitHubPullRequest({
     repository: options.repository,
     pullRequestNumber: options.pullRequestNumber
@@ -91,13 +105,11 @@ export async function runGitHubCli(args = process.argv.slice(2)) {
 export async function readDeclaredScopeFile(file) {
   let source;
   try {
-    const details = await stat(file);
-    if (!details.isFile() || details.size > MAX_SCOPE_FILE_BYTES) {
-      throw new Error("invalid scope file");
-    }
-    source = await readFile(file, "utf8");
-  } catch {
-    throw new Error("could not read the declared scope file");
+    source = await readBoundedUtf8File(file, MAX_SCOPE_FILE_BYTES);
+  } catch (error) {
+    throw new Error(
+      DECLARED_SCOPE_FILE_ERRORS[error?.code] ?? DECLARED_SCOPE_FILE_ERRORS.READ_FAILED
+    );
   }
 
   let parsed;

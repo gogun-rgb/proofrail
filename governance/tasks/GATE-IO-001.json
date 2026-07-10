@@ -1,0 +1,153 @@
+{
+  "task": {
+    "id": "GATE-IO-001",
+    "class": "ai_pr_evidence_gate_delivery_boundary_hardening",
+    "objective": "Harden the existing Evidence Gate human-report text boundary and local file-input boundaries against terminal structure spoofing, unbounded or invalid UTF-8 input, and stable same-file input/output aliases without changing packet, collection, CLI, authority, or product semantics."
+  },
+  "scope": {
+    "write": [
+      "governance/tasks/GATE-IO-001.json",
+      "packages/evidence-gate/src/file-io.js",
+      "packages/evidence-gate/src/cli.mjs",
+      "packages/evidence-gate/src/github-cli.mjs",
+      "packages/evidence-gate/src/report.js",
+      "tests/evidence-gate/cli.test.mjs",
+      "tests/evidence-gate/github-importer.test.mjs",
+      "tests/evidence-gate/report.test.mjs",
+      "README.md",
+      "docs/plans/active/phase-2-ai-pr-evidence-gate.md",
+      "docs/engineering/validation-evidence.md"
+    ],
+    "read_only_authority": [
+      "AGENTS.md",
+      "docs/constitution/**",
+      "docs/architecture/**",
+      "docs/product/**",
+      "docs/protocols/**",
+      "docs/quality/**",
+      "docs/engineering/machine-task-contract.md",
+      "packages/contracts/**",
+      "packages/kernel/**",
+      "packages/evidence-gate/src/index.js",
+      "packages/evidence-gate/src/github.js",
+      "tests/evidence-gate/evidence-packet.test.mjs",
+      "examples/**",
+      "scripts/**",
+      ".github/**",
+      "package.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "tsconfig.json",
+      "governance/generated/**",
+      "existing governance/tasks/**"
+    ],
+    "forbidden": [
+      "all paths outside scope.write",
+      "modification of existing Machine Task Contracts",
+      "authority-bearing documentation or schemas",
+      "packages/contracts/** or packages/kernel/** changes",
+      "packet schema, packet version, public export, canonical terminology, Trust, Evidence authority, Verdict, protocol, or product-semantic changes",
+      "CLI argument, flag, format, success stdout, success stderr, or trailing-newline changes",
+      "GitHub query, field allowlist, pagination, collection, mapping, network, or gh invocation changes except rejecting a scope/output alias before gh",
+      "mutation or normalization of packet, snapshot, or JSON content for report escaping",
+      "Unicode normalization or escaping printable non-format Unicode",
+      "example or existing JSON or human golden-byte changes",
+      "atomic output, temporary-output, rename, fsync, permission-policy, or concurrent-filesystem replacement hardening",
+      "new dependencies, lockfile, workspace, package script, TypeScript, CI, generated governance, or external tool changes",
+      "target inspection or execution, verification execution, GitHub writes, inference, models, credentials, billing, paid cloud, or paid SaaS"
+    ]
+  },
+  "authority": {
+    "read": [
+      "governance/tasks/GATE-IO-001.json",
+      "governance/tasks/GATE-REPORT-001.json",
+      "governance/tasks/GATE-SCOPE-001.json",
+      "governance/tasks/GATE-INTEGRITY-001.json",
+      "AGENTS.md",
+      "docs/engineering/machine-task-contract.md",
+      "docs/constitution/product-constitution.md",
+      "docs/constitution/terminology.md",
+      "docs/constitution/trust-model.md",
+      "docs/architecture/dependency-rules.md",
+      "docs/architecture/execution-boundary.md",
+      "docs/architecture/inference-boundary.md",
+      "docs/product/verdict-semantics.md",
+      "docs/quality/security.md",
+      "docs/quality/reliability.md",
+      "docs/plans/active/phase-2-ai-pr-evidence-gate.md"
+    ],
+    "mayChangeAuthority": false,
+    "mayChangeProductSemantics": false
+  },
+  "acceptance": {
+    "requirements": [
+      "Commit this contract alone as the first branch commit from 036472540cae613881d8d37beadb66b279f574bc.",
+      "In human reports, deterministically escape U+0000-U+001F, U+007F-U+009F, U+2028, U+2029, and the fixed format-control ranges U+00AD, U+0600-U+0605, U+061C, U+06DD, U+070F, U+0890-U+0891, U+08E2, U+180E, U+200B-U+200F, U+202A-U+202E, U+2060-U+2064, U+2066-U+206F, U+FEFF, U+FFF9-U+FFFB, U+110BD, U+110CD, U+13430-U+1343F, U+1BCA0-U+1BCA3, U+1D173-U+1D17A, U+E0001, and U+E0020-U+E007F.",
+      "Render escaped BMP code points as literal uppercase \\uXXXX and supplementary code points as literal uppercase \\u{XXXXX}; do not depend on runtime Unicode-property classification.",
+      "Preserve printable non-format ASCII and Unicode without normalization, including Korean, accented text, and emoji.",
+      "Preserve every existing valid JSON and human golden byte, fixed report section order, and exactly one trailing newline.",
+      "Read static Evidence Gate input only from an opened regular-file target and accept at most 1,048,576 actual bytes; read at most limit plus one byte so a growing or oversized file cannot bypass a metadata-size check.",
+      "Read declared scope input only from an opened regular-file target and accept at most 65,536 actual bytes using the same bounded-read rule.",
+      "Decode both file inputs with fatal UTF-8 semantics without silently dropping a UTF-8 BOM; malformed byte sequences fail and BOM-prefixed JSON retains the existing malformed-JSON behavior.",
+      "Use only fixed non-disclosing static-input errors: could not read the input file; input file must be a regular file; input file exceeds 1 MiB; input file is not valid UTF-8.",
+      "Use only fixed non-disclosing declared-scope errors: could not read the declared scope file; declared scope file must be a regular file; declared scope file exceeds 64 KiB; declared scope file is not valid UTF-8.",
+      "Keep the existing input file contains malformed JSON and declared scope file contains malformed JSON errors unchanged.",
+      "Under stable filesystem state, reject input/output or declared-scope/output pairs that identify the same file through exact spelling, resolved dot or absolute spelling, real path, symbolic-link target, or existing file identity such as device and inode.",
+      "Use fixed alias errors input and output files must be different and declared scope and output files must be different without echoing paths or supplied values.",
+      "Alias rejection must occur before output mutation; preserve original input, scope, and existing output bytes. Declared-scope/output aliases must be rejected before invoking gh.",
+      "A symbolic-link input whose target is a bounded regular file remains accepted when its output is demonstrably distinct.",
+      "Share one small internal packages/evidence-gate/src/file-io.js boundary for bounded fatal-UTF-8 reads and stable same-file identity checks; add no public export or external dependency.",
+      "Preserve all CLI flags and defaults, default and explicit JSON bytes, human format behavior, omitted-scope compatibility, stdout/file success behavior, GitHub collection calls, packet fields, and product-boundary statements.",
+      "Add focused tests covering every fixed escape range, exact BMP and supplementary escape spelling, safe printable Unicode, exact size limits and limit-plus-one, directories, malformed UTF-8, BOM behavior, fixed non-disclosing errors, spelling aliases, both symbolic-link directions, hardlinks, byte preservation, pre-gh rejection, distinct symbolic-link success, and all existing JSON and human compatibility.",
+      "On platforms that deny symbolic-link creation, a test may skip only that platform-specific construction after recording the explicit OS error; hardlink and canonical-spelling coverage must still run.",
+      "Add concise README, Phase 2, and actual validation-evidence notes without readiness, release, authority, or Verdict claims."
+    ]
+  },
+  "verification": {
+    "commands": [
+      "pnpm governance:check",
+      "pnpm governance:check-json",
+      "pnpm test:governance",
+      "pnpm test:evidence-gate",
+      "pnpm evidence-gate:demo",
+      "pnpm typecheck:phase1",
+      "pnpm test:kernel",
+      "pnpm verify",
+      "git diff --check"
+    ],
+    "requiredInvariants": [
+      "Every changed path is writable and the contract is the first branch commit from the exact baseline.",
+      "All unsafe report code points use the fixed code-point escapes while printable non-format Unicode and existing golden bytes remain unchanged.",
+      "Both local inputs are regular-file, actual-byte bounded, fatal UTF-8 boundaries with fixed non-disclosing failures.",
+      "Stable same-file aliases are rejected without mutating any involved file, and GitHub alias rejection performs no gh call.",
+      "The shared helper remains package-internal and introduces no public API or dependency.",
+      "No packet, query, collection, argument, format, authority, semantic, target, network, inference, readiness, release, dependency, lockfile, atomic-output, or concurrent-filesystem guarantee is introduced."
+    ]
+  },
+  "requiredArtifacts": [
+    "GATE-IO-001 contract",
+    "package-local file I/O boundary helper",
+    "human-report Unicode structure hardening",
+    "static-input bounded fatal-UTF-8 integration",
+    "declared-scope bounded fatal-UTF-8 integration",
+    "stable same-file alias rejection",
+    "focused renderer and CLI regression tests",
+    "README and Phase 2 notes",
+    "actual validation evidence",
+    "independent exact-head review"
+  ],
+  "stopConditions": [
+    "A change outside the eleven writable paths is required: BLOCKED_SCOPE",
+    "Authority, contracts, kernel, schema, version, protocol, Trust, Evidence authority, Verdict, or product semantics must change: BLOCKED_SCOPE",
+    "Existing JSON or human golden bytes, CLI arguments, formats, success output, query fields, or collection behavior cannot remain unchanged: BLOCKED_SCOPE",
+    "Packet or GitHub snapshot mutation, Unicode normalization, or broader content sanitization is required: BLOCKED_SCOPE",
+    "Atomic output, temporary-file replacement, fsync, permission-policy, or protection against adversarial concurrent filesystem replacement is required: BLOCKED_SCOPE",
+    "A dependency, lockfile, workspace, script, CI, generated-governance, network, credential, GitHub write, target execution, model, paid cloud, or paid SaaS change is required: BLOCKED_COST_RISK",
+    "Stable path, real-path, symbolic-link, and hardlink aliases cannot be handled within the shared package-local boundary: BLOCKED_SCOPE",
+    "Codex usage limit is reached: LIMIT_REACHED"
+  ],
+  "review": {
+    "expectation": "independent_review_required",
+    "reviewerMustNotRelyOnBuilderClaim": true
+  }
+}

@@ -1,9 +1,18 @@
 #!/usr/bin/env node
 
-import { readFile, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 
+import { assertDistinctFiles, readBoundedUtf8File } from "./file-io.js";
 import { buildEvidencePacket, canonicalJson } from "./index.js";
 import { renderHumanReport } from "./report.js";
+
+const MAX_INPUT_BYTES = 1024 * 1024;
+const INPUT_FILE_ERRORS = {
+  READ_FAILED: "could not read the input file",
+  NOT_REGULAR: "input file must be a regular file",
+  TOO_LARGE: "input file exceeds 1 MiB",
+  INVALID_UTF8: "input file is not valid UTF-8"
+};
 
 export function parseArguments(args) {
   const options = {};
@@ -41,9 +50,9 @@ export function parseArguments(args) {
 async function readInput(path) {
   let source;
   try {
-    source = await readFile(path, "utf8");
-  } catch {
-    throw new Error("could not read the input file");
+    source = await readBoundedUtf8File(path, MAX_INPUT_BYTES);
+  } catch (error) {
+    throw new Error(INPUT_FILE_ERRORS[error?.code] ?? INPUT_FILE_ERRORS.READ_FAILED);
   }
 
   try {
@@ -57,6 +66,13 @@ async function run() {
   const options = parseArguments(process.argv.slice(2));
   const input = await readInput(options.input);
   const packet = buildEvidencePacket(input);
+  if (options.output !== undefined) {
+    try {
+      await assertDistinctFiles(options.input, options.output);
+    } catch {
+      throw new Error("input and output files must be different");
+    }
+  }
   const output = options.format === "human"
     ? renderHumanReport(packet)
     : canonicalJson(packet) + "\n";

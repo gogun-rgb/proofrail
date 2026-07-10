@@ -129,6 +129,12 @@ The evidence packet must keep these separations explicit:
 
 This task does not change packet schema or version, reference semantics beyond existing declared edges, query fields, the report renderer, CLI interface, argument or I/O handling, filesystem behavior, authority, Evidence, readiness, trusted release, or a Proofrail product Verdict. For matching secret-shaped projected text, normalized snapshot content intentionally changes only by replacing the secret value with `[REDACTED]`. The redacted value propagates to packet and rendered report content only when that sanitized field is mapped into the packet; snapshot-only fields remain sanitized at the snapshot boundary. Ordinary non-secret text remains compatible.
 
+## Delivery Boundary Hardening
+
+`GATE-IO-001` bounds the existing static and declared-scope local file inputs to opened regular files, actual-byte limits of 1 MiB and 64 KiB respectively, and fatal UTF-8 decoding. Under stable filesystem state, input/output aliases are rejected before output mutation, and declared-scope/output aliases are rejected before `gh` collection. The human renderer escapes a fixed explicit set of terminal-structure control code points while preserving printable non-format Unicode and existing golden bytes.
+
+This hardening does not change CLI arguments or formats, packet or collection content, authority, Evidence, readiness, trusted release, or Verdict behavior. Atomic output replacement and protection against adversarial concurrent filesystem changes remain outside this boundary.
+
 ## De-Scoped Until Later Authorization
 
 The following remain out of scope until separately authorized:

@@ -1,5 +1,16 @@
 import assert from "node:assert/strict";
-import { copyFileSync, chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  chmodSync,
+  existsSync,
+  linkSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync
+} from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { delimiter } from "node:path";
@@ -23,6 +34,7 @@ const FIXTURE_PATH = path.join(ROOT, "examples/evidence-gate/github/sanitized-pr
 const DECLARED_SCOPE_FIXTURE_PATH = path.join(ROOT, "examples/evidence-gate/github/declared-scope.json");
 const STATIC_INPUT = path.join(ROOT, "examples/evidence-gate/input.json");
 const STATIC_EXPECTED = path.join(ROOT, "examples/evidence-gate/expected-output.json");
+const MAX_SCOPE_FILE_BYTES = 64 * 1024;
 const METADATA_QUERY = `query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){number title state isDraft changedFiles baseRefName headRefName headRefOid}}}`;
 const FILES_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){headRefOid files(first:100,after:$cursor){nodes{path additions deletions}pageInfo{hasNextPage endCursor}}}}}`;
 const COMMITS_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){headRefOid commits(first:100,after:$cursor){nodes{commit{oid}}pageInfo{hasNextPage endCursor}}}}}`;
@@ -52,6 +64,27 @@ function withTempDirectory(run) {
     return run(directory);
   } finally {
     rmSync(directory, { recursive: true, force: true });
+  }
+}
+
+function paddedDeclaredScope(size) {
+  const source = Buffer.from(JSON.stringify({
+    declaredWriteScope: ["packages/evidence-gate/**"]
+  }));
+  assert.ok(source.length <= size);
+  return Buffer.concat([source, Buffer.alloc(size - source.length, 0x20)]);
+}
+
+function createFileSymlinkOrSkip(t, target, link) {
+  try {
+    symlinkSync(target, link, "file");
+    return true;
+  } catch (error) {
+    if (error && ["EACCES", "EPERM", "ENOSYS", "EOPNOTSUPP"].includes(error.code)) {
+      t.skip("symbolic-link creation denied by OS: " + error.code);
+      return false;
+    }
+    throw error;
   }
 }
 
@@ -165,7 +198,8 @@ function runGitHubCliWithFakeGh({
   payload = fixture(),
   writeOutput = false,
   format,
-  scopeFile
+  scopeFile,
+  preparePaths
 } = {}) {
   return withTempDirectory((directory) => {
     const ghName = process.platform === "win32" ? "gh.exe" : "gh";
@@ -178,8 +212,9 @@ function runGitHubCliWithFakeGh({
     if (scopeFile !== undefined) {
       writeFileSync(
         scopeFilePath,
-        typeof scopeFile === "string" ? scopeFile : JSON.stringify(scopeFile),
-        "utf8"
+        Buffer.isBuffer(scopeFile)
+          ? scopeFile
+          : typeof scopeFile === "string" ? scopeFile : JSON.stringify(scopeFile)
       );
     }
     writeFileSync(path.join(directory, "api"), [
@@ -221,12 +256,18 @@ function runGitHubCliWithFakeGh({
       'process.stdout.write(JSON.stringify(result));'
     ].join("\n"), "utf8");
 
+    const prepared = preparePaths?.({ directory, outputPath, scopeFilePath }) ?? {};
+    if (prepared.skip === true) return { skipped: true };
+    const effectiveOutputPath = prepared.outputPath ?? outputPath;
+    const effectiveScopeFilePath = prepared.scopeFilePath ?? scopeFilePath;
+    const tracked = prepared.tracked ?? [];
+    const trackedBefore = tracked.map((file) => readFileSync(file));
     const cliArgs = args ?? [
       "--repo", payload.repository,
       "--pr", String(payload.number),
       ...(format ? ["--format", format] : []),
-      ...(scopeFile !== undefined ? ["--scope-file", scopeFilePath] : []),
-      ...(writeOutput ? ["--output", outputPath] : [])
+      ...(scopeFile !== undefined ? ["--scope-file", effectiveScopeFilePath] : []),
+      ...(writeOutput ? ["--output", effectiveOutputPath] : [])
     ];
     const result = spawnSync(process.execPath, [GITHUB_CLI, ...cliArgs], {
       cwd: directory,
@@ -250,9 +291,30 @@ function runGitHubCliWithFakeGh({
     return {
       ...result,
       ghArgs: captured,
-      fileOutput: existsSync(outputPath) ? readFileSync(outputPath, "utf8") : null
+      fileOutput: existsSync(effectiveOutputPath)
+        ? readFileSync(effectiveOutputPath, "utf8")
+        : null,
+      trackedBefore,
+      trackedAfter: tracked.map((file) => readFileSync(file))
     };
   });
+}
+
+function assertScopeAliasRejected(t, preparePaths) {
+  const result = runGitHubCliWithFakeGh({
+    scopeFile: declaredScopeFixture(),
+    writeOutput: true,
+    preparePaths: (paths) => preparePaths(t, paths)
+  });
+  if (result.skipped === true) return;
+  assert.notEqual(result.status, 0);
+  assert.equal(result.stdout, "");
+  assert.equal(result.ghArgs, null);
+  assert.equal(
+    result.stderr,
+    "evidence-gate-github: declared scope and output files must be different\n"
+  );
+  assert.deepEqual(result.trackedAfter, result.trackedBefore);
 }
 
 function assertSanitizedFixture(value) {
@@ -1077,6 +1139,211 @@ test("GitHub CLI rejects declared scope input before invoking gh without disclos
       assert.doesNotMatch(result.stderr, new RegExp(secret));
     });
   }
+});
+
+test("GitHub CLI enforces bounded regular-file fatal UTF-8 declared scope", async (t) => {
+  await t.test("accepts exactly 64 KiB of valid JSON bytes", () => {
+    const result = runGitHubCliWithFakeGh({
+      scopeFile: paddedDeclaredScope(MAX_SCOPE_FILE_BYTES)
+    });
+    assert.equal(result.status, 0);
+    assert.equal(result.stderr, "");
+    assert.equal(result.ghArgs.length, 9);
+  });
+
+  await t.test("rejects one byte over 64 KiB before gh", () => {
+    const result = runGitHubCliWithFakeGh({
+      scopeFile: paddedDeclaredScope(MAX_SCOPE_FILE_BYTES + 1)
+    });
+    assert.notEqual(result.status, 0);
+    assert.equal(result.stdout, "");
+    assert.equal(result.ghArgs, null);
+    assert.equal(
+      result.stderr,
+      "evidence-gate-github: declared scope file exceeds 64 KiB\n"
+    );
+  });
+
+  await t.test("rejects a directory before gh", () => {
+    const result = runGitHubCliWithFakeGh({
+      scopeFile: declaredScopeFixture(),
+      preparePaths: ({ directory }) => ({ scopeFilePath: directory })
+    });
+    assert.notEqual(result.status, 0);
+    assert.equal(result.stdout, "");
+    assert.equal(result.ghArgs, null);
+    assert.equal(
+      result.stderr,
+      "evidence-gate-github: declared scope file must be a regular file\n"
+    );
+  });
+
+  await t.test("rejects malformed UTF-8 before gh", () => {
+    const result = runGitHubCliWithFakeGh({
+      scopeFile: Buffer.from([0x7b, 0x22, 0xc3, 0x28, 0x22, 0x7d])
+    });
+    assert.notEqual(result.status, 0);
+    assert.equal(result.stdout, "");
+    assert.equal(result.ghArgs, null);
+    assert.equal(
+      result.stderr,
+      "evidence-gate-github: declared scope file is not valid UTF-8\n"
+    );
+  });
+
+  await t.test("preserves a UTF-8 BOM for existing malformed-JSON behavior", () => {
+    const result = runGitHubCliWithFakeGh({
+      scopeFile: Buffer.concat([
+        Buffer.from([0xef, 0xbb, 0xbf]),
+        Buffer.from(JSON.stringify(declaredScopeFixture()))
+      ])
+    });
+    assert.notEqual(result.status, 0);
+    assert.equal(result.stdout, "");
+    assert.equal(result.ghArgs, null);
+    assert.equal(
+      result.stderr,
+      "evidence-gate-github: declared scope file contains malformed JSON\n"
+    );
+  });
+});
+
+test("GitHub CLI preserves scope failure categories with an existing distinct output", () => {
+  const originalOutput = Buffer.from("PRESERVE_EXISTING_OUTPUT");
+  function runCase(scopeFile, selectScopePath) {
+    return runGitHubCliWithFakeGh({
+      scopeFile,
+      writeOutput: true,
+      preparePaths: (paths) => {
+        writeFileSync(paths.outputPath, originalOutput);
+        return {
+          scopeFilePath: selectScopePath?.(paths) ?? paths.scopeFilePath,
+          tracked: [paths.outputPath]
+        };
+      }
+    });
+  }
+
+  const cases = [
+    [
+      runCase(declaredScopeFixture(), ({ directory }) => path.join(directory, "missing.json")),
+      "could not read the declared scope file"
+    ],
+    [
+      runCase(declaredScopeFixture(), ({ directory }) => directory),
+      "declared scope file must be a regular file"
+    ],
+    [
+      runCase(paddedDeclaredScope(MAX_SCOPE_FILE_BYTES + 1)),
+      "declared scope file exceeds 64 KiB"
+    ],
+    [
+      runCase(Buffer.from([0xc3, 0x28])),
+      "declared scope file is not valid UTF-8"
+    ]
+  ];
+
+  for (const [result, message] of cases) {
+    assert.notEqual(result.status, 0);
+    assert.equal(result.stdout, "");
+    assert.equal(result.ghArgs, null);
+    assert.equal(result.stderr, "evidence-gate-github: " + message + "\n");
+    assert.deepEqual(result.trackedAfter, result.trackedBefore);
+  }
+});
+
+test("GitHub CLI rejects stable declared-scope/output aliases before gh without mutation", async (t) => {
+  await t.test("same spelling", (subtest) => {
+    assertScopeAliasRejected(subtest, (_current, { scopeFilePath }) => ({
+      outputPath: scopeFilePath,
+      tracked: [scopeFilePath]
+    }));
+  });
+
+  await t.test("dot spelling", (subtest) => {
+    assertScopeAliasRejected(subtest, (_current, { directory, scopeFilePath }) => ({
+      outputPath: directory + path.sep + "." + path.sep + "declared-scope.json",
+      tracked: [scopeFilePath]
+    }));
+  });
+
+  await t.test("relative and absolute spelling", (subtest) => {
+    assertScopeAliasRejected(subtest, (_current, { scopeFilePath }) => ({
+      scopeFilePath: "declared-scope.json",
+      outputPath: scopeFilePath,
+      tracked: [scopeFilePath]
+    }));
+  });
+
+  await t.test("parent spelling", (subtest) => {
+    assertScopeAliasRejected(subtest, (_current, { directory, scopeFilePath }) => {
+      const child = path.join(directory, "child");
+      mkdirSync(child);
+      return {
+        outputPath: child + path.sep + ".." + path.sep + "declared-scope.json",
+        tracked: [scopeFilePath]
+      };
+    });
+  });
+
+  await t.test("hardlink", (subtest) => {
+    assertScopeAliasRejected(subtest, (_current, { outputPath, scopeFilePath }) => {
+      linkSync(scopeFilePath, outputPath);
+      return { tracked: [scopeFilePath, outputPath] };
+    });
+  });
+
+  await t.test("output symbolic link targets declared scope", (subtest) => {
+    assertScopeAliasRejected(subtest, (current, { outputPath, scopeFilePath }) => {
+      if (!createFileSymlinkOrSkip(current, scopeFilePath, outputPath)) {
+        return { skip: true };
+      }
+      return { tracked: [scopeFilePath, outputPath] };
+    });
+  });
+
+  await t.test("declared-scope symbolic link targets output", (subtest) => {
+    assertScopeAliasRejected(subtest, (current, { outputPath, scopeFilePath }) => {
+      writeFileSync(outputPath, readFileSync(scopeFilePath));
+      rmSync(scopeFilePath);
+      if (!createFileSymlinkOrSkip(current, outputPath, scopeFilePath)) {
+        return { skip: true };
+      }
+      return { tracked: [scopeFilePath, outputPath] };
+    });
+  });
+
+  if (process.platform === "win32") {
+    await t.test("case-resolved spelling", (subtest) => {
+      assertScopeAliasRejected(subtest, (_current, { scopeFilePath }) => ({
+        outputPath: scopeFilePath.toUpperCase(),
+        tracked: [scopeFilePath]
+      }));
+    });
+  }
+});
+
+test("GitHub CLI accepts a bounded regular-file scope symlink with distinct output", (t) => {
+  const result = runGitHubCliWithFakeGh({
+    scopeFile: declaredScopeFixture(),
+    writeOutput: true,
+    preparePaths: ({ directory, scopeFilePath }) => {
+      const target = path.join(directory, "scope-target.json");
+      writeFileSync(target, readFileSync(scopeFilePath));
+      rmSync(scopeFilePath);
+      if (!createFileSymlinkOrSkip(t, target, scopeFilePath)) {
+        return { skip: true };
+      }
+      return { tracked: [target] };
+    }
+  });
+  if (result.skipped === true) return;
+  assert.equal(result.status, 0);
+  assert.equal(result.stderr, "");
+  assert.equal(result.stdout, "");
+  assert.equal(result.ghArgs.length, 9);
+  assert.deepEqual(result.trackedAfter, result.trackedBefore);
+  assert.ok(result.fileOutput.endsWith("\n"));
 });
 
 test("GitHub CLI writes canonical packet JSON to stdout", () => {

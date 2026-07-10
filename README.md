@@ -89,7 +89,9 @@ For a deterministic human-readable view of the same packet, select the optional 
 
     pnpm evidence-gate --input examples/evidence-gate/input.json --format human
 
-Omitting --format (or selecting --format json) preserves the existing byte-identical JSON output. Human mode uses fixed sections, one trailing newline, and escapes control/ANSI/newline characters in untrusted packet text.
+Omitting --format (or selecting --format json) preserves the existing byte-identical JSON output. Human mode uses fixed sections, one trailing newline, and escapes control/ANSI/newline and fixed Unicode format characters in untrusted packet text while preserving printable non-format Unicode.
+
+`GATE-IO-001` limits the static input to an opened regular file of at most 1 MiB and the optional declared-scope input to an opened regular file of at most 64 KiB. Both inputs require valid UTF-8. Under stable filesystem state, an input or declared-scope file that aliases its selected output is rejected before output mutation; declared-scope aliases are rejected before `gh` collection. This boundary does not add atomic-output or concurrent-filesystem guarantees.
 
 See [the example input](examples/evidence-gate/input.json) and [its expected output](examples/evidence-gate/expected-output.json) for the complete input and packet shapes. Run the focused tests with:
 
@@ -145,6 +147,8 @@ The packet boundary remains equally important:
 The packet field `boundaries.staticInputOnly: true` describes the deterministic packet evaluator: after the live collector freezes a sanitized snapshot, the evaluator receives that snapshot as static input. It does not mean the v0.2 command avoided live GitHub collection.
 
 `GATE-INTEGRITY-001` fails closed when declaration IDs are duplicated or existing packet references are dangling, uses locale-independent deterministic ordering while preserving checked-in ASCII outputs, and redacts supported GitHub token shapes and prefixed secret assignments from projected text. This hardening does not change packet schema, collection fields, authority, readiness, release, or Verdict behavior.
+
+`GATE-IO-001` also preserves existing CLI arguments, JSON and human golden bytes, collection fields, and packet semantics. Its local file and report hardening does not establish Evidence authority, product readiness, a trusted release, or a Proofrail product Verdict.
 
 v0.2 remains a bounded local workflow. It is not product readiness, a trusted release, or an authoritative Proofrail product Verdict.
 
