@@ -40,6 +40,11 @@ export async function collectGitHubPullRequest({
       deletions: node?.deletions
     })
   });
+  if (!Number.isSafeInteger(metadata.changedFiles)
+      || metadata.changedFiles < 0
+      || metadata.changedFiles !== files.length) {
+    throw new Error("GitHub collection returned invalid changed files");
+  }
   const commits = await collectConnection({
     runGh,
     query: COMMITS_QUERY,

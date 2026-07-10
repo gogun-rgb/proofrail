@@ -529,6 +529,38 @@ test("pagination rejects missing and non-boolean hasNextPage values", async (t) 
   }
 });
 
+test("changed-file collection fails closed when metadata count is not collected", async () => {
+  const input = fixture();
+  const base = createGraphqlRunGh(input);
+  await assert.rejects(
+    collectGitHubPullRequest({
+      repository: input.repository,
+      pullRequestNumber: input.number,
+      runGh: async (args) => {
+        const { query } = parseGraphqlArgs(args);
+        if (query !== FILES_QUERY) return base(args);
+        return JSON.stringify({
+          data: {
+            repository: {
+              pullRequest: {
+                headRefOid: input.headOid,
+                files: {
+                  nodes: input.files.slice(0, 1),
+                  pageInfo: {
+                    hasNextPage: false,
+                    endCursor: null
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+    }),
+    /GitHub collection returned invalid changed files/
+  );
+});
+
 test("GraphQL error envelopes are rejected without exposing service text", async () => {
   const canary = "SYNTHETIC_SECRET_CANARY_DO_NOT_DISCLOSE";
   await assert.rejects(
