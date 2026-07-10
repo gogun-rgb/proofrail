@@ -6166,3 +6166,36 @@ Focused Evidence Gate coverage includes duplicate declaration rejection in each 
 The pnpm workspace preflight projected an unrelated empty `packages/evidence-gate` lockfile importer. That empty importer was removed before final exact-tree verification; this task retains no lockfile or dependency change.
 
 This task did not change the packet schema, packet version, public exports, queries, field allowlist, collection boundary, report renderer, CLI interface, CLI argument or I/O handling, filesystem behavior, authority, protocol, Trust, Evidence authority, Verdict, target, network, inference, readiness, or release behavior. For matching secret-shaped projected text, normalized snapshot content intentionally changes only by replacing the secret value with `[REDACTED]`. The redacted value propagates to packet and rendered report content only when that sanitized field is mapped into the packet; snapshot-only fields remain sanitized at the snapshot boundary. Ordinary non-secret text remains compatible. No target repository execution, live GitHub write, model provider, credential, API key, paid cloud, or paid SaaS was used. These Builder checks are provisional evidence and do not establish product readiness, a trusted release, independent acceptance, or an authoritative Proofrail product Verdict.
+
+## GATE-IO-001 Validation Evidence
+
+Date: 2026-07-11.
+
+Task identity: `GATE-IO-001`.
+
+Baseline `origin/main`: `036472540cae613881d8d37beadb66b279f574bc`.
+
+Task-contract first commit: `b255a1afee8b111a0322e1da1570d1999ff2af8b`.
+
+### Commands And Results
+
+The task-contract verification was executed from the repository root with the bundled local Node.js and pnpm runtime:
+
+```text
+pnpm governance:check                 exit 0
+pnpm governance:check-json            exit 0
+pnpm test:governance                  exit 0; 37 passed, 0 failed
+pnpm test:evidence-gate               exit 0; 131 total, 125 passed, 0 failed, 6 skipped
+pnpm evidence-gate:demo               exit 0; canonical packet JSON written to stdout
+pnpm test:static-evaluator            exit 0; 10 passed, 0 failed
+pnpm typecheck:phase1                 exit 0
+pnpm test:kernel                      exit 0; 475 passed, 0 failed
+pnpm verify                           exit 0
+git diff --check                      exit 0
+```
+
+The six skips were only Windows `symlinkSync` constructions denied with explicit OS code `EPERM`. Hardlink, exact, dot, parent, relative-to-absolute, and case-resolved alias tests ran and passed.
+
+Focused coverage exercised all 237 fixed unsafe report code points with exact uppercase BMP and supplementary escapes, safe printable Korean, accented, decomposed, and emoji text, exact 1 MiB static-input and 64 KiB declared-scope limits, fatal UTF-8 decoding, retained BOM malformed-JSON compatibility, fixed non-disclosing errors, stable same-file alias byte preservation, rejection before `gh`, and unchanged JSON and human golden bytes.
+
+This task adds no package, dependency, lockfile, public export, query, field allowlist, collection, CLI argument, authority, protocol, Trust, Evidence authority, Verdict, readiness, release, or product-semantic change. It does not claim atomic output, temporary-file replacement, fsync, or protection against adversarial concurrent filesystem changes. These Builder checks are provisional and do not establish product readiness, a trusted release, independent acceptance, or an authoritative Proofrail product Verdict.
