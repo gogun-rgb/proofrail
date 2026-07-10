@@ -344,6 +344,11 @@ test("pending reviews without submitted timestamps remain explicit metadata", as
     state: "PENDING",
     submittedAt: null,
     commitOid: null
+  }, {
+    authorLogin: "pending-reviewer",
+    state: "APPROVED",
+    submittedAt: "2026-01-03T00:00:00Z",
+    commitOid: input.headOid
   }];
   const snapshot = await collectGitHubPullRequest({
     repository: input.repository,
@@ -352,7 +357,7 @@ test("pending reviews without submitted timestamps remain explicit metadata", as
   });
   assert.equal(snapshot.reviews[0].submittedAt, null);
   const packet = packetFor(snapshot);
-  assert.match(packet.observedEvidence[packet.observedEvidence.length - 1].summary, /not submitted/);
+  assert.ok(packet.observedEvidence.some((item) => /not submitted/.test(item.summary)));
 });
 
 test("every files, commits, and reviews page remains bound to the collected head", async (t) => {

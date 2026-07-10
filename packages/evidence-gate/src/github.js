@@ -496,7 +496,7 @@ function latestReviews(reviews) {
   for (const review of reviews) {
     const key = review.authorLogin.toLowerCase();
     const previous = latest.get(key);
-    if (!previous || compare(previous.submittedAt, review.submittedAt) <= 0) {
+    if (!previous || compare(previous.submittedAt ?? "", review.submittedAt ?? "") <= 0) {
       latest.set(key, review);
     }
   }
