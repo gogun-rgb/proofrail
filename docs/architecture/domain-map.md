@@ -85,6 +85,6 @@ Structure: make Evidence Bundles and event lineage central, with all systems app
 
 Decision: Not adopted as the top-level structure. Bundle immutability is core, but it should not replace the kernel as verdict authority owner.
 
-## Current Invariant
+## Current Implemented Slice
 
-No production package layout is implemented in Phase 0. This document records direction later repository engineering tasks may encode and enforce through Machine Task Contracts and architecture checks. Those task contracts govern work on the Proofrail repository; they do not create product runtime authority.
+The current guard recognizes exactly six production packages. `contracts` and `kernel` own accepted schemas and deterministic authority; `trusted-config` is a bounded domain capability; `release-orchestrator` is application orchestration; and `evidence-gate` plus `static-evaluator` are delivery surfaces. This is a narrow implemented slice, not the complete conceptual architecture. Machine Task Contracts govern repository work and do not create product runtime authority.

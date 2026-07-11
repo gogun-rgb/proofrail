@@ -68,7 +68,7 @@ Phase 1 preserved the existing authoritative data-flow direction and canonical t
 
 Phase 1 production package scope was limited to the minimum layers required by the vertical slice: `packages/contracts` and `packages/kernel`.
 
-The current next product focus is Phase 2 AI PR Evidence Gate under `PRODUCT-FOCUS-001`: a narrowed, practical first product direction for turning an AI-authored pull request into an evidence packet that separates claims, observed evidence, missing evidence, scope, and review needs. This is an implementation roadmap focus, not product readiness, trusted release status, or an authoritative Proofrail product Verdict.
+The current product focus is Phase 2 AI PR Evidence Gate. Its implemented local slices separate claims, observed evidence, missing evidence, scope, and review needs; `PRODUCT-RELEASE-001` additionally binds separately supplied Trusted Configuration, Policy, and Evidence Contract bytes to one exact read-only GitHub snapshot and unchanged-kernel evaluation. This remains bounded product runtime, not product readiness, trusted release status, external acceptance, or a release decision.
 
 Proofrail still does not authorize or contain repository inspection, execution of target repository code, verification execution, language adapters, Python path traversal detection, CLI, API, MCP, web, GitHub integration, SARIF export, model provider integration, Inference Zone implementation, LLM judgment, probabilistic confidence in the authoritative path, complete Evidence Bundle protocol completion, or complete product Verdict runtime behavior.
 

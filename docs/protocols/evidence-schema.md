@@ -2,11 +2,11 @@
 
 ## Authority
 
-This document is authoritative for Phase 0 evidence protocol direction. It is not an implemented runtime schema.
+This document is authoritative for evidence protocol direction. The accepted kernel schemas remain authoritative for kernel input; the product Evidence Contract schema below is a bounded selection envelope.
 
 ## Current Phase
 
-No authoritative Proofrail product protocol schema is implemented in Phase 0. This document records the conceptual foundation for later schema work.
+`schemas/product/evidence-contract.schema.json` and the externally supplied contract define the exact requirements selected by `PRODUCT-RELEASE-001`. GitHub metadata becomes Observation input only after strict snapshot validation. The current collector has no base-SHA field, so the configured base SHA is not fabricated as an Observation and its requirement remains missing Evidence.
 
 ## Evidence Path
 

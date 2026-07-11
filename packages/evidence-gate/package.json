@@ -5,7 +5,8 @@
   "type": "module",
   "bin": {
     "evidence-gate": "./src/cli.mjs",
-    "evidence-gate-github": "./src/github-cli.mjs"
+    "evidence-gate-github": "./src/github-cli.mjs",
+    "proofrail-release": "./src/release-cli.mjs"
   },
   "exports": {
     ".": {
@@ -13,7 +14,13 @@
     },
     "./github": {
       "default": "./src/github.js"
+    },
+    "./release": {
+      "default": "./src/release-cli.mjs"
     }
   },
-  "sideEffects": false
+  "sideEffects": false,
+  "dependencies": {
+    "@proofrail/release-orchestrator": "workspace:*"
+  }
 }

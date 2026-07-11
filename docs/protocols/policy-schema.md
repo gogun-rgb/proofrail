@@ -6,7 +6,7 @@ This document is authoritative for Phase 0 policy protocol direction.
 
 ## Current Phase
 
-No policy runtime, policy evaluator, or authoritative product policy schema is implemented in Phase 0.
+The accepted kernel implements deterministic Rule evaluation. `schemas/product/policy.schema.json` defines the narrow `PRODUCT-RELEASE-001` Policy envelope and `@proofrail/trusted-config` validates its exact bytes, identity, version, references, required-check policy, and Rules before collection. The supplied Policy has no denial Rules; missing Observations therefore retain the kernel's `REVISION_REQUIRED` behavior.
 
 ## Policy as Code Direction
 

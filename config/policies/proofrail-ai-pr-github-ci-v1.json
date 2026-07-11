@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "proofrail.policy.v1",
+  "id": "policy.proofrail-ai-pr-github-ci",
+  "version": "1.0.0",
+  "authorizationEventId": "operator-event:product-release-001-authority-supply-v1",
+  "targetScopeId": "scope.github-pr.gogun-rgb-proofrail.27",
+  "evidenceContract": {
+    "id": "contract.proofrail-ai-pr-github-ci",
+    "version": "1.0.0"
+  },
+  "requiredCheckPolicy": {
+    "minimumReportedChecks": 1,
+    "requireAllReportedChecksSuccessful": true,
+    "acceptedCheckRunConclusions": [
+      "NEUTRAL",
+      "SKIPPED",
+      "SUCCESS"
+    ],
+    "acceptedStatusContextStates": [
+      "SUCCESS"
+    ]
+  },
+  "rules": []
+}

@@ -166,13 +166,21 @@ The following remain out of scope until separately authorized:
 
 ## Relationship to Phase 2 Boundary Definition
 
+## PRODUCT-RELEASE-001 exact release-candidate slice
+
+`PRODUCT-RELEASE-001` connects separately supplied, byte-identified Trusted Configuration, Policy, and Evidence Contract artifacts to the existing bounded GitHub collector and accepted kernel. The selected configuration fixes repository `gogun-rgb/proofrail`, pull request 27, base and head identities, observer, declared path scope, check policy, requirements, and a deny-by-default execution boundary. The live CLI accepts only `--trusted-config` and optional `--output`; it does not accept caller overrides for product authority.
+
+The offline fixture commits a sanitized frozen snapshot, canonical kernel input, and canonical Evidence Bundle. The unchanged collector does not query the base commit SHA, and its fields may not be expanded under this task. The orchestrator therefore refuses to invent a base-SHA Observation: the exact fixture deterministically returns `REVISION_REQUIRED` because that requirement remains missing. Live collection is environmental and is not claimed byte-reproducible.
+
+This slice performs no target checkout, repository content inspection, target command or verification execution, GitHub write, inference, or model call. Reported checks are Observations rather than Verification Receipts. The produced bundle is not itself a trusted release, external review report, or release-decider action.
+
 [phase-2-boundary-definition.md](phase-2-boundary-definition.md) remains a boundary-only record. This plan narrows the product focus within that boundary and records the first static-input MVP step.
 
 Neither this plan nor PR #14 is product readiness, trusted release status, or an authoritative Proofrail product Verdict.
 
 ## Future Implementation Preconditions
 
-Any implementation beyond the v0.1 static-input CLI and bounded v0.2 local importer requires a later valid Machine Task Contract that defines exact write scope, forbidden scope, acceptance criteria, required verification, stop conditions, and independent review.
+Any implementation beyond the v0.1 static-input CLI, bounded v0.2 local importer, and exact `PRODUCT-RELEASE-001` configured slice requires a later valid Machine Task Contract that defines exact write scope, forbidden scope, acceptance criteria, required verification, and stop conditions.
 
 Future implementation must not change canonical terminology, Verdict semantics, Evidence authority classes, Trust semantics, or product protocols unless a later valid Machine Task Contract explicitly authorizes that exact authority-bearing change.
 

@@ -14,6 +14,8 @@ Trusted configuration is authoritative only within its declared version, scope, 
 
 Machine Task Contracts for Proofrail repository work are engineering harness governance artifacts. They are not Trusted Configuration for product runtime evaluation and must not authorize Evidence Contract selection, Policy selection, Evidence creation, Evidence satisfaction, verification execution in a target repository, or Verdict authority.
 
+The `PRODUCT-RELEASE-001` runtime loads only an explicitly selected, externally supplied Trusted Configuration and its exact hash-bound Policy and Evidence Contract. The authorization event and issuer authority bundle remain external lineage; neither the MTC, Builder summary, fixture filename, nor GitHub approval metadata substitutes for product authority. Successful reported checks are Observations, not Verification Receipts, trusted release evidence, or external acceptance.
+
 ### Observed Facts
 
 Observed facts are deterministic measurements or discoveries produced by authorized inspection or verification mechanisms. They are not automatically sufficient as Evidence until matched to an Evidence Requirement.

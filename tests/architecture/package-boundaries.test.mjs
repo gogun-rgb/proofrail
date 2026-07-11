@@ -37,6 +37,9 @@ const PACKAGE_MANIFESTS = Object.freeze({
     version: "0.0.0-test",
     private: true,
     type: "module",
+    dependencies: Object.freeze({
+      "@proofrail/release-orchestrator": "workspace:*",
+    }),
   }),
   kernel: Object.freeze({
     name: "@proofrail/kernel",
@@ -45,12 +48,28 @@ const PACKAGE_MANIFESTS = Object.freeze({
     type: "module",
     dependencies: Object.freeze({ "@proofrail/contracts": "workspace:*" }),
   }),
+  "release-orchestrator": Object.freeze({
+    name: "@proofrail/release-orchestrator",
+    version: "0.0.0-test",
+    private: true,
+    type: "module",
+    dependencies: Object.freeze({
+      "@proofrail/kernel": "workspace:*",
+      "@proofrail/trusted-config": "workspace:*",
+    }),
+  }),
   "static-evaluator": Object.freeze({
     name: "@proofrail/static-evaluator",
     version: "0.0.0-test",
     private: true,
     type: "module",
     dependencies: Object.freeze({ "@proofrail/kernel": "workspace:*" }),
+  }),
+  "trusted-config": Object.freeze({
+    name: "@proofrail/trusted-config",
+    version: "0.0.0-test",
+    private: true,
+    type: "module",
   }),
 });
 
@@ -361,6 +380,32 @@ test("enforces the exact Node import surface and rejects all external bare impor
     rejected.map(({ target }) => target),
     ["node:fs", "lodash", "@proofrail/contracts-extra"],
   );
+});
+
+test("freezes the release authority, orchestration, and delivery edges", async (t) => {
+  const root = await createFixture(t);
+  await writeSource(root, "trusted-config", "allowed.js", [
+    'import "node:crypto";',
+    'import "node:fs/promises";',
+    'import "node:path";',
+    'import "node:util";',
+  ].join("\n"));
+  await writeSource(root, "release-orchestrator", "allowed.js", [
+    'import "@proofrail/kernel";',
+    'import "@proofrail/trusted-config";',
+  ].join("\n"));
+  await writeSource(root, "evidence-gate", "allowed-release.js", 'import "@proofrail/release-orchestrator";');
+  assert.deepEqual(await checkPackageBoundaries(root), []);
+
+  await writeSource(root, "evidence-gate", "forbidden-direct.js", [
+    'import "@proofrail/kernel";',
+    'import "@proofrail/trusted-config";',
+  ].join("\n"));
+  await writeSource(root, "release-orchestrator", "forbidden-delivery.js", 'import "@proofrail/evidence-gate";');
+  await writeSource(root, "release-orchestrator", "forbidden-node.js", 'import "node:path";');
+  const findings = await checkPackageBoundaries(root);
+  assert.equal(findings.filter(({ id }) => id === "ARCHCHK_EDGE_FORBIDDEN").length, 3);
+  assert(findings.some(({ id, target }) => id === "ARCHCHK_IMPORT_UNAPPROVED" && target === "node:path"));
 });
 
 test("redacts URL, absolute, and package-import-map targets without host-path disclosure", async (t) => {

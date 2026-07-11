@@ -1,0 +1,12 @@
+{
+  "name": "@proofrail/trusted-config",
+  "version": "0.1.0-release-candidate",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    }
+  },
+  "sideEffects": false
+}

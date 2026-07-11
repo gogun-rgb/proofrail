@@ -1,0 +1,114 @@
+{
+  "schemaVersion": "proofrail.evidence-contract.v1",
+  "id": "contract.proofrail-ai-pr-github-ci",
+  "version": "1.0.0",
+  "authorizationEventId": "operator-event:product-release-001-authority-supply-v1",
+  "targetScopeId": "scope.github-pr.gogun-rgb-proofrail.27",
+  "selectionProvenance": {
+    "source": "TRUSTED_CONFIGURATION",
+    "configurationId": "config.proofrail-release-v0.1",
+    "configurationVersion": "0.1.0"
+  },
+  "requirements": [
+    {
+      "id": "req.target.repository",
+      "targetScopeId": "scope.github-pr.gogun-rgb-proofrail.27",
+      "requiredObserver": {
+        "id": "observer.github-pr-bounded-collector",
+        "version": "1.0.0"
+      },
+      "factKey": "target.repository",
+      "expectedValue": "gogun-rgb/proofrail"
+    },
+    {
+      "id": "req.target.pull-request-number",
+      "targetScopeId": "scope.github-pr.gogun-rgb-proofrail.27",
+      "requiredObserver": {
+        "id": "observer.github-pr-bounded-collector",
+        "version": "1.0.0"
+      },
+      "factKey": "target.pullRequestNumber",
+      "expectedValue": 27
+    },
+    {
+      "id": "req.target.base-sha",
+      "targetScopeId": "scope.github-pr.gogun-rgb-proofrail.27",
+      "requiredObserver": {
+        "id": "observer.github-pr-bounded-collector",
+        "version": "1.0.0"
+      },
+      "factKey": "target.baseSha",
+      "expectedValue": "c5cbd6f1a7cf23e6bd6613115e5b1c8de93fa116"
+    },
+    {
+      "id": "req.target.head-sha",
+      "targetScopeId": "scope.github-pr.gogun-rgb-proofrail.27",
+      "requiredObserver": {
+        "id": "observer.github-pr-bounded-collector",
+        "version": "1.0.0"
+      },
+      "factKey": "target.headSha",
+      "expectedValue": "50798231675ba80bffe9f77fe0f37d8aea9484d3"
+    },
+    {
+      "id": "req.target.state",
+      "targetScopeId": "scope.github-pr.gogun-rgb-proofrail.27",
+      "requiredObserver": {
+        "id": "observer.github-pr-bounded-collector",
+        "version": "1.0.0"
+      },
+      "factKey": "target.state",
+      "expectedValue": "MERGED"
+    },
+    {
+      "id": "req.target.not-draft",
+      "targetScopeId": "scope.github-pr.gogun-rgb-proofrail.27",
+      "requiredObserver": {
+        "id": "observer.github-pr-bounded-collector",
+        "version": "1.0.0"
+      },
+      "factKey": "target.isDraft",
+      "expectedValue": false
+    },
+    {
+      "id": "req.collection.changed-files-complete",
+      "targetScopeId": "scope.github-pr.gogun-rgb-proofrail.27",
+      "requiredObserver": {
+        "id": "observer.github-pr-bounded-collector",
+        "version": "1.0.0"
+      },
+      "factKey": "collection.changedFilesComplete",
+      "expectedValue": true
+    },
+    {
+      "id": "req.scope.changed-paths-within-declared-write-scope",
+      "targetScopeId": "scope.github-pr.gogun-rgb-proofrail.27",
+      "requiredObserver": {
+        "id": "observer.github-pr-bounded-collector",
+        "version": "1.0.0"
+      },
+      "factKey": "scope.changedPathsWithinDeclaredWriteScope",
+      "expectedValue": true
+    },
+    {
+      "id": "req.checks.minimum-count-satisfied",
+      "targetScopeId": "scope.github-pr.gogun-rgb-proofrail.27",
+      "requiredObserver": {
+        "id": "observer.github-pr-bounded-collector",
+        "version": "1.0.0"
+      },
+      "factKey": "checks.minimumCountSatisfied",
+      "expectedValue": true
+    },
+    {
+      "id": "req.checks.all-reported-successful",
+      "targetScopeId": "scope.github-pr.gogun-rgb-proofrail.27",
+      "requiredObserver": {
+        "id": "observer.github-pr-bounded-collector",
+        "version": "1.0.0"
+      },
+      "factKey": "checks.allReportedSuccessful",
+      "expectedValue": true
+    }
+  ]
+}

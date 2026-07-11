@@ -12,6 +12,8 @@ Phase 0 does not implement verification execution. Only governance validation to
 
 Future Proofrail product verification execution must be explicitly authorized by Trusted Configuration and applicable deterministic Policy-defined execution boundaries.
 
+The current `PRODUCT-RELEASE-001` Trusted Configuration explicitly denies target checkout, repository content reads, target commands, verification commands, GitHub writes, and model execution. Its only live external operation is the existing bounded read-only GitHub GraphQL collection through an installed, already-authenticated local `gh`; credential values are never requested or emitted.
+
 Machine Task Contracts are repository engineering harness governance artifacts. They may authorize work on this Proofrail repository and its governance checks, but they MUST NOT authorize target repository execution, select an Evidence Contract, select Policy, satisfy an Evidence Requirement, create Evidence, or influence Verdict authority.
 
 Verification execution should record:

@@ -56,6 +56,6 @@ Application orchestration coordinates workflows. It may select configured polici
 
 Application orchestration MUST NOT redefine Verdict semantics or mark requirements satisfied without kernel-authorized deterministic evaluation.
 
-## Mechanical Enforcement Direction
+## Mechanical Enforcement
 
-Later phases SHOULD encode these rules as package-boundary checks. Phase 0 only documents them and prepares governance validation; it does not claim mechanical architecture enforcement.
+The bounded current-package guard freezes the exact six-package dependency graph: `kernel -> contracts`, `release-orchestrator -> kernel + trusted-config`, `evidence-gate -> release-orchestrator`, and `static-evaluator -> kernel`; `contracts` and `trusted-config` have no workspace imports. It also freezes each package's production Node import allowlist. This is partial drift enforcement, not general module resolution or complete semantic enforcement.
