@@ -2,21 +2,21 @@
   "schemaVersion": "1",
   "artifact": "architecture-check-preparation",
   "authority": "docs/architecture/dependency-rules.md",
-  "enforcementState": "prepared_not_enforced",
-  "productionPackageLayout": "absent",
-  "scopeBoundary": "This artifact prepares future architecture checks for repository governance only. It does not redefine authoritative dependency edges and does not enforce package imports in Phase 0.",
+  "enforcementState": "bounded_partial_current_package_enforcement",
+  "productionPackageLayout": "present_four_classified_packages",
+  "scopeBoundary": "The repository engineering checker freezes the exact current four-package classification, workspace dependency declarations and imports, approved Node import surface, relative package containment, and statically recognizable production source loads. It does not redefine authoritative dependency edges or claim complete semantic enforcement of docs/architecture/dependency-rules.md.",
   "futureCheckClasses": [
     {
       "id": "package_layer_direction",
-      "description": "Future package-boundary checks should verify that later layers depend only on allowed earlier layers."
+      "description": "The current bounded checker freezes the exact accepted workspace edges for the four present packages. Future package additions or edge changes require an explicit checker and Machine Task Contract update."
     },
     {
       "id": "kernel_forbidden_imports",
-      "description": "Future checks should reject kernel imports from delivery frameworks, model providers, network services, GitHub-specific code, MCP-specific code, orchestration, language parsers, and target build tools."
+      "description": "The current bounded checker freezes the kernel's exact workspace and Node import surface. Complete semantic detection of delivery frameworks, model providers, services, language parsers, and target build tools remains future work."
     },
     {
       "id": "contracts_no_runtime_imports",
-      "description": "Future checks should reject contracts importing kernel, orchestration, delivery, adapter, or inference implementations."
+      "description": "The current bounded checker rejects all workspace, Node, and external bare imports from contracts when they use the recognized static forms. Aliased or generated loading paths remain outside this check."
     },
     {
       "id": "inference_isolation",
@@ -27,5 +27,5 @@
       "description": "Future checks should detect delivery surfaces defining private Verdict, Evidence, Evidence Requirement, Policy, Rule, or Evidence Bundle concepts."
     }
   ],
-  "nonEnforcementStatement": "No production package layout currently exists, so FND-MECH-001 does not implement package import dependency enforcement."
+  "partialEnforcementStatement": "ARCH-BOUND-001 is a repository engineering drift guard over current packages/*/src imports and runtime manifest sections. It is not general module resolution, transitive dependency analysis, generated-code analysis, target-repository inspection, delivery-definition analysis, inference isolation proof, or complete architecture quality enforcement."
 }

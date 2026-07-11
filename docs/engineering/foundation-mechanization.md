@@ -15,10 +15,12 @@ pnpm governance:generate
 pnpm governance:check
 pnpm governance:check-json
 pnpm test:governance
+pnpm architecture:check
+pnpm test:architecture
 pnpm verify
 ```
 
-`pnpm verify` is repository and workspace governance verification. It runs the non-mutating governance validator, JSON-output parse check, governance tests, and a local no-argument `git diff --check` workspace-diff check.
+`pnpm verify` is repository and workspace engineering verification. It runs the non-mutating governance validator, JSON-output parse check, governance tests, the bounded current-package architecture check and its synthetic tests, the package test suites and Phase 1 type check, and a local no-argument `git diff --check` workspace-diff check.
 
 No-argument `git diff --check` checks the current worktree and index diff. It does not prove that committed pull request changes were checked against their reviewed base/head range.
 
@@ -67,6 +69,16 @@ The Foundation governance validator mechanically checks:
 - Stale generated governance projections.
 - Documentation Authority Index duplicate topics, malformed local references, and missing local targets.
 - AGENTS.md Authority Map routes that it declares.
+
+## Bounded Package Boundary Check
+
+`pnpm architecture:check` derives the repository root from the checked-in script location and accepts no alternate root argument. It inspects only immediate `packages/*` package manifests and recursively visits production `src` files with the exact lowercase extensions `.js`, `.mjs`, `.cjs`, `.jsx`, `.ts`, `.mts`, `.cts`, and `.tsx`, including declaration-file suffixes that end in those extensions. Package, `src`, nested directory, and source-file symbolic links are rejected rather than followed.
+
+The checker uses the existing TypeScript 5.8.3 AST to recognize import declarations, export-from declarations, literal dynamic imports, TypeScript import-equals and import types, attached JSDoc import types and import tags, and literal `require` or `require.resolve` calls. Computed targets fail closed. Diagnostics use standalone `ARCHCHK_` engineering IDs, repository-relative POSIX paths, and deterministic code-unit ordering; they are not Foundation `HARN_` findings or product reason codes.
+
+The enforced surface is intentionally frozen to the four current package directories and their exact manifest names. `@proofrail/contracts` has no workspace edge; `@proofrail/kernel` may depend only on `@proofrail/contracts`; `@proofrail/evidence-gate` has no workspace edge; and `@proofrail/static-evaluator` may depend only on `@proofrail/kernel`. Their current Node imports are exact allowlists and no external bare runtime import is approved. Runtime manifest checking covers `dependencies`, `optionalDependencies`, `peerDependencies`, `bundleDependencies`, and `bundledDependencies`, while `devDependencies` are outside the production boundary. Relative containment recognizes slash, backslash, and mixed separators on every host; absolute and URL targets use fixed diagnostic categories instead of exposing host paths.
+
+This is partial current-package drift enforcement, not complete semantic enforcement of the authoritative dependency rules. It does not perform general module resolution or import-target existence checks and does not inspect transitive `node_modules`, generated code, test or documentation trees, target repositories, `eval`, `new Function`, aliased `require`, computed-property `require` invocation, aliased `createRequire`, subprocess-loaded code, delivery definitions, or product runtime behavior. A future package or newly permitted edge requires an explicit Machine Task Contract and checker update.
 
 ## Harness Reason Codes
 
@@ -118,7 +130,7 @@ Run `pnpm governance:generate` to update generated projections. `pnpm governance
 
 CI must not run generation as a mutating repair step.
 
-`pnpm verify` runs the non-mutating governance check, JSON-output parse check, governance tests, and `git diff --check`.
+`pnpm verify` runs the non-mutating governance check, JSON-output parse check, governance and bounded architecture checks and tests, package tests, Phase 1 type checking, and `git diff --check`.
 
 ## Machine Task Contracts
 
@@ -140,7 +152,7 @@ The validator does not prove:
 - hidden AI authority absence
 - product architecture quality
 - Clean Agent Test success
-- dependency direction enforcement
+- complete semantic dependency-rule enforcement beyond the bounded current-package checker
 - product fixture corpus existence
 - Foundation Gate acceptance
 
