@@ -3,6 +3,10 @@ import { execFile } from "node:child_process";
 const TIMEOUT_MS = 30_000;
 const MAX_BUFFER = 4 * 1024 * 1024;
 const MAX_PAGES = 100;
+const MAX_PAGE_NODES = 100;
+const MAX_CONNECTION_NODES = MAX_PAGES * MAX_PAGE_NODES;
+const MAX_GRAPHQL_INT = 2_147_483_647;
+const MAX_GRAPHQL_INT_DIGITS = String(MAX_GRAPHQL_INT).length;
 
 const METADATA_QUERY = `query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){number title state isDraft changedFiles baseRefName headRefName headRefOid}}}`;
 const FILES_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){headRefOid files(first:100,after:$cursor){nodes{path additions deletions}pageInfo{hasNextPage endCursor}}}}}`;
@@ -16,7 +20,15 @@ export async function collectGitHubPullRequest({
   runGh = runGhCommand
 }) {
   const normalizedRepository = normalizeRepository(repository);
+  if (typeof pullRequestNumber === "string"
+      && /^\d+$/.test(pullRequestNumber)
+      && pullRequestNumber.length > MAX_GRAPHQL_INT_DIGITS) {
+    throw new TypeError("pull request number must be a positive integer");
+  }
   const number = positiveInteger(pullRequestNumber, "pull request number");
+  if (number > MAX_GRAPHQL_INT) {
+    throw new TypeError("pull request number must be a positive integer");
+  }
   const [owner, name] = normalizedRepository.split("/");
   const common = { owner, name, number };
   const metadataResult = await queryGraphql(
@@ -27,6 +39,15 @@ export async function collectGitHubPullRequest({
   );
   const metadata = requirePullRequest(metadataResult, "pull request metadata");
   const headOid = commitOid(metadata.headRefOid, "pull request metadata head");
+  if (metadata.number !== number) {
+    throw new Error("GitHub collection returned invalid pull request metadata");
+  }
+  if (!Number.isSafeInteger(metadata.changedFiles) || metadata.changedFiles < 0) {
+    throw new Error("GitHub collection returned invalid changed files");
+  }
+  if (metadata.changedFiles > MAX_CONNECTION_NODES) {
+    throw new Error("GitHub collection exceeded the changed files node limit");
+  }
 
   const files = await collectConnection({
     runGh,
@@ -40,9 +61,7 @@ export async function collectGitHubPullRequest({
       deletions: node?.deletions
     })
   });
-  if (!Number.isSafeInteger(metadata.changedFiles)
-      || metadata.changedFiles < 0
-      || metadata.changedFiles !== files.length) {
+  if (metadata.changedFiles !== files.length) {
     throw new Error("GitHub collection returned invalid changed files");
   }
   const commits = await collectConnection({
@@ -303,7 +322,9 @@ async function queryGraphql(runGh, query, variables, stage) {
   } catch {
     throw new Error(`GitHub collection returned invalid ${stage}`);
   }
-  if (!isObject(result) || (Array.isArray(result.errors) && result.errors.length > 0)) {
+  if (!isObject(result)
+      || (Object.hasOwn(result, "errors")
+        && (!Array.isArray(result.errors) || result.errors.length > 0))) {
     throw new Error(`GitHub collection returned invalid ${stage}`);
   }
   return result;
@@ -319,6 +340,7 @@ async function collectConnection({ runGh, query, variables, stage, select, map }
     const connection = select(result);
     if (!isObject(connection)
         || !Array.isArray(connection.nodes)
+        || connection.nodes.length > MAX_PAGE_NODES
         || !isObject(connection.pageInfo)
         || typeof connection.pageInfo.hasNextPage !== "boolean") {
       throw new Error(`GitHub collection returned invalid ${stage}`);
@@ -435,7 +457,7 @@ function normalizeSnapshot(value) {
 }
 
 function normalizeFiles(value) {
-  return requiredArray(value, "snapshot.files").map((file, index) => {
+  const files = requiredArray(value, "snapshot.files").map((file, index) => {
     if (!isObject(file)) {
       throw new TypeError(`snapshot.files[${index}] must be an object`);
     }
@@ -444,20 +466,28 @@ function normalizeFiles(value) {
       additions: nonNegativeInteger(file.additions, `snapshot.files[${index}].additions`),
       deletions: nonNegativeInteger(file.deletions, `snapshot.files[${index}].deletions`)
     });
-  }).sort((left, right) => compare(left.path, right.path)
+  });
+  if (new Set(files.map((file) => file.path)).size !== files.length) {
+    throw new TypeError("snapshot.files must use unique paths");
+  }
+  return files.sort((left, right) => compare(left.path, right.path)
     || left.additions - right.additions
     || left.deletions - right.deletions);
 }
 
 function normalizeCommits(value) {
-  return requiredArray(value, "snapshot.commits").map((commit, index) => {
+  const commits = requiredArray(value, "snapshot.commits").map((commit, index) => {
     if (!isObject(commit)) {
       throw new TypeError(`snapshot.commits[${index}] must be an object`);
     }
     return Object.freeze({
       oid: commitOid(commit.oid, `snapshot.commits[${index}].oid`)
     });
-  }).sort((left, right) => compare(left.oid, right.oid));
+  });
+  if (new Set(commits.map((commit) => commit.oid)).size !== commits.length) {
+    throw new TypeError("snapshot.commits must use unique commit identifiers");
+  }
+  return commits.sort((left, right) => compare(left.oid, right.oid));
 }
 
 function normalizeChecks(value) {

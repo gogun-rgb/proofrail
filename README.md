@@ -150,6 +150,8 @@ The packet field `boundaries.staticInputOnly: true` describes the deterministic 
 
 `GATE-IO-001` also preserves existing CLI arguments, JSON and human golden bytes, collection fields, and packet semantics. Its local file and report hardening does not establish Evidence authority, product readiness, a trusted release, or a Proofrail product Verdict.
 
+`GATE-GH-BOUND-001` confines the collector's pull-request number to the GitHub GraphQL `Int` range and fails closed on mismatched metadata identity, invalid or excessive changed-file counts, connection pages above 100 nodes, continuation beyond 100 pages, missing or repeated continuing cursors, malformed GraphQL error envelopes, and duplicate normalized file paths or commit identifiers. Each files, commits, reviews, and checks connection is therefore bounded to 10,000 collected nodes. The existing queries, fields, packet mapping, output formats, and valid golden bytes remain unchanged; reviews and checks are not deduplicated because the bounded query does not collect a stable identity for them.
+
 v0.2 remains a bounded local workflow. It is not product readiness, a trusted release, or an authoritative Proofrail product Verdict.
 
 See [docs/engineering/foundation-mechanization.md](docs/engineering/foundation-mechanization.md) for the current governance mechanics.

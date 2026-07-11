@@ -1,0 +1,146 @@
+{
+  "task": {
+    "id": "GATE-GH-BOUND-001",
+    "class": "ai_pr_evidence_gate_github_collection_boundary_hardening",
+    "objective": "Fail closed on out-of-range GitHub GraphQL Int pull-request numbers, inconsistent pull-request metadata identity, excessive or cyclic connection pagination, duplicate file and commit identities, and malformed GraphQL error envelopes without changing query, output, packet, authority, or product semantics."
+  },
+  "scope": {
+    "write": [
+      "governance/tasks/GATE-GH-BOUND-001.json",
+      "packages/evidence-gate/src/github.js",
+      "packages/evidence-gate/src/github-cli.mjs",
+      "tests/evidence-gate/github-importer.test.mjs",
+      "README.md",
+      "docs/plans/active/phase-2-ai-pr-evidence-gate.md",
+      "docs/engineering/validation-evidence.md"
+    ],
+    "read_only_authority": [
+      "AGENTS.md",
+      "docs/constitution/**",
+      "docs/architecture/**",
+      "docs/product/**",
+      "docs/protocols/**",
+      "docs/quality/**",
+      "docs/engineering/machine-task-contract.md",
+      "packages/contracts/**",
+      "packages/kernel/**",
+      "packages/evidence-gate/src/index.js",
+      "packages/evidence-gate/src/file-io.js",
+      "packages/evidence-gate/src/cli.mjs",
+      "packages/evidence-gate/src/report.js",
+      "tests/evidence-gate/evidence-packet.test.mjs",
+      "tests/evidence-gate/cli.test.mjs",
+      "tests/evidence-gate/report.test.mjs",
+      "examples/**",
+      "scripts/**",
+      ".github/**",
+      "package.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "tsconfig.json",
+      "governance/generated/**",
+      "existing governance/tasks/**"
+    ],
+    "forbidden": [
+      "all paths outside scope.write",
+      "modification of existing Machine Task Contracts",
+      "authority-bearing documentation or schemas",
+      "packages/contracts/** or packages/kernel/** changes",
+      "packet schema, packet version, public export, canonical terminology, Trust, Evidence authority, Verdict, protocol, or product-semantic changes",
+      "GitHub query string, field allowlist, first: 100 page size, public signature, mapping, projection, redaction, sort, or valid-output changes",
+      "CLI flag, format, filesystem, report, success stdout, success stderr, or trailing-newline changes",
+      "deduplication or new identity semantics for reviews or checks",
+      "atomic output, timeout, response-buffer, authentication, credential, HTTP transport, or concurrent-filesystem hardening",
+      "new dependencies, lockfile, workspace, package script, TypeScript, CI, generated governance, or external tool changes",
+      "target inspection or execution, verification execution, GitHub writes, inference, models, billing, paid cloud, or paid SaaS",
+      "product readiness, trusted release, independent acceptance, or authoritative Proofrail product Verdict claims"
+    ]
+  },
+  "authority": {
+    "read": [
+      "governance/tasks/GATE-GH-BOUND-001.json",
+      "governance/tasks/GATE-GH-001.json",
+      "governance/tasks/GATE-INTEGRITY-001.json",
+      "governance/tasks/GATE-IO-001.json",
+      "AGENTS.md",
+      "docs/engineering/machine-task-contract.md",
+      "docs/constitution/product-constitution.md",
+      "docs/constitution/terminology.md",
+      "docs/constitution/trust-model.md",
+      "docs/architecture/dependency-rules.md",
+      "docs/architecture/execution-boundary.md",
+      "docs/architecture/inference-boundary.md",
+      "docs/product/verdict-semantics.md",
+      "docs/quality/security.md",
+      "docs/quality/reliability.md",
+      "docs/plans/active/phase-2-ai-pr-evidence-gate.md"
+    ],
+    "mayChangeAuthority": false,
+    "mayChangeProductSemantics": false
+  },
+  "acceptance": {
+    "requirements": [
+      "Commit this contract alone as the first branch commit from the merged-main baseline cead93b8dd052efb4b9ebf3ab8b9454a011dd779.",
+      "Accept CLI and collector pull-request numbers only as base-10 integers from 1 through 2147483647 inclusive; accept the maximum and reject 2147483648 or arbitrarily long decimal input before invoking gh while preserving the existing exact CLI and collector error messages.",
+      "Require collected pull-request metadata number to equal the requested number and otherwise use the existing invalid pull request metadata error without disclosing supplied or remote values.",
+      "Require metadata.changedFiles to be a nonnegative integer no greater than 10000; values above 10000 fail before file pagination with exactly GitHub collection exceeded the changed files node limit.",
+      "Reject any connection page containing more than 100 nodes using the existing GitHub collection returned invalid stage-specific error.",
+      "Allow at most 100 pages and 10000 nodes per files, commits, reviews, and checks connection; allow a terminal one-hundredth page, but reject continuation after the one-hundredth page with the existing pagination-limit error and without making a one-hundred-and-first call.",
+      "Keep a valid collection within at most 401 gh calls: one pull-request metadata call and at most 100 calls for each of four connections.",
+      "Require every continuing cursor to be a nonempty string that has never appeared earlier in that connection; reject missing, immediate-repeat, or multi-page cursor cycles using the existing stage-specific invalid error.",
+      "After existing text normalization, require changed-file paths to be unique case-sensitively and fail duplicates with exactly snapshot.files must use unique paths without exposing supplied values; case-distinct Git paths remain valid.",
+      "After lowercase normalization, require commit OIDs to be unique and fail duplicates with exactly snapshot.commits must use unique commit identifiers without exposing supplied values.",
+      "When a GraphQL errors member is present, require it to be an array and require the array to be empty; reject non-array or nonempty values with the existing stage-specific invalid error and never expose remote error details.",
+      "Preserve exact GraphQL query strings, first: 100 page sizes, requested fields, public exports and function signatures, CLI flags and formats, local file and report boundaries, packet version, packet mapping, redaction, binary ordering, valid JSON and human golden bytes, and exactly one trailing newline.",
+      "Do not add identity or deduplication rules for reviews or checks because the existing query does not collect a stable identity for those nodes.",
+      "Add focused tests for GraphQL Int limits and pre-gh rejection; metadata identity and changedFiles boundaries; 100-versus-101 node pages across all four connections; terminal and continuing one-hundredth pages; total call bounds; missing and cyclic cursors; duplicate normalized file and commit identities; case-distinct paths; malformed GraphQL errors envelopes; non-disclosing diagnostics; exact queries; and existing golden compatibility.",
+      "Update README, the Phase 2 plan, and actual validation evidence concisely without claiming readiness, release, authority, independent acceptance, or a product Verdict."
+    ]
+  },
+  "verification": {
+    "commands": [
+      "pnpm governance:check",
+      "pnpm governance:check-json",
+      "pnpm test:governance",
+      "pnpm test:evidence-gate",
+      "pnpm evidence-gate:demo",
+      "pnpm typecheck:phase1",
+      "pnpm test:kernel",
+      "pnpm verify",
+      "git diff --check"
+    ],
+    "requiredInvariants": [
+      "Every changed path is writable and this contract is the first branch commit from the exact baseline.",
+      "CLI and collector reject out-of-range GraphQL Int values before gh while the maximum value remains accepted.",
+      "Metadata identity, connection page size, page count, node count, cursor history, and GraphQL error envelopes fail closed with fixed non-disclosing diagnostics.",
+      "Normalized file and commit identities are unambiguous while case-distinct Git paths remain valid.",
+      "Exact queries, valid output bytes, public signatures, packet behavior, existing file and report boundaries, redaction, sorting, and review/check behavior remain unchanged.",
+      "No dependency, lockfile, workspace, script, CI, generated-governance, authority, semantic, target, HTTP, credential, inference, readiness, release, atomic-output, timeout, or buffering change is introduced."
+    ]
+  },
+  "requiredArtifacts": [
+    "GATE-GH-BOUND-001 contract",
+    "bounded GitHub collector validation",
+    "pre-gh CLI GraphQL Int validation",
+    "connection pagination and cursor-cycle hardening",
+    "normalized file and commit identity validation",
+    "GraphQL error-envelope validation",
+    "focused GitHub importer regression tests",
+    "README and Phase 2 notes",
+    "actual validation evidence",
+    "independent exact-head review"
+  ],
+  "stopConditions": [
+    "A change outside the seven writable paths is required: BLOCKED_SCOPE",
+    "Authority, contracts, kernel, schema, version, protocol, Trust, Evidence authority, Verdict, or product semantics must change: BLOCKED_SCOPE",
+    "Exact queries, fields, public signatures, valid output bytes, packet mapping, redaction, sorting, CLI formats, or local file/report boundaries cannot remain unchanged: BLOCKED_SCOPE",
+    "Review or check identity must be invented, target content must be collected, or a new remote field is required: BLOCKED_SCOPE",
+    "Atomic output, timeout, response-buffer, authentication, credential, HTTP transport, or concurrent-filesystem hardening is required: BLOCKED_SCOPE",
+    "A dependency, lockfile, workspace, package script, CI, generated-governance, GitHub write, target execution, model, paid cloud, or paid SaaS change is required: BLOCKED_COST_RISK",
+    "Codex usage limit is reached: LIMIT_REACHED"
+  ],
+  "review": {
+    "expectation": "independent_review_required",
+    "reviewerMustNotRelyOnBuilderClaim": true
+  }
+}
