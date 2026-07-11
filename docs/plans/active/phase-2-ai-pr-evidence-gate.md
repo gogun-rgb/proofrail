@@ -133,7 +133,15 @@ This task does not change packet schema or version, reference semantics beyond e
 
 `GATE-IO-001` bounds the existing static and declared-scope local file inputs to opened regular files, actual-byte limits of 1 MiB and 64 KiB respectively, and fatal UTF-8 decoding. Under stable filesystem state, input/output aliases are rejected before output mutation, and declared-scope/output aliases are rejected before `gh` collection. The human renderer escapes a fixed explicit set of terminal-structure control code points while preserving printable non-format Unicode and existing golden bytes.
 
-This hardening does not change CLI arguments or formats, packet or collection content, authority, Evidence, readiness, trusted release, or Verdict behavior. Atomic output replacement and protection against adversarial concurrent filesystem changes remain outside this boundary.
+This hardening does not change CLI arguments or formats, packet or collection content, authority, Evidence, readiness, trusted release, or Verdict behavior. Staged output publication and protection against adversarial concurrent filesystem changes remain outside this boundary.
+
+## Staged Output Publication
+
+`GATE-OUTPUT-001` changes only the existing Evidence Gate file-output boundary. Both CLIs prepare the complete UTF-8 result in an exclusively created, short randomly named temporary regular file in the resolved publication target's actual directory. They apply the selected ordinary permission bits, close the temporary file, and then attempt one rename. Existing regular outputs remain replaceable with the same rendered bytes. A healthy output symbolic link remains while its canonical regular-file target is updated; publishing through a distinct hardlink path replaces only the selected directory entry, leaving sibling hardlink bytes unchanged. Broken symbolic links and nonregular targets fail with the existing fixed write error.
+
+The helper cleans up only its known temporary file on failure and cleanup is best effort, so cleanup failure may leave an orphan. Publication requires parent-directory create and rename permission. This stable-local-filesystem boundary does not establish general cross-platform atomicity, durability, crash or race safety, fsync or directory sync, recovery, rollback after a filesystem rename failure, attacker or TOCTOU protection, ACL or ownership preservation, extended attributes, special mode bits, inode preservation, or timestamp preservation. Windows mode `0o600` is not an owner-only ACL guarantee.
+
+This hardening preserves CLI arguments, stdout, fixed diagnostics, JSON and human bytes, input and declared-scope alias ordering, GitHub collection behavior, packet semantics, authority, Evidence, readiness, trusted release, and Verdict behavior.
 
 ## GitHub Collection Boundary Hardening
 

@@ -1,0 +1,155 @@
+{
+  "task": {
+    "id": "GATE-OUTPUT-001",
+    "class": "ai_pr_evidence_gate_staged_output_publication_hardening",
+    "objective": "Harden the existing Evidence Gate local output boundary with staged output publication so a complete UTF-8 result is prepared before one rename attempt, while preserving fixed diagnostics, successful bytes, CLI behavior, collection behavior, authority, and product semantics."
+  },
+  "scope": {
+    "write": [
+      "governance/tasks/GATE-OUTPUT-001.json",
+      "packages/evidence-gate/src/file-io.js",
+      "packages/evidence-gate/src/cli.mjs",
+      "packages/evidence-gate/src/github-cli.mjs",
+      "tests/evidence-gate/file-io.test.mjs",
+      "tests/evidence-gate/cli.test.mjs",
+      "tests/evidence-gate/github-importer.test.mjs",
+      "README.md",
+      "docs/plans/active/phase-2-ai-pr-evidence-gate.md",
+      "docs/engineering/validation-evidence.md"
+    ],
+    "read_only_authority": [
+      "AGENTS.md",
+      "docs/constitution/**",
+      "docs/architecture/**",
+      "docs/product/**",
+      "docs/protocols/**",
+      "docs/quality/**",
+      "docs/engineering/machine-task-contract.md",
+      "packages/contracts/**",
+      "packages/kernel/**",
+      "packages/evidence-gate/src/index.js",
+      "packages/evidence-gate/src/github.js",
+      "packages/evidence-gate/src/report.js",
+      "tests/evidence-gate/evidence-packet.test.mjs",
+      "tests/evidence-gate/report.test.mjs",
+      "examples/**",
+      "scripts/**",
+      ".github/**",
+      "package.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "tsconfig.json",
+      "governance/generated/**",
+      "existing governance/tasks/**"
+    ],
+    "forbidden": [
+      "all paths outside scope.write",
+      "modification of existing Machine Task Contracts",
+      "authority-bearing documentation or schemas",
+      "packages/contracts/** or packages/kernel/** changes",
+      "packet schema, packet version, public export, canonical terminology, Trust, Evidence authority, Verdict, protocol, or product-semantic changes",
+      "CLI argument, flag, format, stdout, stderr, success-byte, or trailing-newline changes",
+      "GitHub query, field allowlist, pagination, collection, mapping, redaction, sorting, network, gh invocation, timeout, response-buffer, authentication, or HTTP transport changes",
+      "input, declared-scope, report, packet, or content-normalization boundary changes",
+      "general cross-platform atomicity, durability, crash-safety, race-safety, fsync, directory-sync, recovery, adversarial filesystem, attacker, TOCTOU, ACL, ownership, extended-attribute, timestamp, or inode guarantees",
+      "new dependencies, lockfile, workspace, package script, TypeScript, CI, generated governance, or external tool changes",
+      "target inspection or execution, verification execution, GitHub writes, inference, models, credentials, billing, paid cloud, or paid SaaS",
+      "product readiness, trusted release, independent acceptance, or authoritative Proofrail product Verdict claims"
+    ]
+  },
+  "authority": {
+    "read": [
+      "governance/tasks/GATE-OUTPUT-001.json",
+      "governance/tasks/GATE-IO-001.json",
+      "governance/tasks/GATE-GH-001.json",
+      "governance/tasks/GATE-GH-BOUND-001.json",
+      "AGENTS.md",
+      "docs/engineering/machine-task-contract.md",
+      "docs/constitution/product-constitution.md",
+      "docs/constitution/terminology.md",
+      "docs/constitution/trust-model.md",
+      "docs/architecture/dependency-rules.md",
+      "docs/architecture/execution-boundary.md",
+      "docs/architecture/inference-boundary.md",
+      "docs/product/verdict-semantics.md",
+      "docs/quality/security.md",
+      "docs/quality/reliability.md",
+      "docs/plans/active/phase-2-ai-pr-evidence-gate.md"
+    ],
+    "mayChangeAuthority": false,
+    "mayChangeProductSemantics": false
+  },
+  "acceptance": {
+    "requirements": [
+      "Commit this contract alone as the first branch commit from the exact merged baseline cc3efb02fd8d57ad0bbbc7024f5c68a6fa39734e.",
+      "Add one package-internal writeStagedUtf8File(outputPath, renderedText, operations?) helper in packages/evidence-gate/src/file-io.js; the optional operations seam is only for internal tests and must not enter the package export map or public API.",
+      "Replace only direct output-file writes in both Evidence Gate CLIs with the shared staged-output helper while preserving stdout, rendering, alias checking, input reading, GitHub collection order, and the exact could not write the output file diagnostic.",
+      "Resolve the publication target before temporary-file creation: for a missing output, resolve its existing parent directory and target basename; for an existing regular file, use its canonical actual path; and for a healthy symbolic link to a regular file, publish to its canonical target so the symbolic link survives and its target is updated.",
+      "Reject an existing directory, FIFO, device, broken symbolic link, or other nonregular output, and reject a missing parent, using only the fixed could not write the output file diagnostic without disclosing paths, temporary names, supplied values, or operating-system details.",
+      "Create the temporary regular file in the same actual directory as the resolved publication target with a short fixed Proofrail prefix and a cryptographically random token that contains no user path or basename.",
+      "Attempt at most sixteen exclusive open operations using wx and mode 0o600; retry only EEXIST, fail on every other error, and never unlink an unknown collision file.",
+      "Write all complete UTF-8 bytes through the opened temporary handle, apply the selected ordinary permission bits before publication, close the handle, and then make exactly one rename publication attempt.",
+      "Before the rename attempt, do not write, truncate, unlink, chmod, or otherwise mutate the selected final target.",
+      "For an existing regular output or healthy symbolic-link target, preserve ordinary permission bits as honestly feasible; for a new output, use 0o666 masked by the current process umask. A Windows mode of 0o600 is not an owner-only ACL guarantee.",
+      "On every failure path, best-effort close and unlink only the known temporary file without masking the original failure; cleanup failure may leave an orphaned temporary file and must not be represented otherwise.",
+      "Preserve successful JSON and human bytes for new and existing regular outputs, including exactly one trailing newline and existing golden-byte compatibility.",
+      "Preserve a healthy output symbolic link while updating its regular-file target with the exact successful bytes.",
+      "For a distinct hardlink output, replace only the selected directory entry with the new published inode so a sibling hardlink retains its prior bytes; document this behavioral boundary without promising inode preservation.",
+      "Keep all existing input/output and declared-scope/output alias rejection before publication, preserve all involved bytes on rejection, and preserve declared-scope/output rejection before invoking gh.",
+      "Use a narrow injectable operations seam to test that a missing target remains absent until rename, an existing target retains its prior bytes until rename, the temporary file contains all rendered UTF-8 bytes, and exactly one rename is attempted.",
+      "Add focused helper tests for exclusive-open failure, partial-write failure, chmod failure, close failure, rename failure, EEXIST retry then success, sixteen-attempt exhaustion without deleting collision files, successful cleanup, failed cleanup, original-error preservation, possible orphan retention, same-actual-directory placement, and absence of the user basename from temporary names.",
+      "Add focused mode tests for new and existing outputs on POSIX systems; skip only assertions whose behavior is platform-specific and record the explicit platform condition.",
+      "Add CLI and GitHub CLI integration tests for new and existing JSON and human exact bytes; target preservation and no temporary file after invalid input, build, render, or collection failure; fixed failures for directory, missing parent, broken symbolic-link, and nonregular targets; healthy output symbolic-link preservation and target update; and the distinct-hardlink publication boundary.",
+      "On Windows, symbolic-link integration tests may skip only explicit operating-system errors that deny symbolic-link construction; all applicable regular-file, canonical-path, hardlink, failure-preservation, and helper tests must still run.",
+      "Limit claims to a stable local filesystem: a rename-failure test proves only that this code did not directly mutate the target before invoking rename and does not establish rollback behavior by Windows or any filesystem.",
+      "Document that staged rename requires parent-directory create and rename permission, and does not promise general cross-platform atomicity, durability, crash safety, race safety, fsync, directory sync, recovery, attacker resistance, TOCTOU protection, ACL or ownership preservation, extended attributes, special mode bits, inode preservation, or timestamp preservation.",
+      "Add concise README, Phase 2, and actual validation-evidence notes without readiness, release, authority, independent-acceptance, or product-Verdict claims."
+    ]
+  },
+  "verification": {
+    "commands": [
+      "pnpm governance:check",
+      "pnpm governance:check-json",
+      "pnpm test:governance",
+      "node --test tests/evidence-gate/file-io.test.mjs tests/evidence-gate/cli.test.mjs tests/evidence-gate/github-importer.test.mjs",
+      "pnpm test:evidence-gate",
+      "pnpm evidence-gate:demo",
+      "pnpm typecheck:phase1",
+      "pnpm test:kernel",
+      "pnpm verify",
+      "git diff --check"
+    ],
+    "requiredInvariants": [
+      "Every changed path is writable and this contract is the first branch commit from the exact baseline.",
+      "Both CLIs publish file output only through the shared package-internal staged-output helper and preserve fixed diagnostics, ordering, stdout, rendered bytes, arguments, collection, and packet behavior.",
+      "A complete same-actual-directory temporary regular file is written, mode-selected, and closed before exactly one rename attempt, without direct pre-rename final-target mutation by this code.",
+      "Temporary-name collision handling is bounded, never deletes unknown collision files, and cleanup preserves the original failure even when a known temporary file remains orphaned.",
+      "Existing regular output behavior, healthy symbolic-link behavior, distinct hardlink behavior, alias rejection, and fixed non-disclosing failure behavior match the explicit compatibility boundary.",
+      "No package export, dependency, lockfile, workspace, script, query, collection, packet, argument, format, report, authority, product-semantic, target, network, inference, readiness, release, or broad filesystem guarantee is introduced."
+    ]
+  },
+  "requiredArtifacts": [
+    "GATE-OUTPUT-001 contract",
+    "package-local staged output publication helper",
+    "static CLI staged output integration",
+    "GitHub CLI staged output integration",
+    "focused helper and CLI regression tests",
+    "README and Phase 2 notes",
+    "actual validation evidence",
+    "independent exact-head review"
+  ],
+  "stopConditions": [
+    "A change outside the ten writable paths is required: BLOCKED_SCOPE",
+    "Authority, contracts, kernel, schema, version, protocol, Trust, Evidence authority, Verdict, or product semantics must change: BLOCKED_SCOPE",
+    "CLI arguments, formats, stdout, fixed diagnostics, success bytes, report behavior, packet behavior, GitHub query, mapping, collection, or invocation order cannot remain unchanged: BLOCKED_SCOPE",
+    "A public API, dependency, lockfile, workspace, package script, CI, generated-governance, timeout, response-buffer, authentication, HTTP transport, or external-tool change is required: BLOCKED_SCOPE",
+    "General cross-platform atomicity, durability, crash safety, race safety, fsync, directory sync, recovery, attacker resistance, TOCTOU protection, ACL, ownership, extended-attribute, timestamp, or inode guarantees are required: BLOCKED_SCOPE",
+    "A GitHub write, target inspection or execution, verification execution, credential, model, inference, paid cloud, or paid SaaS change is required: BLOCKED_COST_RISK",
+    "Stable local filesystem staged publication cannot be implemented with fixed diagnostics and the explicit compatibility boundary: BLOCKED_SCOPE",
+    "Codex usage limit is reached: LIMIT_REACHED"
+  ],
+  "review": {
+    "expectation": "independent_review_required",
+    "reviewerMustNotRelyOnBuilderClaim": true
+  }
+}

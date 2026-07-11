@@ -91,7 +91,11 @@ For a deterministic human-readable view of the same packet, select the optional 
 
 Omitting --format (or selecting --format json) preserves the existing byte-identical JSON output. Human mode uses fixed sections, one trailing newline, and escapes control/ANSI/newline and fixed Unicode format characters in untrusted packet text while preserving printable non-format Unicode.
 
-`GATE-IO-001` limits the static input to an opened regular file of at most 1 MiB and the optional declared-scope input to an opened regular file of at most 64 KiB. Both inputs require valid UTF-8. Under stable filesystem state, an input or declared-scope file that aliases its selected output is rejected before output mutation; declared-scope aliases are rejected before `gh` collection. This boundary does not add atomic-output or concurrent-filesystem guarantees.
+`GATE-IO-001` limits the static input to an opened regular file of at most 1 MiB and the optional declared-scope input to an opened regular file of at most 64 KiB. Both inputs require valid UTF-8. Under stable filesystem state, an input or declared-scope file that aliases its selected output is rejected before output mutation; declared-scope aliases are rejected before `gh` collection.
+
+`GATE-OUTPUT-001` uses staged output publication for both Evidence Gate CLIs. It exclusively creates a short randomly named temporary regular file in the resolved publication target's actual directory, writes the complete UTF-8 result, applies the selected ordinary permission bits, closes the file, and then makes one rename attempt. A healthy output symbolic link remains in place while its canonical regular-file target is updated. Publishing through one selected hardlink path replaces that directory entry, so sibling hardlinks retain their previous bytes. Broken symbolic links and nonregular output targets are rejected.
+
+Staged publication requires create and rename permission in the target directory. Cleanup is best effort and a failed cleanup may leave a Proofrail temporary file. This boundary does not promise general cross-platform atomicity, durability, crash or race safety, fsync or directory sync, recovery, attacker or TOCTOU protection, ACL or ownership preservation, extended attributes, special mode bits, inode identity, or timestamps. On Windows, temporary mode `0o600` is not an owner-only ACL guarantee.
 
 See [the example input](examples/evidence-gate/input.json) and [its expected output](examples/evidence-gate/expected-output.json) for the complete input and packet shapes. Run the focused tests with:
 
