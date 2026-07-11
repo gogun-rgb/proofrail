@@ -120,8 +120,9 @@ function taskContract() {
     requiredArtifacts: ["synthetic artifact"],
     stopConditions: ["synthetic stop condition"],
     review: {
-      expectation: "independent_review_required",
+      expectation: "evidence_based_self_review_required",
       reviewerMustNotRelyOnBuilderClaim: true,
+      independentHumanRequired: false,
     },
   };
 }
@@ -555,6 +556,25 @@ test("detects invalid Machine Task Contract reviewerMustNotRelyOnBuilderClaim", 
     task.review.reviewerMustNotRelyOnBuilderClaim = false;
   });
   assert.ok(codes(validateFoundation({ root })).includes("HARN_MTC_REVIEWER_CLAIM_INVALID"));
+});
+
+test("accepts legacy Machine Task Contract independent review expectation", (t) => {
+  const root = createSyntheticRepo(t);
+  mutateJson(root, "governance/tasks/SYN-001.json", (task) => {
+    task.review.expectation = "independent_review_required";
+    delete task.review.independentHumanRequired;
+  });
+  assert.equal(validateFoundation({ root }).status, "VALID");
+});
+
+test("rejects Machine Task Contract requiring an independent human", (t) => {
+  const root = createSyntheticRepo(t);
+  mutateJson(root, "governance/tasks/SYN-001.json", (task) => {
+    task.review.independentHumanRequired = true;
+  });
+  const result = validateFoundation({ root });
+  assert.equal(result.status, "INVALID");
+  assert.ok(codes(result).includes("HARN_MTC_INSTANCE_INVALID"));
 });
 
 test("requires Machine Task Contract authority mayChangeAuthority", (t) => {

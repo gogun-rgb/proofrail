@@ -72,13 +72,15 @@ export function validateMachineTaskContractSchemaConstants(schema, schemaRepoPat
 
   if (
     !Array.isArray(expectationValues) ||
-    requiredExpectations.some((expectation) => !expectationValues.includes(expectation))
+    expectationValues.length !== requiredExpectations.length ||
+    !requiredExpectations.every((expectation, index) => expectationValues[index] === expectation) ||
+    reviewProperties.expectation?.default !== requiredExpectations[0]
   ) {
     collector.add(
       "HARN_MTC_SCHEMA_CONSTANT_INVALID",
       schemaRepoPath,
-      "Machine Task Contract schema must allow evidence_based_self_review_required and the legacy independent_review_required value.",
-      "Restore both allowed review.expectation values.",
+      "Machine Task Contract schema must allow exactly evidence_based_self_review_required and the legacy independent_review_required value, with evidence-based self-review as the default.",
+      "Restore the exact review.expectation enum and default.",
     );
   }
 
