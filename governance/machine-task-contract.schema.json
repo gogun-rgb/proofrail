@@ -69,8 +69,11 @@
       "additionalProperties": false,
       "required": ["expectation", "reviewerMustNotRelyOnBuilderClaim"],
       "properties": {
-        "expectation": { "const": "independent_review_required" },
-        "reviewerMustNotRelyOnBuilderClaim": { "const": true }
+        "expectation": {
+          "enum": ["evidence_based_self_review_required", "independent_review_required"]
+        },
+        "reviewerMustNotRelyOnBuilderClaim": { "const": true },
+        "independentHumanRequired": { "const": false }
       }
     }
   }

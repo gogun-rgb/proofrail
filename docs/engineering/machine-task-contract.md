@@ -12,13 +12,25 @@ It is an engineering harness governance artifact for work on the Proofrail repos
 
 ## Autonomous Execution Default
 
-A valid Machine Task Contract is a boundary and acceptance artifact, not an implementation script. It defines trust, scope, authority, acceptance, verification, required artifacts, stop conditions, and independent review expectations for repository engineering work.
+A valid Machine Task Contract is a boundary and acceptance artifact, not an implementation script. It defines trust, scope, authority, acceptance, verification, required artifacts, stop conditions, and review expectations for repository engineering work.
 
 Within granted authority, agents SHOULD autonomously choose work order, writable files within `scope.write`, implementation strategy, test design, verification sequencing, failure diagnosis, retry, rollback of task-local reversible changes, and remediation. Agents SHOULD NOT request human approval for ordinary reversible implementation choices that the contract already authorizes.
 
-When Builder findings or independent review findings require remediation, agents SHOULD prefer autonomous convergence loops if an applicable convergence contract grants the needed scope and authority. Human escalation is reserved for product-direction ambiguity, irreversible external actions, material cost or resource commitment, security exceptions, authority conflicts, or repeated autonomous-loop deadlock.
+When Builder findings or review findings require remediation, agents SHOULD prefer autonomous convergence loops if an applicable convergence contract grants the needed scope and authority. Human escalation is reserved for product-direction ambiguity, irreversible external actions, material cost or resource commitment, security exceptions, authority conflicts, or repeated autonomous-loop deadlock.
 
-Higher risk SHOULD normally increase evidence requirements and independent review depth before reducing agent autonomy. Autonomous execution does not weaken authority-change preflight, self-grant prevention, independent review requirements, or product runtime authority separation. Agent action is not an approved change, an approved repository change is not a trusted release, and autonomous remediation does not grant release or acceptance authority.
+Higher risk SHOULD normally increase evidence requirements and self-review rigor before reducing agent autonomy. External independent review is an optional additional risk control unless the user's latest explicit instruction for the task requires a named independent human reviewer. Autonomous execution does not weaken authority-change preflight, self-grant prevention, evidence-based review requirements, or product runtime authority separation. Agent action is not an approved change, an approved repository change is not a trusted release, and autonomous remediation does not grant release or acceptance authority.
+
+## Repository Engineering Review Default
+
+The default review expectation is `evidence_based_self_review_required`.
+
+The same agent, operator, GitHub account, publisher, and release decision-maker MAY perform the review when it is a distinct second pass grounded in the retained diff, acceptance requirements, verification output, and recorded evidence rather than Builder claims or model confidence.
+
+No separate human, organization, account, or stable reviewer ID is required by the Machine Task Contract format. A contract MUST NOT require another person merely to establish reviewer identity independence.
+
+The legacy value `independent_review_required` remains valid for existing committed contracts. Unless a task's latest external instruction explicitly requires a different human reviewer, this legacy value means a fresh, assumption-resistant review pass and does not require a second person or second account.
+
+A compliant review MUST inspect the exact retained changes, compare them with `scope` and `acceptance`, run or inspect the specified verification, record meaningful results, check for weakened tests or hidden scope expansion, and avoid relying solely on Builder summaries.
 
 ## Authority-Change Use
 
@@ -54,7 +66,7 @@ An agent MUST NOT self-author authority by turning a plain natural-language requ
 Authority-changing work may proceed only when one of these is true:
 
 - an applicable committed Machine Task Contract already identifies the task and grants the required authority
-- external task input explicitly supplies a complete Machine Task Contract, including task identity, scope, authority, acceptance, verification, stop conditions, and independent review boundary
+- external task input explicitly supplies a complete Machine Task Contract, including task identity, scope, authority, acceptance, verification, stop conditions, and review boundary
 
 When external task input explicitly supplies a complete Machine Task Contract, the Builder may materialize that supplied contract as the first task artifact before other authorized edits. Materializing externally supplied authority is not the same as inventing or widening authority.
 
@@ -110,8 +122,9 @@ stopConditions:
   - authoritative schema change required outside scope
 
 review:
-  expectation: independent_review_required
+  expectation: evidence_based_self_review_required
   reviewerMustNotRelyOnBuilderClaim: true
+  independentHumanRequired: false
 ```
 
 ## Field Semantics
@@ -132,7 +145,10 @@ review:
 | `verification.requiredInvariants` | Verification invariants expected in addition to command execution. |
 | `requiredArtifacts` | Required output artifact categories. |
 | `stopConditions` | Conditions that require stopping instead of expanding scope. |
-| `review` | Independent review expectations. |
+| `review` | Evidence-based repository engineering review expectations. Self-review is the default; external independent review is optional unless explicitly required by the user's latest task instruction. |
+| `review.expectation` | Use `evidence_based_self_review_required` for new contracts. The legacy `independent_review_required` value remains compatible and requires a separate review pass, not a separate person. |
+| `review.reviewerMustNotRelyOnBuilderClaim` | Requires the review to rely on retained changes and evidence rather than Builder assertions alone. |
+| `review.independentHumanRequired` | Must be `false` when present. The contract format does not require a second human or account. |
 
 ## Rules
 
@@ -146,6 +162,12 @@ A task contract MUST define stop conditions.
 
 A task contract SHOULD separate acceptance requirements from verification commands.
 
+A task contract MUST require an evidence-based review pass and MUST NOT treat the Builder's claim as sufficient evidence.
+
+A task contract MUST NOT require a separate human, organization, GitHub account, or stable reviewer identity. The same operator may build, review, publish, and make the release decision.
+
+An agent MUST NOT report `BLOCKED` solely because no independent reviewer identity is available.
+
 A task contract MUST NOT authorize an agent to assign its own authoritative Verdict.
 
 A Machine Task Contract MUST NOT authorize Proofrail product target repository execution, Evidence Contract selection, Policy selection, Evidence Requirement satisfaction, Evidence creation, or Verdict authority.
@@ -154,4 +176,4 @@ Future Proofrail product verification execution authority must derive from Trust
 
 Evidence Contract authority and selection must derive from Trusted Configuration or deterministic Policy selection.
 
-The Phase 0 schema MUST enforce `review.expectation` as exactly `independent_review_required` and `review.reviewerMustNotRelyOnBuilderClaim` as exactly `true`.
+The Phase 0 schema MUST allow `review.expectation` values `evidence_based_self_review_required` and legacy `independent_review_required`, MUST enforce `review.reviewerMustNotRelyOnBuilderClaim` as exactly `true`, and MUST enforce `review.independentHumanRequired` as exactly `false` when present.
