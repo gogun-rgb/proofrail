@@ -88,7 +88,7 @@ Do not self-grant authority. A clean agent MUST NOT take a plain natural-languag
 Authority-changing work may proceed only when one of these is true:
 
 - an applicable committed Machine Task Contract already identifies the task and grants the required authority
-- external task input explicitly supplies a complete Machine Task Contract, including task identity, scope, authority, acceptance, verification, stop conditions, and independent review boundary
+- external task input explicitly supplies a complete Machine Task Contract, including task identity, scope, authority, acceptance, verification, stop conditions, and review boundary
 
 When external task input explicitly supplies a complete Machine Task Contract, the Builder may materialize that supplied contract as the first task artifact before other authorized edits. Materializing externally supplied authority is not the same as inventing or widening authority.
 
@@ -119,6 +119,24 @@ An agent MUST NOT widen `scope.write`, remove read-only authority, weaken forbid
 
 These mechanics are repository engineering harness controls. They are not Proofrail product runtime authority.
 
+## Repository Engineering Review
+
+The default repository engineering review expectation is `evidence_based_self_review_required`. The same agent, operator, or GitHub account MAY implement, review, publish, and make a repository release decision. A separate person, organization, GitHub account, stable reviewer ID, or publisher identity is not required, and its absence MUST NOT by itself make repository work, approval, publication, or a release decision `BLOCKED`.
+
+Evidence-based self-review MUST be a fresh pass separated from implementation assumptions. The reviewer MUST:
+
+1. review the final retained diff from the beginning
+2. compare the retained change with task scope and acceptance requirements
+3. execute required tests and verification commands or directly inspect their results
+4. check for weakened tests, validation bypass, and hidden scope expansion
+5. record verification results and remaining limitations
+
+Builder summaries, model confidence, and completion claims are not approval evidence. `review.reviewerMustNotRelyOnBuilderClaim` remains `true`.
+
+`independent_review_required` remains a valid legacy Machine Task Contract label. It means the same fresh second-pass review separated from implementation assumptions; it does not require a different human. External human review is required only when the user explicitly requires it for that task.
+
+This section governs repository engineering review only. It does not grant Proofrail product reliability, Trusted Configuration, Policy, Evidence Contract, trusted-release, or authoritative Proofrail Verdict status.
+
 ## Verification Expectations
 
 Run:
@@ -129,7 +147,7 @@ pnpm verify
 
 The root validator remains available as `node scripts/validate-foundation.mjs`, with machine-readable output via `node scripts/validate-foundation.mjs --format json`.
 
-Record meaningful evidence in [docs/engineering/validation-evidence.md](docs/engineering/validation-evidence.md). Builder self-checks are provisional only.
+Record meaningful evidence in [docs/engineering/validation-evidence.md](docs/engineering/validation-evidence.md). A Builder claim alone is provisional; approval requires the separate evidence-based review pass above.
 
 ## Stop Conditions
 

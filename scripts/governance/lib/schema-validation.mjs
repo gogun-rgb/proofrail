@@ -67,12 +67,19 @@ export function validateJsonAgainstSchema({ schema, data, dataPath, collector, c
 
 export function validateMachineTaskContractSchemaConstants(schema, schemaRepoPath, collector) {
   const reviewProperties = schema?.properties?.review?.properties ?? {};
-  if (reviewProperties.expectation?.const !== "independent_review_required") {
+  const expectedReviewExpectations = ["evidence_based_self_review_required", "independent_review_required"];
+  const configuredReviewExpectations = reviewProperties.expectation?.enum;
+  if (
+    !Array.isArray(configuredReviewExpectations) ||
+    configuredReviewExpectations.length !== expectedReviewExpectations.length ||
+    !expectedReviewExpectations.every((value, index) => configuredReviewExpectations[index] === value) ||
+    reviewProperties.expectation?.default !== expectedReviewExpectations[0]
+  ) {
     collector.add(
       "HARN_MTC_SCHEMA_CONSTANT_INVALID",
       schemaRepoPath,
-      "Machine Task Contract schema must enforce review.expectation as independent_review_required.",
-      "Restore the const value for review.expectation.",
+      "Machine Task Contract schema must allow exactly the evidence-based self-review default and the legacy independent-review label.",
+      "Restore the exact review.expectation enum and the evidence-based self-review default.",
     );
   }
 
@@ -82,6 +89,15 @@ export function validateMachineTaskContractSchemaConstants(schema, schemaRepoPat
       schemaRepoPath,
       "Machine Task Contract schema must enforce review.reviewerMustNotRelyOnBuilderClaim as true.",
       "Restore the const value for review.reviewerMustNotRelyOnBuilderClaim.",
+    );
+  }
+
+  if (reviewProperties.independentHumanRequired?.const !== false) {
+    collector.add(
+      "HARN_MTC_SCHEMA_CONSTANT_INVALID",
+      schemaRepoPath,
+      "Machine Task Contract schema must allow review.independentHumanRequired only as false when present.",
+      "Restore false as the const value for review.independentHumanRequired without making the property required.",
     );
   }
 }
