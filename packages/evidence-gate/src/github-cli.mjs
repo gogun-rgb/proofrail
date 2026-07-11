@@ -13,6 +13,7 @@ import {
 } from "./github.js";
 
 const MAX_SCOPE_FILE_BYTES = 64 * 1024;
+const MAX_GRAPHQL_INT = 2_147_483_647;
 const DECLARED_SCOPE_FILE_ERRORS = {
   READ_FAILED: "could not read the declared scope file",
   NOT_REGULAR: "declared scope file must be a regular file",
@@ -53,7 +54,8 @@ export function parseGitHubArguments(args) {
   }
   if (options.pr === undefined
       || !/^[1-9]\d*$/.test(options.pr)
-      || !Number.isSafeInteger(Number(options.pr))) {
+      || !Number.isSafeInteger(Number(options.pr))
+      || Number(options.pr) > MAX_GRAPHQL_INT) {
     throw new TypeError("--pr must be a positive integer");
   }
   if (options.format !== undefined && !["json", "human"].includes(options.format)) {

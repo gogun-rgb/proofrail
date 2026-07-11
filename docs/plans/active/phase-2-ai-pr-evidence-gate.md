@@ -135,6 +135,12 @@ This task does not change packet schema or version, reference semantics beyond e
 
 This hardening does not change CLI arguments or formats, packet or collection content, authority, Evidence, readiness, trusted release, or Verdict behavior. Atomic output replacement and protection against adversarial concurrent filesystem changes remain outside this boundary.
 
+## GitHub Collection Boundary Hardening
+
+`GATE-GH-BOUND-001` bounds the existing local GitHub collector without expanding its query. CLI and collector pull-request numbers are limited to the GraphQL `Int` range. The collector validates the returned pull-request identity and changed-file count before file pagination, permits at most 100 nodes per page and 100 pages per files, commits, reviews, or checks connection, rejects missing or repeated continuing cursors, requires a well-formed empty GraphQL errors array when that member is present, and rejects duplicate file paths or commit identifiers after existing normalization.
+
+The four connections can collect no more than 10,000 nodes each and make no more than 400 connection calls plus the metadata call. A terminal one-hundredth page remains valid; a continuing one-hundredth page fails without a one-hundred-and-first request. Existing query strings, fields, packet mapping, redaction, ordering, CLI and report behavior, and valid output bytes remain unchanged. Reviews and checks retain duplicate metadata because the current query does not provide a stable identity for either node type. These collection controls do not establish Evidence authority, product readiness, a trusted release, independent acceptance, or a Proofrail product Verdict.
+
 ## De-Scoped Until Later Authorization
 
 The following remain out of scope until separately authorized:

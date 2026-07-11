@@ -19,13 +19,15 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 import { buildEvidencePacket, canonicalJson } from "../../packages/evidence-gate/src/index.js";
-import {
+import * as githubModule from "../../packages/evidence-gate/src/github.js";
+import { parseGitHubArguments } from "../../packages/evidence-gate/src/github-cli.mjs";
+import { renderHumanReport } from "../../packages/evidence-gate/src/report.js";
+
+const {
   collectGitHubPullRequest,
   mapGitHubPullRequestToEvidenceInput,
   normalizeGitHubSnapshot
-} from "../../packages/evidence-gate/src/github.js";
-import { parseGitHubArguments } from "../../packages/evidence-gate/src/github-cli.mjs";
-import { renderHumanReport } from "../../packages/evidence-gate/src/report.js";
+} = githubModule;
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const GITHUB_CLI = path.join(ROOT, "packages/evidence-gate/src/github-cli.mjs");
@@ -35,6 +37,7 @@ const DECLARED_SCOPE_FIXTURE_PATH = path.join(ROOT, "examples/evidence-gate/gith
 const STATIC_INPUT = path.join(ROOT, "examples/evidence-gate/input.json");
 const STATIC_EXPECTED = path.join(ROOT, "examples/evidence-gate/expected-output.json");
 const MAX_SCOPE_FILE_BYTES = 64 * 1024;
+const MAX_GRAPHQL_INT = 2_147_483_647;
 const METADATA_QUERY = `query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){number title state isDraft changedFiles baseRefName headRefName headRefOid}}}`;
 const FILES_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){headRefOid files(first:100,after:$cursor){nodes{path additions deletions}pageInfo{hasNextPage endCursor}}}}}`;
 const COMMITS_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){headRefOid commits(first:100,after:$cursor){nodes{commit{oid}}pageInfo{hasNextPage endCursor}}}}}`;
@@ -182,6 +185,69 @@ function graphqlEnvelope(query, variables, snapshot) {
     } } } };
   }
   throw new Error("unexpected query");
+}
+
+function connectionFromEnvelope(result, query) {
+  if (query === FILES_QUERY) return result.data.repository.pullRequest.files;
+  if (query === COMMITS_QUERY) return result.data.repository.pullRequest.commits;
+  if (query === REVIEWS_QUERY) return result.data.repository.pullRequest.reviews;
+  if (query === CHECKS_QUERY) return result.data.repository.object.statusCheckRollup.contexts;
+  throw new Error("unexpected connection query");
+}
+
+function indexedConnectionNode(query, index, snapshot) {
+  const suffix = String(index + 1).padStart(5, "0");
+  if (query === FILES_QUERY) {
+    return { path: `bounded/path-${suffix}.js`, additions: index, deletions: 0 };
+  }
+  if (query === COMMITS_QUERY) {
+    return { commit: { oid: (index + 1).toString(16).padStart(40, "0") } };
+  }
+  if (query === REVIEWS_QUERY) {
+    return {
+      state: "APPROVED",
+      submittedAt: "2026-01-01T00:00:00Z",
+      author: { login: `reviewer-${suffix}` },
+      commit: { oid: snapshot.headOid }
+    };
+  }
+  if (query === CHECKS_QUERY) {
+    return {
+      __typename: "CheckRun",
+      name: `check-${suffix}`,
+      status: "COMPLETED",
+      conclusion: "SUCCESS"
+    };
+  }
+  throw new Error("unexpected connection query");
+}
+
+function connectionEnvelope(query, snapshot, nodes, pageInfo) {
+  if (query === FILES_QUERY) {
+    return { data: { repository: { pullRequest: {
+      headRefOid: snapshot.headOid,
+      files: { nodes, pageInfo }
+    } } } };
+  }
+  if (query === COMMITS_QUERY) {
+    return { data: { repository: { pullRequest: {
+      headRefOid: snapshot.headOid,
+      commits: { nodes, pageInfo }
+    } } } };
+  }
+  if (query === REVIEWS_QUERY) {
+    return { data: { repository: { pullRequest: {
+      headRefOid: snapshot.headOid,
+      reviews: { nodes, pageInfo }
+    } } } };
+  }
+  if (query === CHECKS_QUERY) {
+    return { data: { repository: { object: {
+      oid: snapshot.headOid,
+      statusCheckRollup: { contexts: { nodes, pageInfo } }
+    } } } };
+  }
+  throw new Error("unexpected connection query");
 }
 
 function createGraphqlRunGh(snapshot, calls = []) {
@@ -352,6 +418,15 @@ test("sanitized fixture contains only the collector allowlist", () => {
   assert.deepEqual(Object.keys(snapshot.reviews[0]).sort(), ["authorLogin", "commitOid", "state", "submittedAt"]);
 });
 
+test("GitHub module public exports remain the four established functions", () => {
+  assert.deepEqual(Object.keys(githubModule).sort(), [
+    "collectGitHubPullRequest",
+    "mapGitHubPullRequestToEvidenceInput",
+    "normalizeDeclaredWriteScope",
+    "normalizeGitHubSnapshot"
+  ]);
+});
+
 test("collector uses exact minimized queries and completes every connection page", async () => {
   const input = fixture();
   input.reviews = [
@@ -420,6 +495,107 @@ test("collector uses exact minimized queries and completes every connection page
   assert.ok(missingIds(packet).includes("independent-review-confirmed"));
   assert.ok(packet.reviewNeeds.includes("Review non-success reported check: lint (FAILURE)."));
   assert.ok(packet.reviewNeeds.includes("No approval was reported for the collected exact pull request head."));
+});
+
+test("collector enforces the GitHub GraphQL Int pull-request range before gh", async (t) => {
+  await t.test("maximum and short zero-padded GraphQL Int values are accepted", async () => {
+    const input = fixture();
+    input.number = MAX_GRAPHQL_INT;
+    const calls = [];
+    const snapshot = await collectGitHubPullRequest({
+      repository: input.repository,
+      pullRequestNumber: MAX_GRAPHQL_INT,
+      runGh: createGraphqlRunGh(input, calls)
+    });
+    assert.equal(snapshot.number, MAX_GRAPHQL_INT);
+    assert.equal(parseGraphqlArgs(calls[0]).variables.number, MAX_GRAPHQL_INT);
+
+    const zeroPaddedInput = fixture();
+    zeroPaddedInput.number = 1;
+    const zeroPaddedCalls = [];
+    const zeroPaddedSnapshot = await collectGitHubPullRequest({
+      repository: zeroPaddedInput.repository,
+      pullRequestNumber: "0000000001",
+      runGh: createGraphqlRunGh(zeroPaddedInput, zeroPaddedCalls)
+    });
+    assert.equal(zeroPaddedSnapshot.number, 1);
+    assert.equal(parseGraphqlArgs(zeroPaddedCalls[0]).variables.number, 1);
+  });
+
+  for (const [name, value] of [
+    ["rejects numeric maximum plus one", MAX_GRAPHQL_INT + 1],
+    ["rejects decimal maximum plus one", String(MAX_GRAPHQL_INT + 1)],
+    ["rejects huge decimal", "9".repeat(1_000)],
+    ["rejects overlong zero-padded decimal", `${"0".repeat(1_000)}1`]
+  ]) {
+    await t.test(name, async () => {
+      let calls = 0;
+      await assert.rejects(
+        collectGitHubPullRequest({
+          repository: fixture().repository,
+          pullRequestNumber: value,
+          runGh: async () => {
+            calls += 1;
+            return "{}";
+          }
+        }),
+        /pull request number must be a positive integer/
+      );
+      assert.equal(calls, 0);
+    });
+  }
+});
+
+test("collector validates metadata identity and changed-file bounds before pagination", async (t) => {
+  await t.test("pull-request number must match the request", async () => {
+    const input = fixture();
+    const calls = [];
+    const base = createGraphqlRunGh(input, calls);
+    await assert.rejects(
+      collectGitHubPullRequest({
+        repository: input.repository,
+        pullRequestNumber: input.number,
+        runGh: async (args) => {
+          const result = JSON.parse(await base(args));
+          result.data.repository.pullRequest.number = input.number + 1;
+          return JSON.stringify(result);
+        }
+      }),
+      (error) => {
+        assert.equal(error.message, "GitHub collection returned invalid pull request metadata");
+        assert.doesNotMatch(error.message, new RegExp(String(input.number + 1)));
+        return true;
+      }
+    );
+    assert.equal(calls.length, 1);
+  });
+
+  for (const [name, value, message] of [
+    ["negative", -1, "GitHub collection returned invalid changed files"],
+    ["fractional", 1.5, "GitHub collection returned invalid changed files"],
+    ["non-integer type", "2", "GitHub collection returned invalid changed files"],
+    ["above node limit", 10_001, "GitHub collection exceeded the changed files node limit"]
+  ]) {
+    await t.test(name, async () => {
+      const input = fixture();
+      input.changedFiles = value;
+      const calls = [];
+      await assert.rejects(
+        collectGitHubPullRequest({
+          repository: input.repository,
+          pullRequestNumber: input.number,
+          runGh: createGraphqlRunGh(input, calls)
+        }),
+        (error) => {
+          assert.equal(error.message, message);
+          assert.doesNotMatch(error.message, /10001|SYNTHETIC_SECRET_CANARY_DO_NOT_DISCLOSE/);
+          return true;
+        }
+      );
+      assert.equal(calls.length, 1);
+      assert.equal(parseGraphqlArgs(calls[0]).query, METADATA_QUERY);
+    });
+  }
 });
 
 test("pending reviews without submitted timestamps remain explicit metadata", async () => {
@@ -519,6 +695,141 @@ test("null and non-object connection nodes fail closed", async (t) => {
   }
 });
 
+test("connection pages accept 100 nodes and reject 101 nodes", async (t) => {
+  for (const [queryUnderTest, stage, snapshotField] of [
+    [FILES_QUERY, "changed files", "files"],
+    [COMMITS_QUERY, "commits", "commits"],
+    [REVIEWS_QUERY, "reviews", "reviews"],
+    [CHECKS_QUERY, "checks", "checks"]
+  ]) {
+    for (const nodeCount of [100, 101]) {
+      await t.test(`${stage} ${nodeCount}`, async () => {
+        const input = fixture();
+        if (queryUnderTest === FILES_QUERY) input.changedFiles = nodeCount;
+        const base = createGraphqlRunGh(input);
+        const operation = collectGitHubPullRequest({
+          repository: input.repository,
+          pullRequestNumber: input.number,
+          runGh: async (args) => {
+            const { query } = parseGraphqlArgs(args);
+            if (query !== queryUnderTest) return base(args);
+            const nodes = Array.from(
+              { length: nodeCount },
+              (_unused, index) => indexedConnectionNode(query, index, input)
+            );
+            return JSON.stringify(connectionEnvelope(query, input, nodes, {
+              hasNextPage: false,
+              endCursor: null
+            }));
+          }
+        });
+
+        if (nodeCount === 100) {
+          const snapshot = await operation;
+          assert.equal(snapshot[snapshotField].length, 100);
+        } else {
+          await assert.rejects(
+            operation,
+            (error) => {
+              assert.equal(error.message, `GitHub collection returned invalid ${stage}`);
+              return true;
+            }
+          );
+        }
+      });
+    }
+  }
+});
+
+test("all four connections allow 100 terminal pages of 100 nodes within 401 calls", async () => {
+  const input = fixture();
+  input.changedFiles = 10_000;
+  const calls = [];
+  const pageCounts = new Map();
+  const prefixes = new Map([
+    [FILES_QUERY, "files"],
+    [COMMITS_QUERY, "commits"],
+    [REVIEWS_QUERY, "reviews"],
+    [CHECKS_QUERY, "checks"]
+  ]);
+
+  const snapshot = await collectGitHubPullRequest({
+    repository: input.repository,
+    pullRequestNumber: input.number,
+    runGh: async (args) => {
+      calls.push(args);
+      const { query, variables } = parseGraphqlArgs(args);
+      if (query === METADATA_QUERY) {
+        return JSON.stringify(graphqlEnvelope(query, variables, input));
+      }
+      const page = pageCounts.get(query) ?? 0;
+      const prefix = prefixes.get(query);
+      assert.ok(prefix);
+      assert.equal(variables.cursor, page === 0 ? undefined : `${prefix}-${page}`);
+      pageCounts.set(query, page + 1);
+      const nodes = Array.from(
+        { length: 100 },
+        (_unused, index) => indexedConnectionNode(query, page * 100 + index, input)
+      );
+      return JSON.stringify(connectionEnvelope(query, input, nodes, {
+        hasNextPage: page < 99,
+        endCursor: page < 99 ? `${prefix}-${page + 1}` : null
+      }));
+    }
+  });
+
+  assert.equal(calls.length, 401);
+  assert.equal(calls.filter((args) => parseGraphqlArgs(args).query === METADATA_QUERY).length, 1);
+  for (const query of [FILES_QUERY, COMMITS_QUERY, REVIEWS_QUERY, CHECKS_QUERY]) {
+    assert.equal(calls.filter((args) => parseGraphqlArgs(args).query === query).length, 100);
+  }
+  assert.equal(snapshot.files.length, 10_000);
+  assert.equal(snapshot.commits.length, 10_000);
+  assert.equal(snapshot.reviews.length, 10_000);
+  assert.equal(snapshot.checks.length, 10_000);
+});
+
+test("continuation after the 100th page fails without a 101st connection call", async () => {
+  const input = fixture();
+  input.changedFiles = 10_000;
+  const calls = [];
+  let filePage = 0;
+
+  await assert.rejects(
+    collectGitHubPullRequest({
+      repository: input.repository,
+      pullRequestNumber: input.number,
+      runGh: async (args) => {
+        calls.push(args);
+        const { query, variables } = parseGraphqlArgs(args);
+        if (query === METADATA_QUERY) {
+          return JSON.stringify(graphqlEnvelope(query, variables, input));
+        }
+        assert.equal(query, FILES_QUERY);
+        assert.equal(variables.cursor, filePage === 0 ? undefined : `files-overflow-${filePage}`);
+        const nodes = Array.from(
+          { length: 100 },
+          (_unused, index) => indexedConnectionNode(query, filePage * 100 + index, input)
+        );
+        filePage += 1;
+        return JSON.stringify(connectionEnvelope(query, input, nodes, {
+          hasNextPage: true,
+          endCursor: `files-overflow-${filePage}`
+        }));
+      }
+    }),
+    (error) => {
+      assert.equal(error.message, "GitHub collection exceeded the changed files pagination limit");
+      return true;
+    }
+  );
+
+  assert.equal(filePage, 100);
+  assert.equal(calls.length, 101);
+  assert.equal(calls.filter((args) => parseGraphqlArgs(args).query === FILES_QUERY).length, 100);
+  assert.equal(calls.some((args) => parseGraphqlArgs(args).query === COMMITS_QUERY), false);
+});
+
 test("checks are bound to the exact collected head and null rollup means no checks", async (t) => {
   await t.test("different check object head is rejected", async () => {
     const input = fixture();
@@ -564,7 +875,9 @@ test("checks are bound to the exact collected head and null rollup means no chec
 
 test("pagination rejects missing and repeated cursors", async (t) => {
   for (const [name, firstCursor, nextCursor] of [
-    ["missing cursor", null, null],
+    ["missing cursor", undefined, undefined],
+    ["null cursor", null, null],
+    ["empty cursor", "", ""],
     ["repeated cursor", "repeat-cursor", "repeat-cursor"]
   ]) {
     await t.test(name, async () => {
@@ -599,6 +912,97 @@ test("pagination rejects missing and repeated cursors", async (t) => {
       );
     });
   }
+});
+
+test("pagination rejects a non-adjacent cursor cycle", async () => {
+  const input = fixture();
+  input.changedFiles = 0;
+  const returnedCursors = ["cursor-a", "cursor-b", "cursor-a"];
+  const expectedInputs = [undefined, "cursor-a", "cursor-b"];
+  const calls = [];
+  let filePage = 0;
+
+  await assert.rejects(
+    collectGitHubPullRequest({
+      repository: input.repository,
+      pullRequestNumber: input.number,
+      runGh: async (args) => {
+        calls.push(args);
+        const { query, variables } = parseGraphqlArgs(args);
+        if (query === METADATA_QUERY) {
+          return JSON.stringify(graphqlEnvelope(query, variables, input));
+        }
+        assert.equal(query, FILES_QUERY);
+        assert.equal(variables.cursor, expectedInputs[filePage]);
+        const endCursor = returnedCursors[filePage];
+        filePage += 1;
+        return JSON.stringify(connectionEnvelope(query, input, [], {
+          hasNextPage: true,
+          endCursor
+        }));
+      }
+    }),
+    (error) => {
+      assert.equal(error.message, "GitHub collection returned invalid changed files");
+      return true;
+    }
+  );
+
+  assert.equal(filePage, 3);
+  assert.equal(calls.length, 4);
+});
+
+test("cursor histories are independent across connections", async () => {
+  const input = fixture();
+  const prefixes = new Map([
+    [FILES_QUERY, "files"],
+    [COMMITS_QUERY, "commits"],
+    [REVIEWS_QUERY, "reviews"],
+    [CHECKS_QUERY, "checks"]
+  ]);
+  const base = createGraphqlRunGh(input);
+
+  const snapshot = await collectGitHubPullRequest({
+    repository: input.repository,
+    pullRequestNumber: input.number,
+    runGh: async (args) => {
+      const { query, variables } = parseGraphqlArgs(args);
+      const prefix = prefixes.get(query);
+      if (!prefix) return base(args);
+      const adjusted = variables.cursor === "shared-cursor"
+        ? { ...variables, cursor: `${prefix}-2` }
+        : variables;
+      const result = graphqlEnvelope(query, adjusted, input);
+      const connection = connectionFromEnvelope(result, query);
+      if (connection.pageInfo.hasNextPage) {
+        connection.pageInfo.endCursor = "shared-cursor";
+      }
+      return JSON.stringify(result);
+    }
+  });
+
+  assert.equal(snapshot.files.length, input.files.length);
+  assert.equal(snapshot.commits.length, input.commits.length);
+  assert.equal(snapshot.reviews.length, input.reviews.length);
+  assert.equal(snapshot.checks.length, input.checks.length);
+});
+
+test("terminal connection pages preserve existing endCursor tolerance", async () => {
+  const input = fixture();
+  const base = createGraphqlRunGh(input);
+  const snapshot = await collectGitHubPullRequest({
+    repository: input.repository,
+    pullRequestNumber: input.number,
+    runGh: async (args) => {
+      const { query } = parseGraphqlArgs(args);
+      if (query !== FILES_QUERY) return base(args);
+      return JSON.stringify(connectionEnvelope(query, input, input.files, {
+        hasNextPage: false,
+        endCursor: { legacy: "ignored-on-terminal-page" }
+      }));
+    }
+  });
+  assert.equal(snapshot.files.length, input.files.length);
 });
 
 test("pagination rejects missing and non-boolean hasNextPage values", async (t) => {
@@ -685,6 +1089,82 @@ test("GraphQL error envelopes are rejected without exposing service text", async
   );
 });
 
+test("empty GraphQL errors arrays preserve successful collection", async () => {
+  const input = fixture();
+  const expected = await collectGitHubPullRequest({
+    repository: input.repository,
+    pullRequestNumber: input.number,
+    runGh: createGraphqlRunGh(input)
+  });
+  const base = createGraphqlRunGh(input);
+  const actual = await collectGitHubPullRequest({
+    repository: input.repository,
+    pullRequestNumber: input.number,
+    runGh: async (args) => {
+      const result = JSON.parse(await base(args));
+      result.errors = [];
+      return JSON.stringify(result);
+    }
+  });
+  assert.deepEqual(actual, expected);
+});
+
+test("malformed GraphQL errors members fail at the active stage without disclosure", async (t) => {
+  const canary = "SYNTHETIC_GRAPHQL_ERROR_CANARY_DO_NOT_DISCLOSE";
+  const invalidValues = [
+    ["null", null],
+    ["object", { message: canary }],
+    ["string", canary],
+    ["number", 1],
+    ["boolean", true],
+    ["nonempty array", [{ message: canary }]]
+  ];
+  const stages = [
+    [METADATA_QUERY, "pull request metadata"],
+    [FILES_QUERY, "changed files"],
+    [COMMITS_QUERY, "commits"],
+    [REVIEWS_QUERY, "reviews"],
+    [CHECKS_QUERY, "checks"]
+  ];
+
+  for (let stageIndex = 0; stageIndex < stages.length; stageIndex += 1) {
+    const [queryUnderTest, stage] = stages[stageIndex];
+    for (const [variant, errors] of invalidValues) {
+      await t.test(`${stage} ${variant}`, async () => {
+        const input = fixture();
+        input.files = input.files.slice(0, 1);
+        input.changedFiles = input.files.length;
+        input.commits = input.commits.slice(0, 1);
+        input.reviews = input.reviews.slice(0, 1);
+        input.checks = input.checks.slice(0, 1);
+        const base = createGraphqlRunGh(input);
+        const calls = [];
+
+        await assert.rejects(
+          collectGitHubPullRequest({
+            repository: input.repository,
+            pullRequestNumber: input.number,
+            runGh: async (args) => {
+              calls.push(args);
+              const { query } = parseGraphqlArgs(args);
+              if (query === queryUnderTest) return JSON.stringify({ errors });
+              return base(args);
+            }
+          }),
+          (error) => {
+            assert.equal(error.message, `GitHub collection returned invalid ${stage}`);
+            assert.doesNotMatch(error.message, new RegExp(canary));
+            return true;
+          }
+        );
+
+        assert.equal(calls.length, stageIndex + 1);
+        assert.equal(parseGraphqlArgs(calls.at(-1)).query, queryUnderTest);
+      });
+    }
+  }
+});
+
 
 test("repository and PR validation happens before gh and rejects shell-shaped input", async () => {
   let calls = 0;
@@ -760,6 +1240,97 @@ test("reordered collector data produces byte-identical packet JSON", () => {
   assert.equal(canonicalJson(packetFor(first)), canonicalJson(packetFor(reordered)));
 });
 
+test("changed-file paths must remain unique after existing normalization", async (t) => {
+  const fileNode = (filePath) => ({ path: filePath, additions: 1, deletions: 0 });
+  const truncationPrefix = "x".repeat(4_093);
+  const duplicateCases = [
+    ["same page", [[fileNode("SYNTHETIC_DUPLICATE_PATH_CANARY"), fileNode("SYNTHETIC_DUPLICATE_PATH_CANARY")]]],
+    ["cross page", [[fileNode("SYNTHETIC_CROSS_PAGE_PATH_CANARY")], [fileNode("SYNTHETIC_CROSS_PAGE_PATH_CANARY")]]],
+    ["control replacement collision", [[fileNode("src/a\u0000b.js"), fileNode("src/a b.js")]]],
+    ["truncation collision across pages", [
+      [fileNode(`${truncationPrefix}AAAA`)],
+      [fileNode(`${truncationPrefix}BBBB`)]
+    ]]
+  ];
+
+  async function collectFilePages(pages) {
+    const input = fixture();
+    input.changedFiles = pages.reduce((count, page) => count + page.length, 0);
+    const base = createGraphqlRunGh(input);
+    let page = 0;
+    return collectGitHubPullRequest({
+      repository: input.repository,
+      pullRequestNumber: input.number,
+      runGh: async (args) => {
+        const { query, variables } = parseGraphqlArgs(args);
+        if (query !== FILES_QUERY) return base(args);
+        assert.equal(variables.cursor, page === 0 ? undefined : `file-page-${page}`);
+        const nodes = pages[page];
+        const hasNextPage = page < pages.length - 1;
+        page += 1;
+        return JSON.stringify(connectionEnvelope(query, input, nodes, {
+          hasNextPage,
+          endCursor: hasNextPage ? `file-page-${page}` : null
+        }));
+      }
+    });
+  }
+
+  for (const [name, pages] of duplicateCases) {
+    await t.test(name, async () => {
+      await assert.rejects(
+        collectFilePages(pages),
+        (error) => {
+          assert.equal(error.message, "snapshot.files must use unique paths");
+          assert.doesNotMatch(error.message, /SYNTHETIC_|src\/a|AAAA|BBBB/);
+          return true;
+        }
+      );
+    });
+  }
+
+  await t.test("case-distinct Git paths remain valid", async () => {
+    const snapshot = await collectFilePages([[fileNode("src/A.js"), fileNode("src/a.js")]]);
+    assert.deepEqual(new Set(snapshot.files.map((file) => file.path)), new Set([
+      "src/A.js",
+      "src/a.js"
+    ]));
+  });
+});
+
+test("commit identifiers must be unique after lowercase normalization", async () => {
+  const input = fixture();
+  const oid = "abcdef0123456789abcdef0123456789abcdef01";
+  input.commits = [{ oid }, { oid: oid.toUpperCase() }];
+  await assert.rejects(
+    collectGitHubPullRequest({
+      repository: input.repository,
+      pullRequestNumber: input.number,
+      runGh: createGraphqlRunGh(input)
+    }),
+    (error) => {
+      assert.equal(error.message, "snapshot.commits must use unique commit identifiers");
+      assert.doesNotMatch(error.message, new RegExp(oid, "i"));
+      return true;
+    }
+  );
+});
+
+test("reviews and checks retain duplicate metadata without invented identities", async () => {
+  const input = fixture();
+  input.reviews = [input.reviews[0], input.reviews[0]];
+  input.checks = [input.checks[0], input.checks[0]];
+  const snapshot = await collectGitHubPullRequest({
+    repository: input.repository,
+    pullRequestNumber: input.number,
+    runGh: createGraphqlRunGh(input)
+  });
+  assert.equal(snapshot.reviews.length, 2);
+  assert.deepEqual(snapshot.reviews[0], snapshot.reviews[1]);
+  assert.equal(snapshot.checks.length, 2);
+  assert.deepEqual(snapshot.checks[0], snapshot.checks[1]);
+});
+
 test("GitHub snapshot normalization uses deterministic ordering with baseline ASCII compatibility", () => {
   const snapshot = fixture();
   const paths = ["b.js", "A.js", "a.js", "é.js", "e\u0301.js", "!.js"];
@@ -819,6 +1390,16 @@ test("GitHub snapshot normalization matches baseline printable ASCII pairs and r
     "A0", "aa", "aA", "Aa", "AA", "docs/x", "README.md", "z", "Z"
   ];
   assert.deepEqual(normalizePaths(representativePaths), representativePaths);
+});
+
+test("GraphQL Int validation does not narrow the established snapshot normalizer", () => {
+  const snapshot = fixture();
+  snapshot.number = MAX_GRAPHQL_INT + 1;
+  assert.equal(normalizeGitHubSnapshot(snapshot).number, MAX_GRAPHQL_INT + 1);
+  assert.equal(
+    mapGitHubPullRequestToEvidenceInput(snapshot).pullRequest.id,
+    `${snapshot.repository}#${MAX_GRAPHQL_INT + 1}`
+  );
 });
 
 test("collector safely collapses missing gh, auth, and nonzero failures", async (t) => {
@@ -970,12 +1551,24 @@ test("GitHub CLI argument parsing is strict", () => {
   );
   assert.equal(
     parseGitHubArguments([
+      "--repo", "example/repo", "--pr", String(MAX_GRAPHQL_INT)
+    ]).pullRequestNumber,
+    MAX_GRAPHQL_INT
+  );
+  assert.equal(
+    parseGitHubArguments([
       "--repo", "example/repo", "--pr", "17", "--scope-file", "declared-scope.json"
     ]).scopeFile,
     "declared-scope.json"
   );
   assert.throws(() => parseGitHubArguments(["--pr", "17"]), /--repo <owner\/name> is required/);
   assert.throws(() => parseGitHubArguments(["--repo", "example/repo", "--pr", "0"]), /--pr must be a positive integer/);
+  assert.throws(() => parseGitHubArguments([
+    "--repo", "example/repo", "--pr", String(MAX_GRAPHQL_INT + 1)
+  ]), /--pr must be a positive integer/);
+  assert.throws(() => parseGitHubArguments([
+    "--repo", "example/repo", "--pr", "9".repeat(1_000)
+  ]), /--pr must be a positive integer/);
   assert.throws(() => parseGitHubArguments(["--repo", "example\/repo;owned", "--pr", "17"]), /--repo must use owner\/name format/);
   assert.throws(() => parseGitHubArguments(["--repo", "example/repo", "--pr", "17", "--pr", "18"]), /--pr may be supplied only once/);
   assert.throws(() => parseGitHubArguments([
@@ -1385,6 +1978,16 @@ test("GitHub CLI human format uses the same collection and supports file output"
   assert.equal(fileResult.fileOutput, stdoutResult.stdout);
 });
 
+test("GitHub CLI accepts the maximum GraphQL Int pull-request number", () => {
+  const payload = fixture();
+  payload.number = MAX_GRAPHQL_INT;
+  const result = runGitHubCliWithFakeGh({ payload });
+  assert.equal(result.status, 0);
+  assert.equal(result.stderr, "");
+  assert.ok(result.ghArgs[0].includes(`number=${MAX_GRAPHQL_INT}`));
+  assert.equal(JSON.parse(result.stdout).pullRequest.id, `${payload.repository}#${MAX_GRAPHQL_INT}`);
+});
+
 test("GitHub CLI rejects invalid repo and PR before invoking gh", () => {
   const repoResult = runGitHubCliWithFakeGh({ args: ["--repo", "example/repo;owned", "--pr", "17"] });
   assert.notEqual(repoResult.status, 0);
@@ -1395,6 +1998,18 @@ test("GitHub CLI rejects invalid repo and PR before invoking gh", () => {
   assert.notEqual(prResult.status, 0);
   assert.match(prResult.stderr, /evidence-gate-github: --pr must be a positive integer/);
   assert.equal(prResult.ghArgs, null);
+
+  for (const value of [String(MAX_GRAPHQL_INT + 1), "9".repeat(1_000)]) {
+    const boundedPrResult = runGitHubCliWithFakeGh({
+      args: ["--repo", "example/repo", "--pr", value]
+    });
+    assert.notEqual(boundedPrResult.status, 0);
+    assert.equal(
+      boundedPrResult.stderr,
+      "evidence-gate-github: --pr must be a positive integer\n"
+    );
+    assert.equal(boundedPrResult.ghArgs, null);
+  }
 
   const formatResult = runGitHubCliWithFakeGh({
     args: ["--repo", "example/repo", "--pr", "17", "--format", "yaml"]

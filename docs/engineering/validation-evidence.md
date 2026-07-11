@@ -6199,3 +6199,40 @@ The six skips were only Windows `symlinkSync` constructions denied with explicit
 Focused coverage exercised all 237 fixed unsafe report code points with exact uppercase BMP and supplementary escapes, safe printable Korean, accented, decomposed, and emoji text, exact 1 MiB static-input and 64 KiB declared-scope limits, fatal UTF-8 decoding, retained BOM malformed-JSON compatibility, fixed non-disclosing errors, stable same-file alias byte preservation, rejection before `gh`, and unchanged JSON and human golden bytes.
 
 This task adds no package, dependency, lockfile, public export, query, field allowlist, collection, CLI argument, authority, protocol, Trust, Evidence authority, Verdict, readiness, release, or product-semantic change. It does not claim atomic output, temporary-file replacement, fsync, or protection against adversarial concurrent filesystem changes. These Builder checks are provisional and do not establish product readiness, a trusted release, independent acceptance, or an authoritative Proofrail product Verdict.
+
+## GATE-GH-BOUND-001 Validation Evidence
+
+Date: 2026-07-11.
+
+Task identity: `GATE-GH-BOUND-001`.
+
+Merged-main baseline: `cead93b8dd052efb4b9ebf3ab8b9454a011dd779`.
+
+Task-contract first commit: `122963f83a1613cae62606287610264a88a805d6`.
+
+### Commands And Results
+
+The task-contract verification was executed from the repository root with the bundled local Node.js and pnpm runtime:
+
+```text
+pnpm governance:check                 exit 0
+pnpm governance:check-json            exit 0
+pnpm test:governance                  exit 0; 37 passed, 0 failed
+pnpm test:evidence-gate               exit 0; 202 total, 196 passed, 0 failed, 6 skipped
+pnpm evidence-gate:demo               exit 0; canonical packet JSON written to stdout
+pnpm test:static-evaluator            exit 0; 10 passed, 0 failed
+pnpm typecheck:phase1                 exit 0
+pnpm test:kernel                      exit 0; 475 passed, 0 failed
+pnpm verify                           exit 0
+git diff --check                      exit 0
+```
+
+The six Evidence Gate skips were only symbolic-link constructions denied by Windows with explicit OS code `EPERM`; hardlink and canonical-spelling coverage still ran. The complete GitHub importer file reported 159 total tests, 156 passed, 0 failed, and 3 of those OS-specific skips.
+
+Focused GitHub boundary coverage accepted pull-request number 2147483647 and prior short zero-padded decimal input, while rejecting larger values, arbitrarily long high-value decimals, and arbitrarily long zero-padded-to-small-value decimals before `gh`; rejected mismatched metadata identity and invalid, negative, or above-10,000 changed-file counts before file pagination; accepted 100 nodes and rejected 101 nodes for each of files, commits, reviews, and checks; accepted 100 terminal pages of 100 nodes across all four connections in exactly 401 total calls; and rejected continuation after the one-hundredth page without a one-hundred-and-first connection call. Tests also exercised missing, empty, immediate-repeat, and multi-page A-B-A cursors with per-connection cursor histories, while retaining terminal-page `endCursor` compatibility.
+
+GraphQL error-envelope tests covered absent and empty-array success plus null, object, string, number, boolean, and nonempty-array rejection at every collection stage with exact stage-specific stop-call counts and no remote canary disclosure. File identity tests covered same-page, cross-page, control-replacement, and 4,096-character truncation collisions while retaining case-distinct Git paths. Commit OIDs fail on case-insensitive duplication after lowercase normalization; duplicate review and check metadata remains accepted because the query provides no stable identity for those nodes. The four established `github.js` public exports, exact query strings and fields, existing golden bytes, packet mapping, redaction, sorting, CLI formats, local file boundaries, and human report behavior remained covered by compatibility tests.
+
+The pnpm workspace preflight projected an unrelated empty `packages/evidence-gate` lockfile importer. That empty importer was removed before the final retained tree; this task retains no dependency, lockfile, workspace, package-script, CI, or generated-governance change.
+
+No target repository inspection or execution, verification execution, direct HTTP client, GitHub write, credential or authentication setup, timeout or response-buffer change, atomic-output guarantee, model provider, inference, paid cloud, or paid SaaS was added. This bounded collection hardening does not establish Trusted Configuration, Evidence authority, product readiness, a trusted release, independent acceptance, or an authoritative Proofrail product Verdict. These Builder checks remain provisional pending independent exact-head review.
