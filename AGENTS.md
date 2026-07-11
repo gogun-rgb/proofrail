@@ -56,7 +56,7 @@ No separate human, organization, GitHub account, or stable reviewer identity is 
 
 For backward compatibility, an existing Machine Task Contract value of `independent_review_required` is a legacy label. Unless the contract explicitly requires a different human reviewer, satisfy it through a fresh review pass that re-reads the retained diff and evidence without assuming the implementation is correct. It does not require a second person or a second account.
 
-A compliant self-review MUST inspect the exact retained changes, compare them with scope and acceptance requirements, run or inspect the required verification, record meaningful results, check for weakened tests or hidden scope expansion, and avoid relying solely on Builder summaries or model confidence.
+A compliant self-review MUST inspect the exact retained changes, compare them with scope and acceptance requirements, run or inspect the required verification, record meaningful results, check for weakened tests, validation bypass, or hidden scope expansion, and avoid relying solely on Builder summaries or model confidence.
 
 External independent review MAY be added as a risk control, but its absence MUST NOT block ordinary repository engineering work, acceptance, publication, or release decisions when the evidence-based self-review requirements are satisfied.
 

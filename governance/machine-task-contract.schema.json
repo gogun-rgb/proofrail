@@ -70,7 +70,8 @@
       "required": ["expectation", "reviewerMustNotRelyOnBuilderClaim"],
       "properties": {
         "expectation": {
-          "enum": ["evidence_based_self_review_required", "independent_review_required"]
+          "enum": ["evidence_based_self_review_required", "independent_review_required"],
+          "default": "evidence_based_self_review_required"
         },
         "reviewerMustNotRelyOnBuilderClaim": { "const": true },
         "independentHumanRequired": { "const": false }

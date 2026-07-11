@@ -1,0 +1,96 @@
+{
+  "task": {
+    "id": "REVIEW-GOV-001",
+    "class": "repository_review_governance_change",
+    "objective": "Change the default repository engineering review expectation to evidence-based self-review while preserving legacy Machine Task Contract compatibility and keeping product trust, release, and Verdict authority separate."
+  },
+  "scope": {
+    "write": [
+      "governance/tasks/REVIEW-GOV-001.json",
+      "AGENTS.md",
+      "docs/engineering/machine-task-contract.md",
+      "docs/engineering/validation-evidence.md",
+      "governance/machine-task-contract.schema.json",
+      "scripts/governance/lib/schema-validation.mjs",
+      "tests/governance/foundation-validator.test.mjs"
+    ],
+    "read_only_authority": [
+      "docs/constitution/**",
+      "docs/product/**",
+      "packages/contracts/**",
+      "packages/kernel/**"
+    ],
+    "forbidden": [
+      "modification of existing Machine Task Contracts",
+      "product runtime code",
+      "Proofrail product Verdict semantics",
+      "Trusted Configuration, Policy, or Evidence Contract authority changes",
+      "automatic product reliability, trusted release, or authoritative Proofrail Verdict claims",
+      "test deletion, weakening, or validation bypass",
+      "requirements for a separate person, organization, GitHub account, stable reviewer ID, or publisher identity",
+      "unrelated refactoring, dependency changes, lockfile changes, CI changes, or generated governance changes"
+    ]
+  },
+  "authority": {
+    "read": [
+      "governance/tasks/REVIEW-GOV-001.json",
+      "AGENTS.md",
+      "docs/engineering/machine-task-contract.md",
+      "docs/engineering/validation-evidence.md",
+      "governance/machine-task-contract.schema.json",
+      "scripts/governance/lib/schema-validation.mjs",
+      "tests/governance/foundation-validator.test.mjs"
+    ],
+    "mayChangeAuthority": true,
+    "mayChangeProductSemantics": false
+  },
+  "acceptance": {
+    "requirements": [
+      "Make evidence_based_self_review_required the default repository engineering review expectation.",
+      "Allow the same agent, operator, or GitHub account to implement, review, publish, and make repository release decisions without requiring a separate identity.",
+      "Do not block repository work, approval, publication, or release decisions solely because no independent reviewer exists.",
+      "Require a fresh review pass separated from implementation assumptions: review the final retained diff from the beginning, compare it with scope and acceptance requirements, run or directly inspect required verification, check for weakened tests, validation bypass, and hidden scope expansion, and record results and remaining limitations.",
+      "Keep reviewerMustNotRelyOnBuilderClaim fixed at true; Builder summaries, model confidence, and completion claims are insufficient review evidence.",
+      "Continue accepting independent_review_required as a legacy label for the same fresh second-pass review, without implying a different person unless the user explicitly requires an external human reviewer for that task.",
+      "Allow review.independentHumanRequired only when its value is false, without requiring the property so existing committed contracts remain valid.",
+      "Reject unsupported review expectations, Builder-claim reliance, and independentHumanRequired set to true.",
+      "Keep repository engineering review separate from Proofrail product Verdict, product reliability, Trusted Configuration, Policy, Evidence Contract, and trusted-release authority."
+    ]
+  },
+  "verification": {
+    "commands": [
+      "pnpm governance:check",
+      "pnpm governance:check-json",
+      "pnpm test:governance",
+      "pnpm verify",
+      "git diff --check"
+    ],
+    "requiredInvariants": [
+      "REVIEW-GOV-001 is the first branch commit and every changed path is writable under this contract.",
+      "All previously committed Machine Task Contracts remain valid without modification.",
+      "Both review expectation values validate, while invalid values and Builder-claim reliance remain rejected.",
+      "No product runtime, dependency, lockfile, CI, generated governance, product authority, release authority, or Verdict semantic change is introduced.",
+      "The final retained diff receives a fresh evidence-based second-pass review distinct from implementation."
+    ]
+  },
+  "requiredArtifacts": [
+    "REVIEW-GOV-001 Machine Task Contract",
+    "aligned repository review governance documentation",
+    "backward-compatible Machine Task Contract schema",
+    "schema meta-validation enforcement",
+    "positive and negative governance tests",
+    "recorded validation and self-review evidence"
+  ],
+  "stopConditions": [
+    "The requested change would require Proofrail product semantics, Trusted Configuration, Policy, Evidence Contract, or Verdict authority changes: BLOCKED_SCOPE",
+    "The requested change would require product runtime, dependency, lockfile, CI, or generated governance changes: BLOCKED_SCOPE",
+    "Existing Machine Task Contracts cannot remain valid without modification: BLOCKED_SCOPE",
+    "Required validation can pass only by deleting or weakening tests or bypassing governance enforcement: BLOCKED_SCOPE",
+    "An explicit user requirement for a different human reviewer applies to this task and cannot be met: BLOCKED_EXTERNAL_REVIEW",
+    "Codex usage limit is reached: LIMIT_REACHED"
+  ],
+  "review": {
+    "expectation": "independent_review_required",
+    "reviewerMustNotRelyOnBuilderClaim": true
+  }
+}

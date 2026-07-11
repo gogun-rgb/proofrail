@@ -30,7 +30,7 @@ No separate human, organization, account, or stable reviewer ID is required by t
 
 The legacy value `independent_review_required` remains valid for existing committed contracts. Unless a task's latest external instruction explicitly requires a different human reviewer, this legacy value means a fresh, assumption-resistant review pass and does not require a second person or second account.
 
-A compliant review MUST inspect the exact retained changes, compare them with `scope` and `acceptance`, run or inspect the specified verification, record meaningful results, check for weakened tests or hidden scope expansion, and avoid relying solely on Builder summaries.
+A compliant review MUST inspect the exact retained changes, compare them with `scope` and `acceptance`, run or inspect the specified verification, record meaningful results, check for weakened tests, validation bypass, or hidden scope expansion, and avoid relying solely on Builder summaries.
 
 ## Authority-Change Use
 
@@ -164,7 +164,7 @@ A task contract SHOULD separate acceptance requirements from verification comman
 
 A task contract MUST require an evidence-based review pass and MUST NOT treat the Builder's claim as sufficient evidence.
 
-A task contract MUST NOT require a separate human, organization, GitHub account, or stable reviewer identity. The same operator may build, review, publish, and make the release decision.
+A task contract MUST NOT require a separate human, organization, GitHub account, or stable reviewer identity unless the user's latest explicit instruction for that task requires a different human reviewer. Otherwise, the same operator may build, review, publish, and make the release decision.
 
 An agent MUST NOT report `BLOCKED` solely because no independent reviewer identity is available.
 
