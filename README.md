@@ -58,11 +58,15 @@ Run the governance verifier from the repository root:
 pnpm verify
 ```
 
-The verifier checks required files and artifacts, local documentation links and anchors, exact-set canonical terminology and Verdict projections, governance configuration, Machine Task Contract instances, the HARN_ harness reason-code registry, generated projection freshness, authority-index routes, JSON-output parseability, governance tests, diff whitespace, and repository identity hygiene. It is not a product runtime and does not provide independent acceptance.
+The verifier checks required files and artifacts, local documentation links and anchors, exact-set canonical terminology and Verdict projections, governance configuration, Machine Task Contract instances, the HARN_ harness reason-code registry, generated projection freshness, authority-index routes, JSON-output parseability, governance tests, the bounded current-package architecture guard and its synthetic tests, package tests, Phase 1 type checking, diff whitespace, and repository identity hygiene. It is not a product runtime and does not provide independent acceptance.
 
 `pnpm verify` includes a local workspace diff whitespace check through no-argument `git diff --check`. That check reports whitespace errors in the current worktree and index diff. It is not a committed pull request base/head range check.
 
 The GitHub Actions Foundation governance workflow runs committed change-range whitespace validation as a separate step. Pull request events validate the explicit pull request base SHA and head SHA. Push events use deterministic push-specific ranges before `pnpm verify` runs.
+
+The architecture guard freezes only the present package surface, including each package directory's exact manifest name: `@proofrail/contracts` has no workspace dependency, `@proofrail/kernel` may depend only on `@proofrail/contracts`, `@proofrail/evidence-gate` has no workspace dependency, and `@proofrail/static-evaluator` may depend only on `@proofrail/kernel`. It also freezes their exact current Node imports, rejects external bare production imports, checks recognized TypeScript-AST load forms under `packages/*/src`, rejects source symbolic links, and keeps slash, backslash, or mixed-separator relative imports inside their package root. Absolute and URL targets are categorized in diagnostics rather than exposing host paths. Run it directly with `pnpm architecture:check`; its synthetic matrix is `pnpm test:architecture`.
+
+This is a bounded repository engineering drift guard, not complete enforcement of [the dependency rules](docs/architecture/dependency-rules.md). It does not perform general module resolution, transitive dependency analysis, generated-code analysis, target-repository inspection, or detect `eval`, `new Function`, aliased `require`, computed-property `require` invocation, aliased `createRequire`, or subprocess-loaded code. Future packages or allowed edges require an explicit task contract and checker update.
 
 For only the Foundation validator:
 

@@ -16,13 +16,13 @@ Current control: `governance/harness-reason-codes.json` separates harness findin
 
 Disposition: OPEN.
 
-### DEBT-002: Architecture Rules Are Not Mechanically Enforced
+### DEBT-002: Architecture Rules Are Only Partially Mechanically Enforced
 
-Observation: Dependency rules are documented, but no package-boundary checker exists in Phase 0.
+Observation: `ARCH-BOUND-001` adds a bounded repository engineering checker that freezes the exact current four-package classification, workspace dependency declarations and edges, Node import allowlist, relative package containment, and recognized static production-source loads. It does not implement the complete semantics of the authoritative dependency rules.
 
-Risk: Future packages could violate architecture boundaries before checks exist.
+Risk: Generated or subprocess-loaded code, `eval`, `new Function`, aliased `require`, computed-property `require` invocation, aliased `createRequire`, transitive dependencies, broader delivery-definition ownership, inference isolation, and future package classes can still violate architecture intent outside the checker's narrow observable boundary.
 
-Current control: Dependency rules are explicit and `governance/architecture-check-preparation.json` records prepared-not-enforced future check classes without redefining dependency authority.
+Current control: `pnpm architecture:check` and `pnpm test:architecture` run inside `pnpm verify`; future packages, workspace edges, or runtime import surfaces fail closed until an explicit Machine Task Contract and checker update records them. `governance/architecture-check-preparation.json` records the bounded partial state without redefining dependency authority.
 
 Disposition: OPEN.
 

@@ -6279,3 +6279,44 @@ Static and GitHub CLI integration coverage retained exact new and existing JSON 
 The retained tree has no package export, dependency, lockfile, workspace, package-script, TypeScript, CI, generated-governance, query, collection, packet, argument, format, report, authority, or product-semantic change. The pnpm workspace left no `pnpm-lock.yaml` diff.
 
 This task claims only staged output publication on a stable local filesystem. It requires parent-directory create and rename permission. Cleanup is best effort and may leave a known temporary orphan when cleanup fails. It does not establish general cross-platform atomicity, durability, crash safety, race safety, fsync, directory sync, recovery, filesystem rollback, attacker resistance, TOCTOU protection, ACL or ownership preservation, extended attributes, special mode bits, inode preservation, or timestamp preservation. Windows temporary mode `0o600` is not an owner-only ACL guarantee. No target repository inspection or execution, verification execution, GitHub write, credential, model provider, inference, paid cloud, or paid SaaS was added. These Builder checks are provisional and do not establish product readiness, a trusted release, independent acceptance, or an authoritative Proofrail product Verdict.
+
+## ARCH-BOUND-001 Validation Evidence
+
+Date: 2026-07-11.
+
+Task identity: `ARCH-BOUND-001`.
+
+Merged-main baseline: `c5cbd6f1a7cf23e6bd6613115e5b1c8de93fa116`.
+
+Task-contract first commit: `2639d07761cc65b98a385f592dd4d2abccfc02fd`.
+
+### Commands And Results
+
+The task-contract verification was executed from the repository root with the bundled local Node.js and pnpm runtime:
+
+```text
+pnpm architecture:check              exit 0; current four-package tree produced no finding
+pnpm test:architecture               exit 0; 32 total, 30 passed, 0 failed, 2 skipped
+pnpm governance:check                exit 0
+pnpm governance:check-json           exit 0
+pnpm test:governance                 exit 0; 37 passed, 0 failed
+pnpm test:evidence-gate              exit 0; 232 total, 224 passed, 0 failed, 8 skipped
+pnpm test:static-evaluator            exit 0; 10 passed, 0 failed
+pnpm typecheck:phase1                 exit 0
+pnpm test:kernel                      exit 0; 475 passed, 0 failed
+pnpm verify                           exit 0
+node scripts/validate-foundation.mjs  exit 0
+node scripts/validate-foundation.mjs --format json
+                                      exit 0; parsed status VALID
+git diff --check                      exit 0
+```
+
+After the final architecture remediation and documentation clarification, the exact retained worktree completed `pnpm verify`. Governance reported 37 passed; architecture reported 32 total, 30 passed, 0 failed, and 2 skipped; Evidence Gate reported 232 total, 224 passed, 0 failed, and 8 skipped; static evaluator reported 10 passed; Phase 1 type checking exited 0; kernel reported 475 passed; the architecture checker, Foundation validator, JSON-output parser, and `git diff --check` all exited 0. This exact-tree run left no lockfile delta.
+
+The two architecture skips were only Windows file-symbolic-link constructions for `package.json` and a source file denied with explicit OS code `EPERM`. Package-root, `src`-root, and nested source-directory junction regressions ran on Windows and proved those links are rejected without being followed. The checker uses `lstat` at each boundary. The eight pre-existing Evidence Gate skips were also only Windows symbolic-link constructions denied by the operating system.
+
+Focused architecture coverage exercised the current repository and no-argument CLI; every contracted static TypeScript-AST load form; exact and subpath workspace imports; TypeScript import-equals without duplicate findings; TypeScript and attached JSDoc import types; the TypeScript 5.8 JSDoc import tag; exact lowercase source extensions and declaration suffixes; uppercase and invented combined-suffix decoys; exact directory-to-manifest-name binding, full name swaps, duplicates, missing and unclassified packages; forbidden forward and delivery-to-delivery edges; frozen-unlisted, generally direction-valid `@proofrail/evidence-gate` to `@proofrail/contracts/subpath` and `@proofrail/static-evaluator` to `@proofrail/contracts` edges; undeclared otherwise-allowed edges; slash, backslash, and mixed-separator relative containment; exact Node and external bare import surfaces; fixed source-import redaction of actual-root, POSIX, drive, UNC, rooted-backslash, URL, and package-import-map targets; computed dynamic and CommonJS loads; ignored comments and ordinary strings; excluded non-production trees; parse failures; malformed and non-object manifests; non-string names and dependency values; every runtime manifest section including array and non-array bundled-dependency forms; manifest object-key and bundle-entry diagnostics that retain ordinary dependency names while categorizing actual-root, drive, POSIX, URL, and package-import-map targets without canary or host-path disclosure; five symbolic-link placements; and byte-identical diagnostics sorted by POSIX path, line, column, engineering ID, and target without host paths or source excerpts.
+
+The bounded checker freezes only the current four package names, exact workspace declarations and edges, current Node import allowlists, and recognized production-source forms. It does not perform general module resolution, imported-target existence checks, transitive `node_modules` analysis, generated or subprocess-loaded code analysis, target repository inspection, `eval`, `new Function`, aliased `require`, computed-property `require` invocation, aliased `createRequire`, delivery-definition ownership analysis, inference isolation proof, or product runtime verification. DEBT-002 remains OPEN for those broader architecture semantics.
+
+All package production source and manifest blobs, the authoritative dependency rules, the governance validator, the `HARN_` registry, CI, workspace configuration, TypeScript configuration, and generated governance remain unchanged. The pnpm workspace preflight projected an unrelated empty `packages/evidence-gate` lockfile importer; that exact empty importer was removed with no retained lockfile delta. No dependency, target execution, network, GitHub write, model provider, paid cloud, or paid SaaS was added. These Builder checks are provisional and do not establish product readiness, a trusted release, independent acceptance, or an authoritative Proofrail product Verdict.
