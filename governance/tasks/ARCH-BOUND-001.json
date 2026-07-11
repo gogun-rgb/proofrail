@@ -1,0 +1,148 @@
+{
+  "task": {
+    "id": "ARCH-BOUND-001",
+    "class": "bounded_current_package_dependency_drift_guard",
+    "objective": "Mechanically guard the exact current production-package classification, allowed workspace dependency edges, runtime manifest declarations, and Node or bare import surface without claiming complete semantic enforcement of the authoritative dependency rules."
+  },
+  "scope": {
+    "write": [
+      "governance/tasks/ARCH-BOUND-001.json",
+      "scripts/architecture/check-package-boundaries.mjs",
+      "scripts/architecture/lib/package-boundaries.mjs",
+      "tests/architecture/package-boundaries.test.mjs",
+      "package.json",
+      "governance/architecture-check-preparation.json",
+      "docs/engineering/foundation-mechanization.md",
+      "docs/plans/debt.md",
+      "docs/engineering/validation-evidence.md",
+      "README.md"
+    ],
+    "read_only_authority": [
+      "AGENTS.md",
+      "docs/constitution/**",
+      "docs/architecture/**",
+      "docs/product/**",
+      "docs/protocols/**",
+      "docs/quality/**",
+      "docs/engineering/machine-task-contract.md",
+      "packages/**",
+      ".github/**",
+      "governance/machine-task-contract.schema.json",
+      "governance/harness-reason-codes.json",
+      "governance/harness-reason-codes.schema.json",
+      "governance/foundation.config.json",
+      "governance/foundation.config.schema.json",
+      "governance/generated/**",
+      "existing governance/tasks/**"
+    ],
+    "forbidden": [
+      "all paths outside scope.write",
+      "modification of existing Machine Task Contracts",
+      "authority-bearing documentation or schemas",
+      "all package production source and package manifests",
+      "package exports, versions, names, runtime dependencies, optional dependencies, peer dependencies, bundled dependencies, or bundle dependencies",
+      "complete semantic enforcement claims for docs/architecture/dependency-rules.md",
+      "changes to package-layer authority, canonical terminology, Trust, Evidence authority, Verdict, protocol, Policy, Rule, contract, kernel, or product semantics",
+      "general-purpose linting, module resolution, import target existence checks, transitive node_modules analysis, generated code analysis, or target repository analysis",
+      "eval, new Function, aliased createRequire, subprocess-loaded code, or non-production-path analysis",
+      "tests, docs, examples, fixtures, generated output, build output, node_modules, or target repositories as inspected production inputs",
+      "governance validator, Foundation harness reason-code registry, generated governance, or Foundation VALID or INVALID vocabulary changes",
+      "new dependencies, lockfile, workspace, TypeScript configuration, CI workflow, generated artifact, or external tool changes",
+      "target inspection or execution, verification execution product behavior, network access, GitHub writes, inference, models, billing, paid cloud, or paid SaaS",
+      "product readiness, trusted release, independent acceptance, or authoritative Proofrail product Verdict claims"
+    ]
+  },
+  "authority": {
+    "read": [
+      "governance/tasks/ARCH-BOUND-001.json",
+      "AGENTS.md",
+      "docs/engineering/machine-task-contract.md",
+      "docs/architecture/dependency-rules.md",
+      "docs/engineering/foundation-mechanization.md",
+      "docs/plans/debt.md",
+      "governance/architecture-check-preparation.json",
+      "package.json",
+      "pnpm-workspace.yaml",
+      "tsconfig.json",
+      ".github/workflows/foundation-governance.yml",
+      "packages/contracts/package.json",
+      "packages/contracts/src/**",
+      "packages/kernel/package.json",
+      "packages/kernel/src/**",
+      "packages/evidence-gate/package.json",
+      "packages/evidence-gate/src/**",
+      "packages/static-evaluator/package.json",
+      "packages/static-evaluator/src/**"
+    ],
+    "mayChangeAuthority": false,
+    "mayChangeProductSemantics": false
+  },
+  "acceptance": {
+    "requirements": [
+      "Commit this contract alone as the first branch commit from the exact merged-main baseline c5cbd6f1a7cf23e6bd6613115e5b1c8de93fa116.",
+      "Discover only immediate packages/* directories with package.json and inspect only their production src trees recursively; exclude tests, docs, examples, fixtures, generated output, build output, node_modules, and target repositories.",
+      "Classify exactly @proofrail/contracts as contracts, @proofrail/kernel as kernel, and @proofrail/evidence-gate plus @proofrail/static-evaluator as delivery; reject any missing, duplicate, or unclassified immediate package.",
+      "Freeze exact allowed workspace edges: contracts has none, kernel has only @proofrail/contracts, evidence-gate has none, and static-evaluator has only @proofrail/kernel. Reject contracts-to-later, kernel-to-delivery, delivery-to-delivery, forbidden, undeclared, or silently newly direction-valid edges, including exact @proofrail package names and subpaths.",
+      "Inspect dependencies, optionalDependencies, peerDependencies, bundleDependencies, and bundledDependencies as runtime manifest sections while ignoring devDependencies; accept bundle dependency arrays where structurally valid and require the exact accepted workspace dependency set for each current package.",
+      "Freeze the current Node or bare production import surface: contracts has none; kernel permits node:crypto and node:util; evidence-gate permits node:child_process, node:crypto, node:fs/promises, node:path, node:url, and node:util; static-evaluator permits node:fs/promises and node:util. Permit no external bare runtime import.",
+      "Reject source or package src symbolic links rather than following them and inspect files ending .js, .mjs, .cjs, .jsx, .ts, .mts, .cts, or .tsx, including .d.ts files.",
+      "Use the existing root TypeScript 5.8.3 parser AST, never regular expressions, to recognize static and side-effect imports, export-from declarations, literal dynamic import calls, TypeScript import-equals declarations, TypeScript and JSDoc import types, literal require calls, and literal require.resolve calls.",
+      "Fail closed on nonliteral dynamic import, require, or require.resolve targets, parse failures, unclassified packages, forbidden or undeclared workspace edges, relative imports escaping the package root, and unapproved bare, Node, URL, absolute, or # specifiers. Comments and ordinary string literals must not count as imports.",
+      "Allow intra-package relative paths only when their resolved spelling stays within the package root; do not perform general module resolution or require imported targets to exist.",
+      "Emit deterministic diagnostics sorted by POSIX path, line, column, engineering finding ID, and target without absolute host paths or untrusted source excerpts. Use standalone ARCHCHK_* engineering IDs and do not modify the Foundation harness reason registry or emit Foundation VALID or INVALID or product Verdict terms.",
+      "Provide a no-argument repository CLI deriving the repository root from its own location; return exit 0 when no findings exist and exit 1 for findings or tool failure. Do not add an alternate-root CLI argument; the internal library may accept a synthetic root for tests.",
+      "Add architecture:check and test:architecture scripts and run both in root verify after governance tests and before Evidence Gate, static evaluator, type checking, and kernel tests. Do not edit CI because the existing workflow already runs pnpm verify.",
+      "Add current-repository success coverage and synthetic temporary-fixture tests for every recognized import form; exact and subpath workspace imports; forbidden forward and same-layer edges; undeclared otherwise-allowed edges; relative escape; unknown packages; exact Node and bare allowlists; computed loads; ignored comments and strings; excluded tests and docs; parse failure; source symbolic links with explicit operating-system-only skip when unavoidable; manifest runtime sections including array bundle dependencies; and byte-identical diagnostic order without host paths.",
+      "Update governance/architecture-check-preparation.json from prepared and absent to an accurate bounded partial current-package enforcement state without redefining authority or claiming full semantic enforcement.",
+      "Update README, foundation mechanization, DEBT-002, and actual validation evidence with the exact bounded coverage and open gaps, including no eval, new Function, aliased createRequire, subprocess-generated code, transitive dependency, general module-resolution, or product-runtime coverage.",
+      "Preserve all package source and manifest bytes, existing authority and product semantics, CI, lockfile, workspace, TypeScript configuration, generated governance, and dependencies."
+    ]
+  },
+  "verification": {
+    "commands": [
+      "pnpm architecture:check",
+      "pnpm test:architecture",
+      "pnpm governance:check",
+      "pnpm governance:check-json",
+      "pnpm test:governance",
+      "pnpm verify",
+      "node scripts/validate-foundation.mjs",
+      "node scripts/validate-foundation.mjs --format json",
+      "git diff --check"
+    ],
+    "requiredInvariants": [
+      "Every changed path is writable and this contract is the first branch commit from the exact baseline.",
+      "Current production packages pass only with the frozen classification, workspace edge declarations, and Node or bare import surface.",
+      "Every supported import form is parsed by the TypeScript AST and computed load targets fail closed without treating comments or ordinary strings as imports.",
+      "Diagnostics are byte-stable, sorted, non-disclosing, repository-relative, and use only standalone ARCHCHK_* engineering IDs.",
+      "The checker remains explicitly partial and does not claim complete semantic dependency-rule enforcement.",
+      "pnpm verify exercises both architecture commands without modifying the workspace.",
+      "All package source and manifest blobs remain identical to the exact baseline.",
+      "No dependency, lockfile, workspace, TypeScript, CI, generated-governance, harness-registry, authority, semantic, target, network, inference, readiness, release, or product Verdict change is introduced."
+    ]
+  },
+  "requiredArtifacts": [
+    "ARCH-BOUND-001 contract",
+    "bounded TypeScript-AST package boundary library",
+    "no-argument architecture checker CLI",
+    "current repository and synthetic regression tests",
+    "root script and verify integration",
+    "bounded architecture preparation-state update",
+    "README, foundation mechanization, and debt residual-gap notes",
+    "actual validation evidence",
+    "independent exact-head review"
+  ],
+  "stopConditions": [
+    "A change outside the ten writable paths is required: BLOCKED_SCOPE",
+    "Authority, dependency-rule semantics, package source, package manifests, contracts, kernel, protocol, Trust, Evidence authority, Verdict, Policy, Rule, or product semantics must change: BLOCKED_SCOPE",
+    "Complete semantic enforcement, general module resolution, target existence validation, transitive dependency inspection, or broader linting is required: BLOCKED_SCOPE",
+    "The existing TypeScript parser cannot recognize the contracted syntax without a new parser or dependency: BLOCKED_SCOPE",
+    "The current package classification, allowed workspace edges, runtime declarations, or Node and bare import surface differs materially from the exact baseline: BLOCKED_SCOPE",
+    "A dependency, lockfile, workspace, TypeScript configuration, CI, generated governance, harness registry, target execution, network, GitHub write, model, paid cloud, or paid SaaS change is required: BLOCKED_COST_RISK",
+    "Codex usage limit is reached: LIMIT_REACHED"
+  ],
+  "review": {
+    "expectation": "independent_review_required",
+    "reviewerMustNotRelyOnBuilderClaim": true
+  }
+}
