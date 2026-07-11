@@ -36,17 +36,31 @@ Phase 2 AI PR Evidence Gate focus work MUST preserve the authoritative data-flow
 
 The narrowed Phase 2 product direction is evidence-packet planning for AI-authored GitHub pull requests. It is claim/evidence/review-packet oriented only: it may describe how future work should separate Builder claims, observed evidence, missing evidence, scope boundaries, and reviewer needs, but it must not implement repository inspection, verification execution, adapters, delivery surfaces, or target-code execution behavior.
 
-Current focus work MUST NOT present Proofrail as having a working product runtime, repository inspection, verification execution, adapters, delivery surfaces, GitHub integration, Inference Zone implementation, product readiness, trusted release status, or an authoritative Proofrail product Verdict until separately authorized, implemented, and independently accepted.
+Current focus work MUST NOT present Proofrail as having a working product runtime, repository inspection, verification execution, adapters, delivery surfaces, GitHub integration, Inference Zone implementation, product readiness, trusted release status, or an authoritative Proofrail product Verdict until separately authorized, implemented, and accepted through the configured repository engineering review process.
 
 ## Autonomous Execution Default
 
-Within a valid Machine Task Contract, repository engineering agents SHOULD execute autonomously toward the task acceptance requirements. The contract defines trust, scope, authority, writable and forbidden targets, acceptance, verification, required artifacts, stop conditions, and independent review boundaries. It is not a prescribed step-by-step implementation procedure.
+Within a valid Machine Task Contract, repository engineering agents SHOULD execute autonomously toward the task acceptance requirements. The contract defines trust, scope, authority, writable and forbidden targets, acceptance, verification, required artifacts, stop conditions, and review boundaries. It is not a prescribed step-by-step implementation procedure.
 
 After the Authority-Change Preflight authorizes the affected targets, an agent MAY autonomously choose work order, writable files within `scope.write`, implementation strategy, test design, verification sequencing, failure diagnosis, retry, rollback of task-local reversible changes, and remediation. Do not ask for human approval for ordinary reversible implementation choices that are already inside granted authority.
 
-Prefer autonomous convergence loops for Builder findings and independent review findings when an applicable convergence contract grants the needed scope and authority. Reserve human escalation for product-direction ambiguity, irreversible external actions, material cost or resource commitment, security exceptions, authority conflicts, or repeated autonomous-loop deadlock.
+Prefer autonomous convergence loops for Builder findings and review findings when an applicable convergence contract grants the needed scope and authority. Reserve human escalation for product-direction ambiguity, irreversible external actions, material cost or resource commitment, security exceptions, authority conflicts, or repeated autonomous-loop deadlock.
 
-Higher risk SHOULD normally increase evidence requirements and independent review depth before it reduces agent autonomy. Agent action is not an approved change. An approved repository change is not a trusted release. Autonomous remediation does not grant acceptance, release, independent review authority, or an authoritative Proofrail product Verdict.
+Higher risk SHOULD normally increase evidence requirements and self-review rigor before it reduces agent autonomy. Agent action is not an approved change. An approved repository change is not a trusted release. Autonomous remediation does not grant acceptance, release authority, or an authoritative Proofrail product Verdict.
+
+## Repository Engineering Review Model
+
+The default repository engineering review model is evidence-based self-review. The same agent, operator, GitHub account, publisher, and release decision-maker MAY perform the review when the review is executed as a distinct verification pass and is grounded in observable evidence rather than the Builder's claims.
+
+No separate human, organization, GitHub account, or stable reviewer identity is required unless the user's latest explicit instruction for the specific task requires a named independent human reviewer.
+
+For backward compatibility, an existing Machine Task Contract value of `independent_review_required` is a legacy label. Unless the contract explicitly requires a different human reviewer, satisfy it through a fresh review pass that re-reads the retained diff and evidence without assuming the implementation is correct. It does not require a second person or a second account.
+
+A compliant self-review MUST inspect the exact retained changes, compare them with scope and acceptance requirements, run or inspect the required verification, record meaningful results, check for weakened tests or hidden scope expansion, and avoid relying solely on Builder summaries or model confidence.
+
+External independent review MAY be added as a risk control, but its absence MUST NOT block ordinary repository engineering work, acceptance, publication, or release decisions when the evidence-based self-review requirements are satisfied.
+
+Agents MUST NOT ask for another person's stable ID or report `BLOCKED` solely because `github:gogun-rgb` or another single operator serves as publisher, reviewer, and release decision-maker.
 
 ## Authority-Change Preflight
 
@@ -88,7 +102,7 @@ Do not self-grant authority. A clean agent MUST NOT take a plain natural-languag
 Authority-changing work may proceed only when one of these is true:
 
 - an applicable committed Machine Task Contract already identifies the task and grants the required authority
-- external task input explicitly supplies a complete Machine Task Contract, including task identity, scope, authority, acceptance, verification, stop conditions, and independent review boundary
+- external task input explicitly supplies a complete Machine Task Contract, including task identity, scope, authority, acceptance, verification, stop conditions, and review boundary
 
 When external task input explicitly supplies a complete Machine Task Contract, the Builder may materialize that supplied contract as the first task artifact before other authorized edits. Materializing externally supplied authority is not the same as inventing or widening authority.
 
@@ -129,10 +143,10 @@ pnpm verify
 
 The root validator remains available as `node scripts/validate-foundation.mjs`, with machine-readable output via `node scripts/validate-foundation.mjs --format json`.
 
-Record meaningful evidence in [docs/engineering/validation-evidence.md](docs/engineering/validation-evidence.md). Builder self-checks are provisional only.
+Record meaningful evidence in [docs/engineering/validation-evidence.md](docs/engineering/validation-evidence.md). Evidence-based self-review is an accepted repository engineering review when it satisfies the Review Model above. It does not by itself establish product readiness, trusted release status, or an authoritative Proofrail product Verdict.
 
 ## Stop Conditions
 
 Report `BLOCKED` when constitutional requirements irreconcilably conflict, a trust-boundary decision lacks authority, a security exception is required, an authoritative protocol decision would change product identity, or the task requires forbidden runtime behavior.
 
-Do not report `BLOCKED` for ordinary difficulty, reversible naming choices, documentation typos, missing convenience tooling, or uncertainty resolvable from authoritative docs.
+Do not report `BLOCKED` for ordinary difficulty, reversible naming choices, documentation typos, missing convenience tooling, uncertainty resolvable from authoritative docs, or the absence of a separate independent reviewer identity.
