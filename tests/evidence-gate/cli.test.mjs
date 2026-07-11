@@ -1,11 +1,15 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
+  existsSync,
   linkSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   rmSync,
+  statSync,
   symlinkSync,
   writeFileSync
 } from "node:fs";
@@ -51,6 +55,10 @@ function paddedExample(size) {
   return Buffer.concat([source, Buffer.alloc(size - source.length, 0x20)]);
 }
 
+function temporaryEntries(directory) {
+  return readdirSync(directory).filter((name) => name.startsWith(".proofrail-"));
+}
+
 function createFileSymlinkOrSkip(t, target, link) {
   try {
     symlinkSync(target, link, "file");
@@ -58,6 +66,19 @@ function createFileSymlinkOrSkip(t, target, link) {
   } catch (error) {
     if (error && ["EACCES", "EPERM", "ENOSYS", "EOPNOTSUPP"].includes(error.code)) {
       t.skip("symbolic-link creation denied by OS: " + error.code);
+      return false;
+    }
+    throw error;
+  }
+}
+
+function createBrokenOutputLinkOrSkip(t, target, link) {
+  try {
+    symlinkSync(target, link, process.platform === "win32" ? "junction" : "file");
+    return true;
+  } catch (error) {
+    if (error && ["EACCES", "EPERM", "ENOSYS", "EOPNOTSUPP"].includes(error.code)) {
+      t.skip("broken-link creation denied by OS: " + error.code);
       return false;
     }
     throw error;
@@ -136,6 +157,28 @@ test("CLI writes deterministic human report to stdout and file", () => {
   });
 });
 
+test("CLI replaces existing JSON and human outputs with exact staged bytes", () => {
+  withTempDirectory((directory) => {
+    for (const [format, expected] of [
+      ["json", readExpectedOutput()],
+      ["human", readExpectedReport()]
+    ]) {
+      const outputPath = path.join(directory, `existing-${format}.txt`);
+      writeFileSync(outputPath, "PREVIOUS_OUTPUT_BYTES");
+      const result = runCli([
+        "--input", EXAMPLE_INPUT,
+        "--format", format,
+        "--output", outputPath
+      ]);
+      assert.equal(result.status, 0);
+      assert.equal(result.stdout, "");
+      assert.equal(result.stderr, "");
+      assert.equal(readFileSync(outputPath, "utf8"), expected);
+      assert.deepEqual(temporaryEntries(directory), []);
+    }
+  });
+});
+
 test("CLI rejects invalid and duplicate format arguments", () => {
   const invalid = runCli(["--input", EXAMPLE_INPUT, "--format", "yaml"]);
   assert.notEqual(invalid.status, 0);
@@ -168,14 +211,19 @@ test("CLI rejects malformed JSON without disclosing secret-like input", () => {
   withTempDirectory((directory) => {
     const secret = "sk-live-complete-secret-value-123456";
     const inputPath = path.join(directory, "malformed.json");
+    const outputPath = path.join(directory, "existing-output.json");
+    const originalOutput = Buffer.from("PRESERVE_OUTPUT_BEFORE_PARSE");
     writeFileSync(inputPath, `{\"apiKey\":\"${secret}\",\"pullRequest\":`, "utf8");
 
-    const result = runCli(["--input", inputPath]);
+    writeFileSync(outputPath, originalOutput);
+    const result = runCli(["--input", inputPath, "--output", outputPath]);
 
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /malformed JSON/i);
     assert.doesNotMatch(result.stderr, new RegExp(secret));
     assert.equal(result.stdout, "");
+    assert.deepEqual(readFileSync(outputPath), originalOutput);
+    assert.deepEqual(temporaryEntries(directory), []);
   });
 });
 
@@ -183,14 +231,19 @@ test("CLI reports invalid input shape without echoing secret-like values", () =>
   withTempDirectory((directory) => {
     const secret = "ghp_complete_secret_value_123456";
     const inputPath = path.join(directory, "invalid-shape.json");
+    const outputPath = path.join(directory, "existing-output.json");
+    const originalOutput = Buffer.from("PRESERVE_OUTPUT_BEFORE_BUILD");
     writeFileSync(inputPath, JSON.stringify({ pullRequest: secret }), "utf8");
 
-    const result = runCli(["--input", inputPath]);
+    writeFileSync(outputPath, originalOutput);
+    const result = runCli(["--input", inputPath, "--output", outputPath]);
 
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /pullRequest must be an object/);
     assert.doesNotMatch(result.stderr, new RegExp(secret));
     assert.equal(result.stdout, "");
+    assert.deepEqual(readFileSync(outputPath), originalOutput);
+    assert.deepEqual(temporaryEntries(directory), []);
   });
 });
 
@@ -301,8 +354,104 @@ test("CLI enforces bounded regular-file fatal UTF-8 input", async (t) => {
         assert.equal(result.stdout, "");
         assert.equal(result.stderr, "evidence-gate: " + message + "\n");
         assert.deepEqual(readFileSync(output), originalOutput);
+        assert.deepEqual(temporaryEntries(directory), []);
       }
     });
+  });
+});
+
+test("CLI uses fixed output errors without mutating invalid targets", async (t) => {
+  await t.test("directory output", () => {
+    withTempDirectory((directory) => {
+      const before = readdirSync(directory);
+      const result = runCli(["--input", EXAMPLE_INPUT, "--output", directory]);
+      assert.notEqual(result.status, 0);
+      assert.equal(result.stdout, "");
+      assert.equal(result.stderr, "evidence-gate: could not write the output file\n");
+      assert.deepEqual(readdirSync(directory), before);
+    });
+  });
+
+  await t.test("missing parent", () => {
+    withTempDirectory((directory) => {
+      const secret = "SYNTHETIC_OUTPUT_PATH_SECRET_DO_NOT_DISCLOSE";
+      const missingParent = path.join(directory, "missing-" + secret);
+      const output = path.join(missingParent, "packet.json");
+      const result = runCli(["--input", EXAMPLE_INPUT, "--output", output]);
+      assert.notEqual(result.status, 0);
+      assert.equal(result.stdout, "");
+      assert.equal(result.stderr, "evidence-gate: could not write the output file\n");
+      assert.doesNotMatch(result.stderr, new RegExp(secret));
+      assert.equal(existsSync(missingParent), false);
+      assert.deepEqual(temporaryEntries(directory), []);
+    });
+  });
+
+  await t.test("broken symbolic link or junction", (subtest) => {
+    withTempDirectory((directory) => {
+      const missingTarget = path.join(directory, "missing-target");
+      const output = path.join(directory, "broken-link.json");
+      const inputBefore = readFileSync(EXAMPLE_INPUT);
+      if (!createBrokenOutputLinkOrSkip(subtest, missingTarget, output)) return;
+      const result = runCli(["--input", EXAMPLE_INPUT, "--output", output]);
+      assert.notEqual(result.status, 0);
+      assert.equal(result.stdout, "");
+      assert.equal(result.stderr, "evidence-gate: could not write the output file\n");
+      assert.equal(lstatSync(output).isSymbolicLink(), true);
+      assert.equal(existsSync(missingTarget), false);
+      assert.deepEqual(readFileSync(EXAMPLE_INPUT), inputBefore);
+      assert.deepEqual(temporaryEntries(directory), []);
+    });
+  });
+});
+
+test("CLI preserves a healthy output symlink and updates its canonical target", (t) => {
+  withTempDirectory((directory) => {
+    const linkDirectory = path.join(directory, "links");
+    const targetDirectory = path.join(directory, "targets");
+    mkdirSync(linkDirectory);
+    mkdirSync(targetDirectory);
+    const target = path.join(targetDirectory, "packet-target.json");
+    const output = path.join(linkDirectory, "packet-link.json");
+    writeFileSync(target, "PREVIOUS_TARGET_BYTES");
+    if (!createFileSymlinkOrSkip(t, target, output)) return;
+
+    const result = runCli(["--input", EXAMPLE_INPUT, "--output", output]);
+    assert.equal(result.status, 0);
+    assert.equal(result.stdout, "");
+    assert.equal(result.stderr, "");
+    assert.equal(lstatSync(output).isSymbolicLink(), true);
+    assert.equal(readFileSync(target, "utf8"), readExpectedOutput());
+    assert.equal(readFileSync(output, "utf8"), readExpectedOutput());
+    assert.deepEqual(temporaryEntries(linkDirectory), []);
+    assert.deepEqual(temporaryEntries(targetDirectory), []);
+  });
+});
+
+test("CLI replaces only a selected hardlink entry", () => {
+  withTempDirectory((directory) => {
+    const sibling = path.join(directory, "sibling.json");
+    const output = path.join(directory, "selected.json");
+    const original = Buffer.from("SHARED_ORIGINAL_BYTES");
+    writeFileSync(sibling, original);
+    linkSync(sibling, output);
+    const beforeSibling = statSync(sibling, { bigint: true });
+    const beforeOutput = statSync(output, { bigint: true });
+    assert.equal(beforeSibling.dev, beforeOutput.dev);
+    assert.equal(beforeSibling.ino, beforeOutput.ino);
+
+    const result = runCli(["--input", EXAMPLE_INPUT, "--output", output]);
+    assert.equal(result.status, 0);
+    assert.equal(result.stdout, "");
+    assert.equal(result.stderr, "");
+    assert.deepEqual(readFileSync(sibling), original);
+    assert.equal(readFileSync(output, "utf8"), readExpectedOutput());
+    const afterSibling = statSync(sibling, { bigint: true });
+    const afterOutput = statSync(output, { bigint: true });
+    if (afterSibling.dev !== 0n || afterSibling.ino !== 0n) {
+      assert.notEqual(`${afterSibling.dev}:${afterSibling.ino}`, `${afterOutput.dev}:${afterOutput.ino}`);
+    }
+    assert.deepEqual(temporaryEntries(directory), []);
   });
 });
 

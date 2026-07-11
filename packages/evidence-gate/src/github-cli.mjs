@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 
-import { writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
-import { assertDistinctFiles, readBoundedUtf8File } from "./file-io.js";
+import {
+  assertDistinctFiles,
+  readBoundedUtf8File,
+  writeStagedUtf8File
+} from "./file-io.js";
 import { buildEvidencePacket, canonicalJson } from "./index.js";
 import { renderHumanReport } from "./report.js";
 import {
@@ -98,7 +101,7 @@ export async function runGitHubCli(args = process.argv.slice(2)) {
   }
 
   try {
-    await writeFile(options.output, output, "utf8");
+    await writeStagedUtf8File(options.output, output);
   } catch {
     throw new Error("could not write the output file");
   }

@@ -4,10 +4,13 @@ import {
   chmodSync,
   existsSync,
   linkSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   rmSync,
+  statSync,
   symlinkSync,
   writeFileSync
 } from "node:fs";
@@ -78,6 +81,18 @@ function paddedDeclaredScope(size) {
   return Buffer.concat([source, Buffer.alloc(size - source.length, 0x20)]);
 }
 
+function temporaryEntries(directory) {
+  return readdirSync(directory).filter((name) => name.startsWith(".proofrail-"));
+}
+
+function readFileIfAvailable(file) {
+  try {
+    return readFileSync(file, "utf8");
+  } catch {
+    return null;
+  }
+}
+
 function createFileSymlinkOrSkip(t, target, link) {
   try {
     symlinkSync(target, link, "file");
@@ -85,6 +100,19 @@ function createFileSymlinkOrSkip(t, target, link) {
   } catch (error) {
     if (error && ["EACCES", "EPERM", "ENOSYS", "EOPNOTSUPP"].includes(error.code)) {
       t.skip("symbolic-link creation denied by OS: " + error.code);
+      return false;
+    }
+    throw error;
+  }
+}
+
+function createBrokenOutputLinkOrSkip(t, target, link) {
+  try {
+    symlinkSync(target, link, process.platform === "win32" ? "junction" : "file");
+    return true;
+  } catch (error) {
+    if (error && ["EACCES", "EPERM", "ENOSYS", "EOPNOTSUPP"].includes(error.code)) {
+      t.skip("broken-link creation denied by OS: " + error.code);
       return false;
     }
     throw error;
@@ -354,12 +382,13 @@ function runGitHubCliWithFakeGh({
         .filter(Boolean)
         .map((line) => JSON.parse(line))
       : null;
+    const observed = prepared.observe?.() ?? {};
     return {
       ...result,
       ghArgs: captured,
-      fileOutput: existsSync(effectiveOutputPath)
-        ? readFileSync(effectiveOutputPath, "utf8")
-        : null,
+      fileOutput: readFileIfAvailable(effectiveOutputPath),
+      observed,
+      temporaryEntries: temporaryEntries(directory),
       trackedBefore,
       trackedAfter: tracked.map((file) => readFileSync(file))
     };
@@ -1963,6 +1992,168 @@ test("GitHub CLI output file is byte-identical to stdout mode", () => {
   assert.equal(fileResult.stdout, "");
   assert.equal(fileResult.stderr, "");
   assert.equal(fileResult.fileOutput, stdoutResult.stdout);
+  assert.deepEqual(fileResult.temporaryEntries, []);
+});
+
+test("GitHub CLI replaces existing JSON and human outputs with exact staged bytes", () => {
+  for (const format of ["json", "human"]) {
+    const stdoutResult = runGitHubCliWithFakeGh({ format });
+    const fileResult = runGitHubCliWithFakeGh({
+      format,
+      writeOutput: true,
+      preparePaths: ({ outputPath }) => {
+        writeFileSync(outputPath, "PREVIOUS_OUTPUT_BYTES");
+        return {};
+      }
+    });
+    assert.equal(fileResult.status, 0);
+    assert.equal(fileResult.stdout, "");
+    assert.equal(fileResult.stderr, "");
+    assert.equal(fileResult.fileOutput, stdoutResult.stdout);
+    assert.deepEqual(fileResult.temporaryEntries, []);
+  }
+});
+
+test("GitHub collection failure preserves an existing output and creates no temp", () => {
+  const original = Buffer.from("PRESERVE_BEFORE_COLLECTION");
+  const result = runGitHubCliWithFakeGh({
+    mode: "failure",
+    writeOutput: true,
+    preparePaths: ({ outputPath }) => {
+      writeFileSync(outputPath, original);
+      return { tracked: [outputPath] };
+    }
+  });
+  assert.notEqual(result.status, 0);
+  assert.equal(result.stdout, "");
+  assert.equal(
+    result.stderr,
+    "evidence-gate-github: GitHub collection failed while reading pull request metadata\n"
+  );
+  assert.deepEqual(result.trackedAfter, result.trackedBefore);
+  assert.deepEqual(result.temporaryEntries, []);
+});
+
+test("GitHub CLI uses fixed output errors without mutating invalid targets", async (t) => {
+  await t.test("directory output", () => {
+    const result = runGitHubCliWithFakeGh({
+      writeOutput: true,
+      preparePaths: ({ directory }) => ({ outputPath: directory })
+    });
+    assert.notEqual(result.status, 0);
+    assert.equal(result.stdout, "");
+    assert.equal(result.stderr, "evidence-gate-github: could not write the output file\n");
+    assert.equal(result.ghArgs.length, 9);
+    assert.deepEqual(result.temporaryEntries, []);
+  });
+
+  await t.test("missing parent", () => {
+    const secret = "SYNTHETIC_OUTPUT_PATH_SECRET_DO_NOT_DISCLOSE";
+    const result = runGitHubCliWithFakeGh({
+      writeOutput: true,
+      preparePaths: ({ directory }) => ({
+        outputPath: path.join(directory, "missing-" + secret, "packet.json")
+      })
+    });
+    assert.notEqual(result.status, 0);
+    assert.equal(result.stdout, "");
+    assert.equal(result.stderr, "evidence-gate-github: could not write the output file\n");
+    assert.doesNotMatch(result.stderr, new RegExp(secret));
+    assert.equal(result.ghArgs.length, 9);
+    assert.deepEqual(result.temporaryEntries, []);
+  });
+
+  await t.test("broken symbolic link or junction with distinct scope", (subtest) => {
+    const result = runGitHubCliWithFakeGh({
+      scopeFile: declaredScopeFixture(),
+      writeOutput: true,
+      preparePaths: ({ directory, outputPath, scopeFilePath }) => {
+        const missingTarget = path.join(directory, "missing-target");
+        if (!createBrokenOutputLinkOrSkip(subtest, missingTarget, outputPath)) {
+          return { skip: true };
+        }
+        return {
+          tracked: [scopeFilePath],
+          observe: () => ({
+            isSymbolicLink: lstatSync(outputPath).isSymbolicLink(),
+            targetExists: existsSync(missingTarget)
+          })
+        };
+      }
+    });
+    if (result.skipped === true) return;
+    assert.notEqual(result.status, 0);
+    assert.equal(result.stdout, "");
+    assert.equal(result.stderr, "evidence-gate-github: could not write the output file\n");
+    assert.equal(result.ghArgs.length, 9);
+    assert.deepEqual(result.observed, { isSymbolicLink: true, targetExists: false });
+    assert.deepEqual(result.trackedAfter, result.trackedBefore);
+    assert.deepEqual(result.temporaryEntries, []);
+  });
+});
+
+test("GitHub CLI preserves a healthy output symlink and updates its target", (t) => {
+  const result = runGitHubCliWithFakeGh({
+    writeOutput: true,
+    preparePaths: ({ directory, outputPath }) => {
+      const target = path.join(directory, "packet-target.json");
+      writeFileSync(target, "PREVIOUS_TARGET_BYTES");
+      if (!createFileSymlinkOrSkip(t, target, outputPath)) {
+        return { skip: true };
+      }
+      return {
+        observe: () => ({
+          isSymbolicLink: lstatSync(outputPath).isSymbolicLink(),
+          targetBytes: readFileSync(target, "utf8")
+        })
+      };
+    }
+  });
+  if (result.skipped === true) return;
+  assert.equal(result.status, 0);
+  assert.equal(result.stdout, "");
+  assert.equal(result.stderr, "");
+  assert.equal(result.observed.isSymbolicLink, true);
+  assert.equal(result.observed.targetBytes, result.fileOutput);
+  assert.ok(result.fileOutput.endsWith("\n"));
+  assert.deepEqual(result.temporaryEntries, []);
+});
+
+test("GitHub CLI replaces only a selected hardlink output entry", () => {
+  const original = Buffer.from("SHARED_ORIGINAL_BYTES");
+  const result = runGitHubCliWithFakeGh({
+    writeOutput: true,
+    preparePaths: ({ directory, outputPath }) => {
+      const sibling = path.join(directory, "sibling.json");
+      writeFileSync(sibling, original);
+      linkSync(sibling, outputPath);
+      const beforeSibling = statSync(sibling, { bigint: true });
+      const beforeOutput = statSync(outputPath, { bigint: true });
+      assert.equal(beforeSibling.dev, beforeOutput.dev);
+      assert.equal(beforeSibling.ino, beforeOutput.ino);
+      return {
+        observe: () => {
+          const afterSibling = statSync(sibling, { bigint: true });
+          const afterOutput = statSync(outputPath, { bigint: true });
+          return {
+            siblingBytes: readFileSync(sibling),
+            sameIdentity: afterSibling.dev === afterOutput.dev
+              && afterSibling.ino === afterOutput.ino,
+            usableIdentity: afterSibling.dev !== 0n || afterSibling.ino !== 0n
+          };
+        }
+      };
+    }
+  });
+  assert.equal(result.status, 0);
+  assert.equal(result.stdout, "");
+  assert.equal(result.stderr, "");
+  assert.deepEqual(result.observed.siblingBytes, original);
+  if (result.observed.usableIdentity) {
+    assert.equal(result.observed.sameIdentity, false);
+  }
+  assert.ok(result.fileOutput.endsWith("\n"));
+  assert.deepEqual(result.temporaryEntries, []);
 });
 
 test("GitHub CLI human format uses the same collection and supports file output", () => {

@@ -6236,3 +6236,46 @@ GraphQL error-envelope tests covered absent and empty-array success plus null, o
 The pnpm workspace preflight projected an unrelated empty `packages/evidence-gate` lockfile importer. That empty importer was removed before the final retained tree; this task retains no dependency, lockfile, workspace, package-script, CI, or generated-governance change.
 
 No target repository inspection or execution, verification execution, direct HTTP client, GitHub write, credential or authentication setup, timeout or response-buffer change, atomic-output guarantee, model provider, inference, paid cloud, or paid SaaS was added. This bounded collection hardening does not establish Trusted Configuration, Evidence authority, product readiness, a trusted release, independent acceptance, or an authoritative Proofrail product Verdict. These Builder checks remain provisional pending independent exact-head review.
+
+## GATE-OUTPUT-001 Validation Evidence
+
+Date: 2026-07-11.
+
+Task identity: `GATE-OUTPUT-001`.
+
+Merged-main baseline: `cc3efb02fd8d57ad0bbbc7024f5c68a6fa39734e`.
+
+Task-contract first commit: `c9c289708dc40bc50e9d769b11c674b96d1ce2ab`.
+
+### Commands And Results
+
+The task-contract verification was executed from the repository root with the bundled local Node.js and pnpm runtime:
+
+```text
+pnpm governance:check                 exit 0
+pnpm governance:check-json            exit 0
+pnpm test:governance                  exit 0; 37 passed, 0 failed
+node --test tests/evidence-gate/file-io.test.mjs
+                                      exit 0; 15 passed, 0 failed
+node --test tests/evidence-gate/cli.test.mjs
+                                      exit 0; 34 total, 30 passed, 0 failed, 4 skipped
+node --test tests/evidence-gate/github-importer.test.mjs
+                                      exit 0; 167 total, 163 passed, 0 failed, 4 skipped
+pnpm test:evidence-gate               exit 0; 232 total, 224 passed, 0 failed, 8 skipped
+pnpm evidence-gate:demo               exit 0; canonical packet JSON written to stdout
+pnpm test:static-evaluator            exit 0; 10 passed, 0 failed
+pnpm typecheck:phase1                 exit 0
+pnpm test:kernel                      exit 0; 475 passed, 0 failed
+pnpm verify                           exit 0
+git diff --check                      exit 0
+```
+
+The eight Evidence Gate skips were only file-symbolic-link constructions denied by Windows with explicit OS code `EPERM`: four static-CLI cases and four GitHub-CLI cases. Non-privileged Windows broken-output junction regressions ran in both CLIs. The package-local helper's injected symlinked-parent and canonical symbolic-link-target placement tests ran, both CLI hardlink integrations ran, and all canonical spelling and alias tests remained in the complete suite. POSIX final mode-bit assertions recorded Windows diagnostics instead of claiming Windows ACL behavior; those helper tests themselves passed and were not skipped.
+
+Focused helper coverage observed a missing target and an existing target before publication, the complete staged UTF-8 bytes, a short fixed prefix with a 24-character hexadecimal random token, same-actual-directory placement, exclusive `wx` creation with `0o600`, selected new and existing ordinary modes, complete close before one rename attempt, and no cleanup call after successful rename. It also exercised non-collision open failure, rejection before open when a missing final path exactly matches a generated temporary candidate, zero-progress and partial-write failure, chmod failure, close failure with best-effort re-close, rename failure, successful cleanup, synchronous cleanup failure with an honest orphan possibility, original-error preservation, one `EEXIST` retry followed by success, sixteen-collision exhaustion, no deletion of unknown collision files, injected `undefined` default preservation, symlinked-parent resolution, and a symbolic-link target in a different actual directory.
+
+Static and GitHub CLI integration coverage retained exact new and existing JSON and human bytes, fixed non-disclosing write diagnostics, and existing alias ordering. Invalid static input, malformed JSON, invalid packet construction, invalid declared scope, and GitHub collection failures preserved existing output bytes without creating a staged file. Direct code-order inspection confirmed rendering remains before the staged helper call; no public renderer fault-injection hook or CLI behavior was added. Directory, missing-parent, and broken-symbolic-link or junction outputs used the fixed write error. A demonstrably broken output-only symbolic link or junction whose resolution reports `ENOENT`, `ENOTDIR`, or `ELOOP` proceeds past alias classification to that write boundary; source resolution failures, access failures, unknown identity failures, zero identities, and actual aliases remain fail-closed. The GitHub junction regression supplied a distinct declared-scope file, observed all nine expected `gh` calls before the write failure, and preserved the scope and link without a staged file. Healthy output symbolic links remained in place while their regular-file targets were updated where the operating system permitted construction. Distinct hardlink outputs replaced only the selected directory entry while sibling hardlinks retained their prior bytes. Actual declared-scope/output aliases still failed before `gh`.
+
+The retained tree has no package export, dependency, lockfile, workspace, package-script, TypeScript, CI, generated-governance, query, collection, packet, argument, format, report, authority, or product-semantic change. The pnpm workspace left no `pnpm-lock.yaml` diff.
+
+This task claims only staged output publication on a stable local filesystem. It requires parent-directory create and rename permission. Cleanup is best effort and may leave a known temporary orphan when cleanup fails. It does not establish general cross-platform atomicity, durability, crash safety, race safety, fsync, directory sync, recovery, filesystem rollback, attacker resistance, TOCTOU protection, ACL or ownership preservation, extended attributes, special mode bits, inode preservation, or timestamp preservation. Windows temporary mode `0o600` is not an owner-only ACL guarantee. No target repository inspection or execution, verification execution, GitHub write, credential, model provider, inference, paid cloud, or paid SaaS was added. These Builder checks are provisional and do not establish product readiness, a trusted release, independent acceptance, or an authoritative Proofrail product Verdict.
