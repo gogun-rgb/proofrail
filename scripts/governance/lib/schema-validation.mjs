@@ -67,12 +67,20 @@ export function validateJsonAgainstSchema({ schema, data, dataPath, collector, c
 
 export function validateMachineTaskContractSchemaConstants(schema, schemaRepoPath, collector) {
   const reviewProperties = schema?.properties?.review?.properties ?? {};
-  if (reviewProperties.expectation?.const !== "independent_review_required") {
+  const expectationValues = reviewProperties.expectation?.enum;
+  const requiredExpectations = ["evidence_based_self_review_required", "independent_review_required"];
+
+  if (
+    !Array.isArray(expectationValues) ||
+    expectationValues.length !== requiredExpectations.length ||
+    !requiredExpectations.every((expectation, index) => expectationValues[index] === expectation) ||
+    reviewProperties.expectation?.default !== requiredExpectations[0]
+  ) {
     collector.add(
       "HARN_MTC_SCHEMA_CONSTANT_INVALID",
       schemaRepoPath,
-      "Machine Task Contract schema must enforce review.expectation as independent_review_required.",
-      "Restore the const value for review.expectation.",
+      "Machine Task Contract schema must allow exactly evidence_based_self_review_required and the legacy independent_review_required value, with evidence-based self-review as the default.",
+      "Restore the exact review.expectation enum and default.",
     );
   }
 
@@ -82,6 +90,15 @@ export function validateMachineTaskContractSchemaConstants(schema, schemaRepoPat
       schemaRepoPath,
       "Machine Task Contract schema must enforce review.reviewerMustNotRelyOnBuilderClaim as true.",
       "Restore the const value for review.reviewerMustNotRelyOnBuilderClaim.",
+    );
+  }
+
+  if (reviewProperties.independentHumanRequired?.const !== false) {
+    collector.add(
+      "HARN_MTC_SCHEMA_CONSTANT_INVALID",
+      schemaRepoPath,
+      "Machine Task Contract schema must enforce review.independentHumanRequired as false.",
+      "Restore the const value for review.independentHumanRequired.",
     );
   }
 }
