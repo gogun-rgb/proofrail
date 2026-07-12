@@ -1,0 +1,74 @@
+{
+  "task": {
+    "id": "PRODUCT-RELEASE-002A",
+    "class": "machine_task_contract_scope_correction",
+    "objective": "Correct the PRODUCT-RELEASE-002 write-scope omission for the existing release CLI regression test so its expected Verdict can match the separately authorized base-SHA Observation behavior without weakening any assertion or changing production scope."
+  },
+  "scope": {
+    "write": [
+      "governance/tasks/PRODUCT-RELEASE-002A.json",
+      "tests/evidence-gate/release-cli.test.mjs"
+    ],
+    "read_only_authority": [
+      "governance/tasks/PRODUCT-RELEASE-001.json",
+      "governance/tasks/PRODUCT-RELEASE-002.json",
+      "governance/machine-task-contract.schema.json",
+      "packages/evidence-gate/src/release-cli.mjs",
+      "packages/release-orchestrator/src/index.js",
+      "examples/release/github-pr-27.snapshot.json",
+      "examples/release/expected-evidence-bundle.json"
+    ],
+    "forbidden": [
+      "all paths outside scope.write",
+      "modification of any existing Machine Task Contract",
+      "production code, configuration, Policy, Evidence Contract, schemas, fixtures, goldens, scripts, dependencies, or documentation",
+      "deletion, skipping, weakening, broadening, or restructuring of tests",
+      "any assertion change other than replacing the exact obsolete REVISION_REQUIRED expectation with ADMISSIBLE for the now-complete exact release fixture"
+    ]
+  },
+  "authority": {
+    "read": [
+      "governance/tasks/PRODUCT-RELEASE-002.json",
+      "tests/evidence-gate/release-cli.test.mjs",
+      "packages/evidence-gate/src/release-cli.mjs",
+      "examples/release/expected-evidence-bundle.json"
+    ],
+    "mayChangeAuthority": false,
+    "mayChangeProductSemantics": false
+  },
+  "acceptance": {
+    "requirements": [
+      "Treat this JSON as proposed content until external issuer github:gogun-rgb explicitly supplies its exact complete bytes or SHA-256 as PRODUCT-RELEASE-002A through authorization event operator-event:product-release-002a-test-scope-correction-v1.",
+      "Use exact baseline bd3d235 containing only the supplied PRODUCT-RELEASE-002 contract after candidate 2c4c5001b3fbef85c24325c17c9000eb8a289915, and commit this supplied addendum alone before implementation changes.",
+      "Change only the exact release CLI test Verdict expectation from REVISION_REQUIRED to ADMISSIBLE.",
+      "Preserve canonical-output, one-trailing-newline, finalized-bundle, failure-stage, authority-overwrite, and all other assertions unchanged.",
+      "Run the focused release CLI test and full pnpm verify after the authorized PRODUCT-RELEASE-002 implementation."
+    ]
+  },
+  "verification": {
+    "commands": [
+      "node --test tests/evidence-gate/release-cli.test.mjs",
+      "pnpm verify",
+      "git diff --check"
+    ],
+    "requiredInvariants": [
+      "The addendum is committed alone before implementation changes.",
+      "Exactly one existing expectation literal changes and no test is removed, skipped, weakened, or restructured.",
+      "All PRODUCT-RELEASE-002 and repository verification remains passing."
+    ]
+  },
+  "requiredArtifacts": [
+    "externally supplied PRODUCT-RELEASE-002A addendum committed alone",
+    "one-line release CLI expected-Verdict correction",
+    "focused and full verification results"
+  ],
+  "stopConditions": [
+    "The exact complete PRODUCT-RELEASE-002A bytes or SHA-256 have not been externally supplied: BLOCKED_AUTHORITY",
+    "Any production behavior or additional test change is required: BLOCKED_SCOPE",
+    "The correction would weaken coverage or pnpm verify fails: BLOCKED_VERIFICATION"
+  ],
+  "review": {
+    "expectation": "independent_review_required",
+    "reviewerMustNotRelyOnBuilderClaim": true
+  }
+}

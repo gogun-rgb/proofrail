@@ -41,7 +41,7 @@ const STATIC_INPUT = path.join(ROOT, "examples/evidence-gate/input.json");
 const STATIC_EXPECTED = path.join(ROOT, "examples/evidence-gate/expected-output.json");
 const MAX_SCOPE_FILE_BYTES = 64 * 1024;
 const MAX_GRAPHQL_INT = 2_147_483_647;
-const METADATA_QUERY = `query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){number title state isDraft changedFiles baseRefName headRefName headRefOid}}}`;
+const METADATA_QUERY = `query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){number title state isDraft changedFiles baseRefName baseRefOid headRefName headRefOid}}}`;
 const FILES_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){headRefOid files(first:100,after:$cursor){nodes{path additions deletions}pageInfo{hasNextPage endCursor}}}}}`;
 const COMMITS_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){headRefOid commits(first:100,after:$cursor){nodes{commit{oid}}pageInfo{hasNextPage endCursor}}}}}`;
 const REVIEWS_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){headRefOid reviews(first:100,after:$cursor){nodes{state submittedAt author{login}commit{oid}}pageInfo{hasNextPage endCursor}}}}}`;
@@ -157,6 +157,7 @@ function graphqlEnvelope(query, variables, snapshot) {
       isDraft: snapshot.isDraft,
       changedFiles: snapshot.changedFiles,
       baseRefName: snapshot.baseRefName,
+      baseRefOid: snapshot.baseOid,
       headRefName: snapshot.headRefName,
       headRefOid: snapshot.headOid
     } } } };
@@ -320,7 +321,7 @@ function runGitHubCliWithFakeGh({
       '  process.exit(1);',
       '}',
       'if (process.env.FAKE_GH_MODE === "malformed") { process.stdout.write("{not-json"); process.exit(0); }',
-      'if (process.env.FAKE_GH_MODE === "shape") { process.stdout.write(JSON.stringify({data:{repository:{pullRequest:{title:"secret=SYNTHETIC_SECRET_CANARY_DO_NOT_DISCLOSE"}}}})); process.exit(0); }',
+      'if (process.env.FAKE_GH_MODE === "shape") { process.stdout.write(JSON.stringify({data:{repository:{pullRequest:{baseRefOid:"0000000000000000000000000000000000000000",title:"secret=SYNTHETIC_SECRET_CANARY_DO_NOT_DISCLOSE"}}}})); process.exit(0); }',
       'const fields = {};',
       'for (let index = 1; index < raw.length; index += 2) {',
       '  const assignment = raw[index + 1];',
@@ -337,7 +338,7 @@ function runGitHubCliWithFakeGh({
       '}',
       'let result;',
       'if (query.includes("pullRequest(number:$number){number title")) {',
-      '  result={data:{repository:{pullRequest:{number:snapshot.number,title:snapshot.title,state:snapshot.state,isDraft:snapshot.isDraft,changedFiles:snapshot.changedFiles,baseRefName:snapshot.baseRefName,headRefName:snapshot.headRefName,headRefOid:snapshot.headOid}}}};',
+      '  result={data:{repository:{pullRequest:{number:snapshot.number,title:snapshot.title,state:snapshot.state,isDraft:snapshot.isDraft,changedFiles:snapshot.changedFiles,baseRefName:snapshot.baseRefName,baseRefOid:snapshot.baseOid,headRefName:snapshot.headRefName,headRefOid:snapshot.headOid}}}};',
       '} else if (query.includes("files(first:100")) {',
       '  result={data:{repository:{pullRequest:{headRefOid:snapshot.headOid,files:page(snapshot.files,"files",value=>value)}}}};',
       '} else if (query.includes("commits(first:100")) {',
@@ -438,7 +439,7 @@ test("sanitized fixture contains only the collector allowlist", () => {
   const snapshot = fixture();
   assertSanitizedFixture(snapshot);
   assert.deepEqual(Object.keys(snapshot).sort(), [
-    "baseRefName", "changedFiles", "checks", "commits", "files",
+    "baseOid", "baseRefName", "changedFiles", "checks", "commits", "files",
     "headOid", "headRefName", "isDraft", "number", "repository", "reviews", "state", "title"
   ]);
   assert.deepEqual(Object.keys(snapshot.files[0]).sort(), ["additions", "deletions", "path"]);
@@ -1472,6 +1473,7 @@ test("malformed output and shape drift fail readably without disclosing values",
         data: {
           repository: {
             pullRequest: {
+              baseRefOid: "0000000000000000000000000000000000000000",
               title: "token=SYNTHETIC_SECRET_CANARY_DO_NOT_DISCLOSE"
             }
           }
@@ -1484,6 +1486,24 @@ test("malformed output and shape drift fail readably without disclosing values",
       return true;
     }
   );
+
+  for (const baseRefOid of [undefined, null, "not-a-commit"]) {
+    const input = fixture();
+    const base = createGraphqlRunGh(input);
+    await assert.rejects(
+      collectGitHubPullRequest({
+        repository: input.repository,
+        pullRequestNumber: input.number,
+        runGh: async (args) => {
+          const { query } = parseGraphqlArgs(args);
+          const result = JSON.parse(await base(args));
+          if (query === METADATA_QUERY) result.data.repository.pullRequest.baseRefOid = baseRefOid;
+          return JSON.stringify(result);
+        },
+      }),
+      /pull request metadata base must be a commit identifier/,
+    );
+  }
 
   {
     const input = fixture();

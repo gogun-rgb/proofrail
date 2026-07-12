@@ -8,7 +8,7 @@ const MAX_CONNECTION_NODES = MAX_PAGES * MAX_PAGE_NODES;
 const MAX_GRAPHQL_INT = 2_147_483_647;
 const MAX_GRAPHQL_INT_DIGITS = String(MAX_GRAPHQL_INT).length;
 
-const METADATA_QUERY = `query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){number title state isDraft changedFiles baseRefName headRefName headRefOid}}}`;
+const METADATA_QUERY = `query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){number title state isDraft changedFiles baseRefName baseRefOid headRefName headRefOid}}}`;
 const FILES_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){headRefOid files(first:100,after:$cursor){nodes{path additions deletions}pageInfo{hasNextPage endCursor}}}}}`;
 const COMMITS_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){headRefOid commits(first:100,after:$cursor){nodes{commit{oid}}pageInfo{hasNextPage endCursor}}}}}`;
 const REVIEWS_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){headRefOid reviews(first:100,after:$cursor){nodes{state submittedAt author{login}commit{oid}}pageInfo{hasNextPage endCursor}}}}}`;
@@ -38,6 +38,7 @@ export async function collectGitHubPullRequest({
     "pull request metadata"
   );
   const metadata = requirePullRequest(metadataResult, "pull request metadata");
+  const baseOid = commitOid(metadata.baseRefOid, "pull request metadata base");
   const headOid = commitOid(metadata.headRefOid, "pull request metadata head");
   if (metadata.number !== number) {
     throw new Error("GitHub collection returned invalid pull request metadata");
@@ -101,6 +102,7 @@ export async function collectGitHubPullRequest({
     state: metadata.state,
     isDraft: metadata.isDraft,
     baseRefName: metadata.baseRefName,
+    baseOid,
     headRefName: metadata.headRefName,
     headOid,
     changedFiles: metadata.changedFiles,
@@ -446,6 +448,7 @@ function normalizeSnapshot(value) {
     state: enumValue(value.state, "snapshot.state", ["OPEN", "CLOSED", "MERGED"]),
     isDraft: booleanValue(value.isDraft, "snapshot.isDraft"),
     baseRefName: safeText(value.baseRefName, "snapshot.baseRefName", 255),
+    baseOid: commitOid(value.baseOid, "snapshot.baseOid"),
     headRefName: safeText(value.headRefName, "snapshot.headRefName", 255),
     headOid: commitOid(value.headOid, "snapshot.headOid"),
     changedFiles: nonNegativeInteger(value.changedFiles, "snapshot.changedFiles"),

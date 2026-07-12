@@ -25,6 +25,7 @@ export function assembleReleaseKernelInput(validatedConfiguration, suppliedSnaps
   const observedFacts = new Map([
     ["target.repository", snapshot.repository],
     ["target.pullRequestNumber", snapshot.number],
+    ["target.baseSha", snapshot.baseOid],
     ["target.headSha", snapshot.headOid],
     ["target.state", snapshot.state],
     ["target.isDraft", snapshot.isDraft],
@@ -36,9 +37,6 @@ export function assembleReleaseKernelInput(validatedConfiguration, suppliedSnaps
       && snapshot.checks.every((check) => isSuccessfulCheck(policy, check))],
   ]);
 
-  // The accepted collector does not query a base commit SHA and PRODUCT-RELEASE-001
-  // forbids expanding that query. The configured base remains cross-document target
-  // authority, but it is not fabricated as a GitHub Observation.
   const observationEntries = [...observedFacts.entries()].sort(([left], [right]) => compare(left, right));
   const observations = observationEntries.map(([factKey, factValue], index) => ({
     id: `obs.github.${factKey.replace(/[^A-Za-z0-9]+/g, "-").toLowerCase()}`,
@@ -89,6 +87,7 @@ function enforceTarget(configuration, snapshot) {
   if (snapshot.repository !== configuration.target.repository
       || snapshot.number !== configuration.target.pullRequestNumber
       || snapshot.baseRefName !== configuration.target.baseRefName
+      || snapshot.baseOid !== configuration.target.baseSha
       || snapshot.headOid !== configuration.target.headSha) {
     fail("TARGET_MISMATCH");
   }
@@ -96,12 +95,13 @@ function enforceTarget(configuration, snapshot) {
 }
 
 function normalizeSnapshot(value) {
-  exactObject(value, ["repository", "number", "title", "state", "isDraft", "baseRefName", "headRefName", "headOid", "changedFiles", "files", "commits", "checks", "reviews"]);
+  exactObject(value, ["repository", "number", "title", "state", "isDraft", "baseRefName", "baseOid", "headRefName", "headOid", "changedFiles", "files", "commits", "checks", "reviews"]);
   if (typeof value.repository !== "string" || !Number.isSafeInteger(value.number) || value.number < 1
       || typeof value.title !== "string" || value.title.length === 0 || value.title.length > 500
       || !["OPEN", "CLOSED", "MERGED"].includes(value.state)
       || typeof value.isDraft !== "boolean"
       || typeof value.baseRefName !== "string" || value.baseRefName === ""
+      || !/^[0-9a-f]{40}$/i.test(value.baseOid)
       || typeof value.headRefName !== "string" || value.headRefName === ""
       || !/^[0-9a-f]{40}$/i.test(value.headOid)
       || !Number.isSafeInteger(value.changedFiles) || value.changedFiles < 0
@@ -151,6 +151,7 @@ function normalizeSnapshot(value) {
     state: value.state,
     isDraft: value.isDraft,
     baseRefName: value.baseRefName,
+    baseOid: value.baseOid.toLowerCase(),
     headRefName: value.headRefName,
     headOid: value.headOid.toLowerCase(),
     changedFiles: value.changedFiles,

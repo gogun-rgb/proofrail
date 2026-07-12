@@ -26,7 +26,7 @@ The current product focus is Phase 2 AI PR Evidence Gate: a practical first prod
 
 Proofrail still does not have the complete product runtime. Any implementation beyond these bounded local workflows requires a later valid Machine Task Contract and independent review.
 
-`PRODUCT-RELEASE-001` adds an exact release-candidate vertical slice. Separately supplied Trusted Configuration, Policy, and Evidence Contract bytes select `gogun-rgb/proofrail#27`; `@proofrail/trusted-config` validates and binds those bytes, `@proofrail/release-orchestrator` converts the existing sanitized collector snapshot into kernel input, and the unchanged kernel finalizes the Evidence Bundle. The existing collector cannot observe the configured base commit SHA without a forbidden query expansion, so the checked-in exact fixture intentionally produces `REVISION_REQUIRED` with that Evidence missing. This is not a trusted release or an external release decision.
+`PRODUCT-RELEASE-001` adds an exact release-candidate vertical slice. Separately supplied Trusted Configuration, Policy, and Evidence Contract bytes select `gogun-rgb/proofrail#27`; `@proofrail/trusted-config` validates and binds those bytes, `@proofrail/release-orchestrator` converts the sanitized collector snapshot into kernel input, and the unchanged kernel finalizes the Evidence Bundle. `PRODUCT-RELEASE-002` adds only `baseRefOid` to the existing bounded metadata query, validates it as `baseOid`, and supplies the previously missing `target.baseSha` Observation. The authorized live result and offline golden are byte-identical and `ADMISSIBLE`, with no Verification Receipt. This is not by itself a trusted release or external release decision.
 
 ## Static Phase 1 Kernel Evaluation
 
