@@ -6364,7 +6364,6 @@ The live invocation used only the configured repository and pull request through
 The offline sanitized snapshot is exact-head bound and deterministic, but the unchanged authorized GitHub query does not collect a base commit SHA. The configured base SHA remains cross-document target authority and is deliberately not fabricated as an Observation. Consequently the committed golden bundle is `REVISION_REQUIRED` with the base-SHA Evidence Requirement unsatisfied and contains no Verification Receipt. This is the principal remaining product limitation.
 
 These results establish repository engineering verification for the retained diff only. They do not establish a trusted release, external reviewer acceptance, environmental reproducibility of live GitHub collection, or a release-decider action. The externally identified reviewer report and release decision remain separate post-candidate events.
-
 ## PRODUCT-RELEASE-002 Validation Evidence
 
 Date: 2026-07-12.
@@ -6390,3 +6389,36 @@ pnpm verify                               exit 0
 ```
 
 The supplied Trusted Configuration, Policy, Evidence Contract, contracts, kernel, trusted-config package, release CLI, static evaluator, CI, dependencies, and existing task contracts remained unchanged. `ADMISSIBLE` is the unchanged kernel Verdict for the supplied Evidence requirements; it is not a Verification Receipt, product readiness claim, trusted release, independent acceptance, or release-decider action. Exact-head review and a separate release decision remain required after the candidate commit is created.
+## REVIEW-GOV-001 Validation And Self-Review Evidence
+
+Date: 2026-07-11.
+
+Task identity: `REVIEW-GOV-001`.
+
+Merged-main baseline: `80a5cb8a249e1225752d9f4ee231c6f014c2d301`.
+
+Task-contract first commit: `0e7bb40`.
+
+### Commands And Results
+
+The task-contract verification was executed from the repository root with the bundled local Node.js and pnpm runtime and `CI=true`:
+
+```text
+pnpm governance:check                 exit 0
+pnpm governance:check-json            exit 0; parsed status VALID
+pnpm test:governance                  exit 0; 39 passed, 0 failed
+pnpm verify                           exit 0
+git diff --check                      exit 0 as part of pnpm verify
+```
+
+The governance suite positively validated the new `evidence_based_self_review_required` shape with `independentHumanRequired: false` and the legacy `independent_review_required` shape without that optional property. Negative cases continued to reject an unsupported review expectation and `reviewerMustNotRelyOnBuilderClaim: false`, and a new negative case rejected `independentHumanRequired: true`. Validation of the complete repository task directory proved that previously committed Machine Task Contracts remain valid without modification.
+
+The full verification retained all existing suites. Governance reported 39 passed. Architecture reported 32 total, 30 passed, 0 failed, and 2 skipped because Windows denied two file-symbolic-link constructions with `EPERM`. Existing Evidence Gate Windows symbolic-link construction skips remained platform-limited; other Evidence Gate checks ran. Static evaluator, Phase 1 type checking, and all 475 kernel tests passed. The workspace retained no lockfile delta.
+
+### Fresh Second-Pass Review
+
+The retained diff from `origin/main` was read again from the beginning and compared with every `REVIEW-GOV-001` writable path, forbidden boundary, acceptance requirement, verification command, and invariant. The baseline already contained the primary evidence-based self-review policy from PR #28. This task retained that policy and added only the missing contract, schema-default and exact-set hardening, explicit validation-bypass wording, compatibility tests, negative independent-human enforcement, and evidence record.
+
+The second pass confirmed that no existing Machine Task Contract was edited; no test was deleted, skipped, or weakened; the synthetic valid fixture moved to the new default while an explicit positive test preserves the legacy shape; invalid expectation and Builder-claim reliance tests remain; and the independent-human negative case adds enforcement rather than bypassing it. The validator now fails closed if the exact review enum, default, Builder-claim prohibition, or optional independent-human false constant drifts. No product runtime, dependency, lockfile, workspace, CI, generated governance, Trusted Configuration, Policy, Evidence Contract, release-authority, product-reliability, or Verdict-semantic file changed.
+
+Remaining limitations are explicit. JSON Schema `default` is an annotation and does not fill an omitted required `review.expectation`; producers must still write the field. The repository can mechanically enforce contract shapes and test the validator, but it cannot cryptographically prove that a same-identity reviewer mentally discarded implementation assumptions; the required fresh pass and recorded evidence remain procedural controls. Windows `EPERM` prevents the pre-existing symbolic-link construction cases from running on this host. This repository engineering review evidence does not establish product reliability, trusted release, Trusted Configuration, Policy, Evidence Contract, or an authoritative Proofrail product Verdict.
