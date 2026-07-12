@@ -1,0 +1,128 @@
+{
+  "task": {
+    "id": "PRODUCT-RELEASE-002",
+    "class": "controlled_github_base_sha_observation_completion",
+    "objective": "Complete the deferred PRODUCT-RELEASE-001 candidate by minimally extending the existing bounded read-only GitHub pull-request collector to observe and identity-bind the configured base commit SHA, pass that validated Observation through the existing release orchestrator, rerun offline and authorized live evaluation, and preserve every existing execution, authority, and delivery boundary."
+  },
+  "scope": {
+    "write": [
+      "governance/tasks/PRODUCT-RELEASE-002.json",
+      "README.md",
+      "docs/plans/active/phase-2-ai-pr-evidence-gate.md",
+      "docs/engineering/validation-evidence.md",
+      "packages/evidence-gate/src/github.js",
+      "tests/evidence-gate/github-importer.test.mjs",
+      "packages/release-orchestrator/src/index.js",
+      "tests/release-orchestrator/**",
+      "examples/evidence-gate/github/sanitized-pr-snapshot.json",
+      "examples/release/**"
+    ],
+    "read_only_authority": [
+      "governance/tasks/PRODUCT-RELEASE-001.json",
+      "governance/machine-task-contract.schema.json",
+      "config/trusted/proofrail-release-v0.1.json",
+      "config/policies/proofrail-ai-pr-github-ci-v1.json",
+      "config/evidence-contracts/proofrail-ai-pr-github-ci-v1.json",
+      "schemas/product/**",
+      "packages/contracts/**",
+      "packages/kernel/**",
+      "packages/trusted-config/**",
+      "packages/evidence-gate/src/release-cli.mjs",
+      "packages/evidence-gate/src/file-io.js",
+      "packages/static-evaluator/**",
+      ".github/**",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml"
+    ],
+    "forbidden": [
+      "all paths outside scope.write",
+      "modification of PRODUCT-RELEASE-001 or any other existing Machine Task Contract",
+      "modification of the supplied Trusted Configuration, Policy, Evidence Contract, their schemas, or their exact hashes",
+      "modification of packages/contracts, packages/kernel, packages/trusted-config, packages/static-evaluator, the release CLI, or staged output publication",
+      "collection of pull-request bodies, review bodies, patches, check logs, repository contents, issue text, or other instruction-shaped target content",
+      "target checkout, target repository content inspection, target command execution, or verification command execution",
+      "GitHub writes, comments, reviews, labels, merges, ref updates, or workflow reruns",
+      "credential values, tokens, secrets, or authentication material in repository files, diagnostics, fixtures, bundles, reports, or validation evidence",
+      "API, MCP, web, GitHub App, model-provider, Inference Zone, LLM, probabilistic authority, new registry dependency, paid service, or billing behavior",
+      "fabricating the base SHA from Trusted Configuration instead of observing it from the bounded GitHub response",
+      "weakening existing query bounds, pagination, head binding, redaction, deterministic ordering, strict snapshot validation, tests, or output failure behavior",
+      "claiming trusted release, product readiness, external acceptance, or a release decision before exact-head review and a separate release-decider action"
+    ]
+  },
+  "authority": {
+    "read": [
+      "governance/tasks/PRODUCT-RELEASE-002.json",
+      "governance/tasks/PRODUCT-RELEASE-001.json",
+      "config/trusted/proofrail-release-v0.1.json",
+      "config/policies/proofrail-ai-pr-github-ci-v1.json",
+      "config/evidence-contracts/proofrail-ai-pr-github-ci-v1.json",
+      "packages/evidence-gate/src/github.js",
+      "packages/release-orchestrator/src/index.js",
+      "packages/kernel/src/index.js",
+      "docs/architecture/execution-boundary.md",
+      "docs/constitution/trust-model.md"
+    ],
+    "mayChangeAuthority": false,
+    "mayChangeProductSemantics": false
+  },
+  "acceptance": {
+    "requirements": [
+      "Treat this JSON as proposed content until external issuer github:gogun-rgb explicitly supplies its exact complete bytes or SHA-256 as PRODUCT-RELEASE-002 through authorization event operator-event:product-release-002-base-sha-observation-v1.",
+      "Use exact candidate baseline 2c4c5001b3fbef85c24325c17c9000eb8a289915 and commit the externally supplied PRODUCT-RELEASE-002 contract alone as the first new task-branch commit before any implementation edit.",
+      "Verify the baseline is the pushed PRODUCT-RELEASE-001 candidate and that its parentage, supplied authority-document hashes, full pnpm verify result, external review approval, and deferred release decision match the recorded lineage.",
+      "Change only the existing GitHub pull-request metadata query by adding baseRefOid. Preserve every existing field, query, pagination limit, call bound, head binding, sanitization, redaction, and error boundary otherwise byte-for-byte.",
+      "Validate baseRefOid as an exact commit OID, carry it in the frozen sanitized snapshot as baseOid, and fail collection before orchestration if it is absent, malformed, or changes across any newly relevant identity boundary.",
+      "Require release orchestration to compare snapshot baseOid with the exact configured target.baseSha and fail before kernel evaluation on mismatch.",
+      "Create target.baseSha only as a validated Observation from observer observer.github-pr-bounded-collector version 1.0.0 and the exact configured source input identity. Never derive that Observation from configuration alone.",
+      "Preserve the unchanged kernel and invoke it exactly once. With the exact offline snapshot and all supplied requirements satisfied, the resulting bundle may be ADMISSIBLE only if that is the unchanged kernel result; no Verification Receipt or trusted-release claim may be added.",
+      "Update sanitized fixtures and canonical golden kernel input and Evidence Bundle deterministically. Existing evidence-packet outputs must remain byte-compatible unless the explicitly expanded snapshot fixture itself is the asserted subject.",
+      "Add adversarial tests for missing, malformed, wrong, and stale base OIDs; repository, pull-request, head, and base mismatch combinations; instruction-shaped metadata; duplicate or unknown snapshot fields; and collector failure without secret disclosure.",
+      "Run the live release CLI only after gh authentication succeeds. Bind the live result to repository gogun-rgb/proofrail, pull request 27, base c5cbd6f1a7cf23e6bd6613115e5b1c8de93fa116, and head 50798231675ba80bffe9f77fe0f37d8aea9484d3.",
+      "Record gh version, exact target identities, live outcome, offline golden equality, full verification, protected-path audit, and remaining limitations without recording credential values or overclaiming live reproducibility.",
+      "Perform a fresh evidence-based second-pass review over the final retained diff, test strength, hidden scope expansion, protected paths, authority lineage, and exact outputs before candidate completion."
+    ]
+  },
+  "verification": {
+    "commands": [
+      "pnpm test:evidence-gate",
+      "pnpm test:release-orchestrator",
+      "pnpm proofrail-release:fixture",
+      "pnpm verify",
+      "node scripts/validate-foundation.mjs",
+      "node scripts/validate-foundation.mjs --format json",
+      "git diff --check"
+    ],
+    "requiredInvariants": [
+      "The externally supplied PRODUCT-RELEASE-002 contract is the first commit after exact baseline 2c4c5001b3fbef85c24325c17c9000eb8a289915 and every changed path is writable.",
+      "Only baseRefOid is added to the existing GitHub query surface; no target content, command, write, inference, dependency, or credential boundary expands.",
+      "The exact supplied Trusted Configuration, Policy, Evidence Contract, contracts, kernel, trusted-config package, release CLI, static evaluator, CI, and existing task contracts remain byte-identical.",
+      "The base SHA Evidence is traceable to a validated GitHub Observation and is never copied from configuration as observed fact.",
+      "Offline kernel input and bundle are byte-deterministic; live collection is identity-bound but not overclaimed as environmentally reproducible.",
+      "All required tests and pnpm verify pass, protected paths remain unchanged, and no secret-like value is emitted or committed."
+    ]
+  },
+  "requiredArtifacts": [
+    "externally supplied PRODUCT-RELEASE-002 contract committed first",
+    "minimally expanded bounded GitHub metadata query",
+    "base-OID snapshot validation and orchestration binding",
+    "target.baseSha Observation",
+    "updated adversarial tests and sanitized fixtures",
+    "canonical golden kernel input and Evidence Bundle",
+    "offline and live validation evidence",
+    "fresh second-pass review record"
+  ],
+  "stopConditions": [
+    "The exact complete PRODUCT-RELEASE-002 bytes or SHA-256 have not been externally supplied: BLOCKED_AUTHORITY",
+    "The exact baseline, authority hashes, external review, or deferred release-decision lineage does not match: BLOCKED_BASELINE",
+    "Any field beyond baseRefOid or any new query, endpoint, page, node, content, command, GitHub write, credential handling, model behavior, dependency, or cost is required: BLOCKED_SCOPE",
+    "The live target repository, pull request, base SHA, or head SHA differs from the supplied target: BLOCKED_TARGET_DRIFT",
+    "A credential value would need to be requested, printed, inspected, persisted, or committed: BLOCKED_SECURITY",
+    "The kernel, contracts, Trusted Configuration, Policy, Evidence Contract, trusted-config package, release CLI, or canonical semantics would need to change: BLOCKED_SCOPE",
+    "Offline output is nondeterministic, a protected path changes, a test is weakened, a secret-like value appears, or pnpm verify fails: BLOCKED_VERIFICATION",
+    "A trusted-release decision or external acceptance would need to be fabricated or inferred by the Builder: BLOCKED_INDEPENDENCE"
+  ],
+  "review": {
+    "expectation": "independent_review_required",
+    "reviewerMustNotRelyOnBuilderClaim": true
+  }
+}
