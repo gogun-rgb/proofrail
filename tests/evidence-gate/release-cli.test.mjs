@@ -43,7 +43,7 @@ test("emits only one canonical finalized bundle with one trailing newline", asyn
   assert.equal(output, `${canonicalJson(bundle)}\n`);
   assert.equal(output.endsWith("\n"), true);
   assert.equal(output.endsWith("\n\n"), false);
-  assert.equal(bundle.verdict, "REVISION_REQUIRED");
+  assert.equal(bundle.verdict, "ADMISSIBLE");
 });
 
 test("maps gh collection failure to a fixed non-disclosing delivery failure", async () => {

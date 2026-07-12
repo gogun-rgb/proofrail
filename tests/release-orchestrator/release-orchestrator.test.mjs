@@ -15,25 +15,26 @@ const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const CONFIG_PATH = "config/trusted/proofrail-release-v0.1.json";
 const SNAPSHOT_PATH = path.join(ROOT, "examples/release/github-pr-27.snapshot.json");
 
-test("assembles the exact bounded kernel input without fabricating a base-SHA Observation", async () => {
+test("assembles the exact bounded kernel input with the observed base SHA", async () => {
   const { loaded, snapshot } = await inputs();
   const kernelInput = assembleReleaseKernelInput(loaded, snapshot);
   assert.equal(kernelInput.schemaVersion, "proofrail.kernel.input.phase1.v1");
   assert.deepEqual(kernelInput.claims, [loaded.trustedConfiguration.claim]);
   assert.equal(kernelInput.evidenceContracts[0].selectionProvenance.source, "TRUSTED_CONFIGURATION");
   assert.equal(kernelInput.rules.length, 0);
-  assert(!kernelInput.observations.some(({ factKey }) => factKey === "target.baseSha"));
+  assert(kernelInput.observations.some(({ factKey, factValue }) =>
+    factKey === "target.baseSha" && factValue === loaded.trustedConfiguration.target.baseSha));
   assert(kernelInput.evidenceRequirements.some(({ factKey }) => factKey === "target.baseSha"));
   assert(Object.isFrozen(kernelInput));
 });
 
-test("evaluates once through the accepted kernel and preserves missing base evidence", async () => {
+test("evaluates once through the accepted kernel with all configured Evidence satisfied", async () => {
   const { loaded, snapshot } = await inputs();
   const bundle = evaluateReleaseCandidate(loaded, snapshot);
-  assert.equal(bundle.verdict, "REVISION_REQUIRED");
+  assert.equal(bundle.verdict, "ADMISSIBLE");
   assert.equal(bundle.verificationReceipts.length, 0);
   assert(bundle.evidenceRequirements.some(({ factKey }) => factKey === "target.baseSha"));
-  assert(!bundle.evidence.some(({ requirementId }) => requirementId === "req.target.base-sha"));
+  assert(bundle.evidence.some(({ requirementId }) => requirementId === "req.target.base-sha"));
   assert(!JSON.stringify(bundle).includes("trusted release"));
 });
 
@@ -54,12 +55,13 @@ test("normalizes reordered files and checks to byte-identical kernel inputs and 
   );
 });
 
-test("fails before kernel evaluation for repository, pull request, ref, or head drift", async () => {
+test("fails before kernel evaluation for repository, pull request, ref, base, or head drift", async () => {
   const { loaded, snapshot } = await inputs();
   for (const changed of [
     { ...snapshot, repository: "other/repository" },
     { ...snapshot, number: 28 },
     { ...snapshot, baseRefName: "release" },
+    { ...snapshot, baseOid: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
     { ...snapshot, headOid: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
     { ...snapshot, commits: [{ oid: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }] },
   ]) {
@@ -70,8 +72,13 @@ test("fails before kernel evaluation for repository, pull request, ref, or head 
   }
 });
 
-test("does not accept a caller-added base SHA as GitHub metadata", async () => {
+test("requires baseOid and does not accept a caller-added baseSha alias", async () => {
   const { loaded, snapshot } = await inputs();
+  const { baseOid, ...withoutBase } = snapshot;
+  assert.throws(
+    () => assembleReleaseKernelInput(loaded, withoutBase),
+    (error) => fixedError(error, "SNAPSHOT_INVALID"),
+  );
   assert.throws(
     () => assembleReleaseKernelInput(loaded, { ...snapshot, baseSha: loaded.trustedConfiguration.target.baseSha }),
     (error) => fixedError(error, "SNAPSHOT_INVALID"),

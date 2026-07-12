@@ -6364,3 +6364,29 @@ The live invocation used only the configured repository and pull request through
 The offline sanitized snapshot is exact-head bound and deterministic, but the unchanged authorized GitHub query does not collect a base commit SHA. The configured base SHA remains cross-document target authority and is deliberately not fabricated as an Observation. Consequently the committed golden bundle is `REVISION_REQUIRED` with the base-SHA Evidence Requirement unsatisfied and contains no Verification Receipt. This is the principal remaining product limitation.
 
 These results establish repository engineering verification for the retained diff only. They do not establish a trusted release, external reviewer acceptance, environmental reproducibility of live GitHub collection, or a release-decider action. The externally identified reviewer report and release decision remain separate post-candidate events.
+
+## PRODUCT-RELEASE-002 Validation Evidence
+
+Date: 2026-07-12.
+
+Exact baseline: `2c4c5001b3fbef85c24325c17c9000eb8a289915`. The externally supplied `PRODUCT-RELEASE-002` MTC is commit `bd3d235e698b35ac0d2682509c87d796a9935977` with SHA-256 `C2E0EB2A0C9BA977D54CDA0264EFD8BE112454F8F4DBFB6D02E604EC41878EAF`. The externally supplied scope-correction addendum is commit `a72372909796604f61250c2da29e0e5d5ed285f8` with SHA-256 `41B4C4D6306295491C42FC2F7FD0A21627E3D2073F479ED4126F7AC685B4655A`; it authorized exactly one obsolete release CLI Verdict expectation change.
+
+GitHub CLI 2.95.0 authenticated as `gogun-rgb` through the operating-system keyring. No credential value was requested, inspected, persisted, or recorded. The existing metadata query added only `baseRefOid`; every other query field, pagination and node bound, head binding, redaction, collection exclusion, and read-only boundary remained unchanged.
+
+The authorized live evaluation bound repository `gogun-rgb/proofrail`, pull request 27, base `c5cbd6f1a7cf23e6bd6613115e5b1c8de93fa116`, and head `50798231675ba80bffe9f77fe0f37d8aea9484d3`. It returned `ADMISSIBLE`, produced one Evidence record for `req.target.base-sha`, and produced zero Verification Receipts. The live bundle and committed offline golden are byte-identical: both are 22,832 bytes with SHA-256 `3B4BF720885FC1D2C14ABBDC62B3054F4F5A5A7331907888BE7E7715AA8D009B` and bundle identity `bundle:647380e54b0bf8ff112bfe9710aced16`.
+
+```text
+pnpm verify                               exit 0
+  governance                              37 passed; 0 failed
+  architecture                            33 total; 31 passed; 0 failed; 2 Windows EPERM symlink skips
+  trusted-config                          14 total; 13 passed; 0 failed; 1 Windows EPERM symlink skip
+  release-orchestrator                    9 passed; 0 failed
+  evidence-gate                           237 total; 229 passed; 0 failed; 8 Windows symlink skips
+  offline release fixture                 exit 0; canonical input and bundle equal committed goldens
+  static-evaluator                        10 passed; 0 failed
+  typecheck:phase1                        exit 0
+  kernel                                  475 passed; 0 failed
+  git diff --check                        exit 0
+```
+
+The supplied Trusted Configuration, Policy, Evidence Contract, contracts, kernel, trusted-config package, release CLI, static evaluator, CI, dependencies, and existing task contracts remained unchanged. `ADMISSIBLE` is the unchanged kernel Verdict for the supplied Evidence requirements; it is not a Verification Receipt, product readiness claim, trusted release, independent acceptance, or release-decider action. Exact-head review and a separate release decision remain required after the candidate commit is created.

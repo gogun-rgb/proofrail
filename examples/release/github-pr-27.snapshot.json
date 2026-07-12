@@ -5,6 +5,7 @@
   "state": "MERGED",
   "isDraft": false,
   "baseRefName": "main",
+  "baseOid": "c5cbd6f1a7cf23e6bd6613115e5b1c8de93fa116",
   "headRefName": "agent/architecture-boundary-check",
   "headOid": "50798231675ba80bffe9f77fe0f37d8aea9484d3",
   "changedFiles": 10,

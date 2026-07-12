@@ -5,6 +5,7 @@
   "state": "OPEN",
   "isDraft": false,
   "baseRefName": "main",
+  "baseOid": "0000000000000000000000000000000000000000",
   "headRefName": "feature/local-importer",
   "headOid": "2222222222222222222222222222222222222222",
   "changedFiles": 2,
