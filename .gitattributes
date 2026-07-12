@@ -1,0 +1,5 @@
+config/evidence-contracts/*.json text eol=lf
+config/policies/*.json text eol=lf
+config/trusted/*.json text eol=lf
+examples/**/*.json text eol=lf
+examples/**/*expected*.txt text eol=lf
