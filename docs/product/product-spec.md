@@ -17,9 +17,9 @@ Secondary clients:
 
 - human operators
 
-## Current Invariant
+## Current Implemented Boundary
 
-No Proofrail product functionality is implemented in Phase 0.
+Proofrail currently implements the deterministic kernel, static evaluator, bounded AI PR evidence-packet CLIs, and one exact externally configured release-candidate workflow. That workflow validates authority artifacts, collects only allowlisted GitHub PR metadata, and returns the unchanged kernel's finalized Evidence Bundle. It does not inspect repository content, execute verification, write to GitHub, call models, or establish a trusted release.
 
 ## Long-Term Surface
 

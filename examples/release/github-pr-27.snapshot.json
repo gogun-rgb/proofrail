@@ -1,0 +1,30 @@
+{
+  "repository": "gogun-rgb/proofrail",
+  "number": 27,
+  "title": "Enforce current package boundaries",
+  "state": "MERGED",
+  "isDraft": false,
+  "baseRefName": "main",
+  "headRefName": "agent/architecture-boundary-check",
+  "headOid": "50798231675ba80bffe9f77fe0f37d8aea9484d3",
+  "changedFiles": 10,
+  "files": [
+    {"path": "README.md", "additions": 0, "deletions": 0},
+    {"path": "docs/engineering/foundation-mechanization.md", "additions": 0, "deletions": 0},
+    {"path": "docs/engineering/validation-evidence.md", "additions": 0, "deletions": 0},
+    {"path": "docs/plans/debt.md", "additions": 0, "deletions": 0},
+    {"path": "governance/architecture-check-preparation.json", "additions": 0, "deletions": 0},
+    {"path": "governance/tasks/ARCH-BOUND-001.json", "additions": 0, "deletions": 0},
+    {"path": "package.json", "additions": 0, "deletions": 0},
+    {"path": "scripts/architecture/check-package-boundaries.mjs", "additions": 0, "deletions": 0},
+    {"path": "scripts/architecture/lib/package-boundaries.mjs", "additions": 0, "deletions": 0},
+    {"path": "tests/architecture/package-boundaries.test.mjs", "additions": 0, "deletions": 0}
+  ],
+  "commits": [
+    {"oid": "50798231675ba80bffe9f77fe0f37d8aea9484d3"}
+  ],
+  "checks": [
+    {"kind": "check-run", "name": "proofrail-offline-fixture", "status": "COMPLETED", "conclusion": "SUCCESS"}
+  ],
+  "reviews": []
+}

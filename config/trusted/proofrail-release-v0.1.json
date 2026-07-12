@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "proofrail.trusted-configuration.v1",
+  "id": "config.proofrail-release-v0.1",
+  "version": "0.1.0",
+  "authorizationEventId": "operator-event:product-release-001-authority-supply-v1",
+  "issuerActorId": "github:gogun-rgb",
+  "releaseDeciderActorId": "github:gogun-rgb",
+  "independentReviewerActorId": "external:independent-release-reviewer",
+  "target": {
+    "kind": "GITHUB_PULL_REQUEST",
+    "repository": "gogun-rgb/proofrail",
+    "pullRequestNumber": 27,
+    "baseRefName": "main",
+    "baseSha": "c5cbd6f1a7cf23e6bd6613115e5b1c8de93fa116",
+    "headSha": "50798231675ba80bffe9f77fe0f37d8aea9484d3",
+    "targetScopeId": "scope.github-pr.gogun-rgb-proofrail.27"
+  },
+  "observer": {
+    "id": "observer.github-pr-bounded-collector",
+    "version": "1.0.0",
+    "sourceInputId": "github:gogun-rgb/proofrail#27@50798231675ba80bffe9f77fe0f37d8aea9484d3"
+  },
+  "claim": {
+    "id": "claim.release-candidate.exact-pr-snapshot",
+    "targetScopeId": "scope.github-pr.gogun-rgb-proofrail.27",
+    "statement": "The exact configured pull-request snapshot satisfies the issuer-selected evidence requirements."
+  },
+  "declaredWriteScope": [
+    "README.md",
+    "docs/engineering/foundation-mechanization.md",
+    "docs/engineering/validation-evidence.md",
+    "docs/plans/debt.md",
+    "governance/architecture-check-preparation.json",
+    "governance/tasks/ARCH-BOUND-001.json",
+    "package.json",
+    "scripts/architecture/check-package-boundaries.mjs",
+    "scripts/architecture/lib/package-boundaries.mjs",
+    "tests/architecture/package-boundaries.test.mjs"
+  ],
+  "policy": {
+    "id": "policy.proofrail-ai-pr-github-ci",
+    "version": "1.0.0",
+    "path": "config/policies/proofrail-ai-pr-github-ci-v1.json",
+    "sha256": "88CDCC070F194676EACE26FFAA56CD9F1984C0BE3F5B0F13ECBD19926891A7EE"
+  },
+  "evidenceContract": {
+    "id": "contract.proofrail-ai-pr-github-ci",
+    "version": "1.0.0",
+    "path": "config/evidence-contracts/proofrail-ai-pr-github-ci-v1.json",
+    "sha256": "FC89E3383F80A02EB01C6DDAFCD92D8C6AFC2101043C8268749C691D11AF8E45"
+  },
+  "executionBoundary": {
+    "githubRead": true,
+    "githubWrite": false,
+    "networkPolicy": "GITHUB_READ_ONLY_VIA_INSTALLED_GH",
+    "credentialPolicy": "USE_EXISTING_GH_AUTHENTICATION_WITHOUT_INSPECTION_OR_PERSISTENCE",
+    "targetCheckout": false,
+    "targetRepositoryContentRead": false,
+    "targetCommandExecution": false,
+    "verificationCommandExecution": false,
+    "modelExecution": false
+  },
+  "kernel": {
+    "inputSchemaVersion": "proofrail.kernel.input.phase1.v1",
+    "bundleSchemaVersion": "proofrail.evidence-bundle.phase1.v1",
+    "engineVersion": "0.1.0-phase1",
+    "maximumInvocationCount": 1
+  },
+  "output": {
+    "kind": "FINALIZED_EVIDENCE_BUNDLE",
+    "format": "CANONICAL_JSON_LF",
+    "publicationBoundary": "EXISTING_STAGED_OUTPUT"
+  }
+}

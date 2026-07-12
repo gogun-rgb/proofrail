@@ -18,7 +18,7 @@ Disposition: OPEN.
 
 ### DEBT-002: Architecture Rules Are Only Partially Mechanically Enforced
 
-Observation: `ARCH-BOUND-001` adds a bounded repository engineering checker that freezes the exact current four-package classification, workspace dependency declarations and edges, Node import allowlist, relative package containment, and recognized static production-source loads. It does not implement the complete semantics of the authoritative dependency rules.
+Observation: `ARCH-BOUND-001`, extended by `PRODUCT-RELEASE-001`, provides a bounded repository engineering checker that freezes the exact current six-package classification, workspace dependency declarations and edges, Node import allowlist, relative package containment, and recognized static production-source loads. It does not implement the complete semantics of the authoritative dependency rules.
 
 Risk: Generated or subprocess-loaded code, `eval`, `new Function`, aliased `require`, computed-property `require` invocation, aliased `createRequire`, transitive dependencies, broader delivery-definition ownership, inference isolation, and future package classes can still violate architecture intent outside the checker's narrow observable boundary.
 

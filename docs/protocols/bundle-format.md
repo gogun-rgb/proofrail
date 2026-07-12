@@ -6,7 +6,7 @@ This document is authoritative for Phase 0 Evidence Bundle direction.
 
 ## Current Phase
 
-No Evidence Bundle runtime format is implemented in Phase 0.
+The accepted Phase 1 kernel finalizes the implemented Evidence Bundle format. `PRODUCT-RELEASE-001` assembles one complete kernel input and invokes that kernel exactly once; delivery emits only the returned bundle as canonical JSON with one LF. Pre-kernel delivery failures produce no authoritative bundle.
 
 ## Bundle Invariant
 

@@ -20,17 +20,34 @@ importers:
 
   packages/contracts: {}
 
+  packages/evidence-gate:
+    dependencies:
+      '@proofrail/release-orchestrator':
+        specifier: workspace:*
+        version: link:../release-orchestrator
+
   packages/kernel:
     dependencies:
       '@proofrail/contracts':
         specifier: workspace:*
         version: link:../contracts
 
+  packages/release-orchestrator:
+    dependencies:
+      '@proofrail/kernel':
+        specifier: workspace:*
+        version: link:../kernel
+      '@proofrail/trusted-config':
+        specifier: workspace:*
+        version: link:../trusted-config
+
   packages/static-evaluator:
     dependencies:
       '@proofrail/kernel':
         specifier: workspace:*
         version: link:../kernel
+
+  packages/trusted-config: {}
 
 packages:
 

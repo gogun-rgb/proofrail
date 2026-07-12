@@ -6321,6 +6321,49 @@ The bounded checker freezes only the current four package names, exact workspace
 
 All package production source and manifest blobs, the authoritative dependency rules, the governance validator, the `HARN_` registry, CI, workspace configuration, TypeScript configuration, and generated governance remain unchanged. The pnpm workspace preflight projected an unrelated empty `packages/evidence-gate` lockfile importer; that exact empty importer was removed with no retained lockfile delta. No dependency, target execution, network, GitHub write, model provider, paid cloud, or paid SaaS was added. These Builder checks are provisional and do not establish product readiness, a trusted release, independent acceptance, or an authoritative Proofrail product Verdict.
 
+## PRODUCT-RELEASE-001 Validation Evidence
+
+Date: 2026-07-12.
+
+Task branch baseline: `f5f2786f61677d3319f2947ddcc22ea28f26809e`. First task-branch commit: `93917eb86cfd578077e1ad6acaf5b85a3e8fd8de`, containing only the externally supplied `PRODUCT-RELEASE-001` Machine Task Contract. The contract blob SHA-256 is `437B2F00CC9B86D9F36389C84347C1B89F902B02D1633B983D1B224A174B2FDF`.
+
+External issuer actor `github:gogun-rgb` supplied authorization event `operator-event:product-release-001-authority-supply-v1`. The externally retained issuer authority bundle SHA-256 is `F1BFF864FAF938F4B1584A91E793537F53A2732B0E1905B20714AAD2E008C5A7`. The three materialized authority documents rehashed from actual file bytes as follows:
+
+```text
+Trusted Configuration  3C4C074BB54F2330D52378DB1249BC39D55A3F7858A1890DC821FC136BF60118
+Policy                 88CDCC070F194676EACE26FFAA56CD9F1984C0BE3F5B0F13ECBD19926891A7EE
+Evidence Contract      FC89E3383F80A02EB01C6DDAFCD92D8C6AFC2101043C8268749C691D11AF8E45
+```
+
+Authority-change preflight was performed before editing `AGENTS.md`, the product constitution and trust model, domain/dependency/execution architecture documents, product specification, Policy/Evidence/Bundle protocol documents, Phase 2 plan, Foundation mechanization record, architecture preparation record, and DEBT-002. Each path is explicitly writable under `PRODUCT-RELEASE-001`; `authority.mayChangeAuthority` and `authority.mayChangeProductSemantics` are true; changes were limited to the exact externally configured local release-candidate slice and its explicit limitations. Canonical terminology, Trust classes, Evidence authority classes, Verdict semantics, contracts, kernel, static evaluator, GitHub query fields, CI, existing task contracts, and generated governance were not changed.
+
+### Commands and results
+
+```text
+actual-byte SHA-256 recheck               exact supplied values for all three committed authority documents
+bounded live release CLI                  exit 1; fixed {code: PROOFRAIL_RELEASE_DELIVERY_FAILED, stage: COLLECTION}; no bundle emitted
+focused release/config/architecture run   61 total; 58 passed; 0 failed; 3 Windows EPERM symlink skips
+pnpm verify                               exit 0
+  governance                              37 passed; 0 failed
+  architecture                            33 total; 31 passed; 0 failed; 2 Windows EPERM symlink skips
+  trusted-config                          14 total; 13 passed; 0 failed; 1 Windows EPERM symlink skip
+  release-orchestrator                    9 passed; 0 failed
+  evidence-gate                           237 total; 229 passed; 0 failed; 8 Windows symlink skips
+  offline release fixture                 exit 0; canonical kernel input and Evidence Bundle equal committed goldens
+  static-evaluator                        10 passed; 0 failed
+  typecheck:phase1                        exit 0
+  kernel                                  475 passed; 0 failed
+  git diff --check                        exit 0
+node scripts/validate-foundation.mjs       exit 0
+node scripts/validate-foundation.mjs --format json
+                                            parsed status VALID
+```
+
+The live invocation used only the configured repository and pull request through the installed `gh` boundary. Collection failed closed in the current environment and disclosed no credential or remote error detail. No live Evidence Bundle was created, persisted, or treated as authority.
+
+The offline sanitized snapshot is exact-head bound and deterministic, but the unchanged authorized GitHub query does not collect a base commit SHA. The configured base SHA remains cross-document target authority and is deliberately not fabricated as an Observation. Consequently the committed golden bundle is `REVISION_REQUIRED` with the base-SHA Evidence Requirement unsatisfied and contains no Verification Receipt. This is the principal remaining product limitation.
+
+These results establish repository engineering verification for the retained diff only. They do not establish a trusted release, external reviewer acceptance, environmental reproducibility of live GitHub collection, or a release-decider action. The externally identified reviewer report and release decision remain separate post-candidate events.
 ## REVIEW-GOV-001 Validation And Self-Review Evidence
 
 Date: 2026-07-11.

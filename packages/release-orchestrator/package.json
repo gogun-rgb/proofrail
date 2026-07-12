@@ -1,0 +1,16 @@
+{
+  "name": "@proofrail/release-orchestrator",
+  "version": "0.1.0-release-candidate",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    }
+  },
+  "sideEffects": false,
+  "dependencies": {
+    "@proofrail/kernel": "workspace:*",
+    "@proofrail/trusted-config": "workspace:*"
+  }
+}

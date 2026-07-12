@@ -14,8 +14,10 @@ const PACKAGE_RULES = Object.freeze({
   "@proofrail/evidence-gate": Object.freeze({
     directory: "evidence-gate",
     layer: "delivery",
-    workspaceImports: Object.freeze([]),
-    dependencies: Object.freeze({}),
+    workspaceImports: Object.freeze(["@proofrail/release-orchestrator"]),
+    dependencies: Object.freeze({
+      "@proofrail/release-orchestrator": "workspace:*",
+    }),
     nodeImports: Object.freeze([
       "node:child_process",
       "node:crypto",
@@ -34,6 +36,19 @@ const PACKAGE_RULES = Object.freeze({
     }),
     nodeImports: Object.freeze(["node:crypto", "node:util"]),
   }),
+  "@proofrail/release-orchestrator": Object.freeze({
+    directory: "release-orchestrator",
+    layer: "application",
+    workspaceImports: Object.freeze([
+      "@proofrail/kernel",
+      "@proofrail/trusted-config",
+    ]),
+    dependencies: Object.freeze({
+      "@proofrail/kernel": "workspace:*",
+      "@proofrail/trusted-config": "workspace:*",
+    }),
+    nodeImports: Object.freeze([]),
+  }),
   "@proofrail/static-evaluator": Object.freeze({
     directory: "static-evaluator",
     layer: "delivery",
@@ -42,6 +57,18 @@ const PACKAGE_RULES = Object.freeze({
       "@proofrail/kernel": "workspace:*",
     }),
     nodeImports: Object.freeze(["node:fs/promises", "node:util"]),
+  }),
+  "@proofrail/trusted-config": Object.freeze({
+    directory: "trusted-config",
+    layer: "authority",
+    workspaceImports: Object.freeze([]),
+    dependencies: Object.freeze({}),
+    nodeImports: Object.freeze([
+      "node:crypto",
+      "node:fs/promises",
+      "node:path",
+      "node:util",
+    ]),
   }),
 });
 

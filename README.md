@@ -26,6 +26,8 @@ The current product focus is Phase 2 AI PR Evidence Gate: a practical first prod
 
 Proofrail still does not have the complete product runtime. Any implementation beyond these bounded local workflows requires a later valid Machine Task Contract and independent review.
 
+`PRODUCT-RELEASE-001` adds an exact release-candidate vertical slice. Separately supplied Trusted Configuration, Policy, and Evidence Contract bytes select `gogun-rgb/proofrail#27`; `@proofrail/trusted-config` validates and binds those bytes, `@proofrail/release-orchestrator` converts the existing sanitized collector snapshot into kernel input, and the unchanged kernel finalizes the Evidence Bundle. The existing collector cannot observe the configured base commit SHA without a forbidden query expansion, so the checked-in exact fixture intentionally produces `REVISION_REQUIRED` with that Evidence missing. This is not a trusted release or an external release decision.
+
 ## Static Phase 1 Kernel Evaluation
 
 Evaluate one complete caller-supplied Phase 1 kernel input and write the finalized bundle to stdout:
@@ -64,7 +66,7 @@ The verifier checks required files and artifacts, local documentation links and 
 
 The GitHub Actions Foundation governance workflow runs committed change-range whitespace validation as a separate step. Pull request events validate the explicit pull request base SHA and head SHA. Push events use deterministic push-specific ranges before `pnpm verify` runs.
 
-The architecture guard freezes only the present package surface, including each package directory's exact manifest name: `@proofrail/contracts` has no workspace dependency, `@proofrail/kernel` may depend only on `@proofrail/contracts`, `@proofrail/evidence-gate` has no workspace dependency, and `@proofrail/static-evaluator` may depend only on `@proofrail/kernel`. It also freezes their exact current Node imports, rejects external bare production imports, checks recognized TypeScript-AST load forms under `packages/*/src`, rejects source symbolic links, and keeps slash, backslash, or mixed-separator relative imports inside their package root. Absolute and URL targets are categorized in diagnostics rather than exposing host paths. Run it directly with `pnpm architecture:check`; its synthetic matrix is `pnpm test:architecture`.
+The architecture guard freezes the exact six-package surface and manifest names. `contracts` has no edge; `kernel` depends only on `contracts`; `trusted-config` has no workspace edge; `release-orchestrator` depends only on `kernel` and `trusted-config`; `evidence-gate` depends only on `release-orchestrator`; and `static-evaluator` depends only on `kernel`. It also freezes exact Node imports, rejects external bare production imports, checks recognized TypeScript-AST load forms under `packages/*/src`, rejects source symbolic links, and contains relative imports within their package. Run `pnpm architecture:check` and `pnpm test:architecture`.
 
 This is a bounded repository engineering drift guard, not complete enforcement of [the dependency rules](docs/architecture/dependency-rules.md). It does not perform general module resolution, transitive dependency analysis, generated-code analysis, target-repository inspection, or detect `eval`, `new Function`, aliased `require`, computed-property `require` invocation, aliased `createRequire`, or subprocess-loaded code. Future packages or allowed edges require an explicit task contract and checker update.
 
@@ -161,6 +163,22 @@ The packet field `boundaries.staticInputOnly: true` describes the deterministic 
 `GATE-GH-BOUND-001` confines the collector's pull-request number to the GitHub GraphQL `Int` range and fails closed on mismatched metadata identity, invalid or excessive changed-file counts, connection pages above 100 nodes, continuation beyond 100 pages, missing or repeated continuing cursors, malformed GraphQL error envelopes, and duplicate normalized file paths or commit identifiers. Each files, commits, reviews, and checks connection is therefore bounded to 10,000 collected nodes. The existing queries, fields, packet mapping, output formats, and valid golden bytes remain unchanged; reviews and checks are not deduplicated because the bounded query does not collect a stable identity for them.
 
 v0.2 remains a bounded local workflow. It is not product readiness, a trusted release, or an authoritative Proofrail product Verdict.
+
+## Exact release-candidate workflow
+
+Evaluate the offline sanitized fixture and compare both canonical goldens:
+
+```bash
+pnpm proofrail-release:fixture
+```
+
+For an authorized live read using the installed, already-authenticated `gh`, select the Trusted Configuration explicitly:
+
+```bash
+pnpm proofrail-release --trusted-config config/trusted/proofrail-release-v0.1.json
+```
+
+Add `--output bundle.json` to use staged publication. The command accepts no repository, pull-request, Policy, Evidence Contract, observer, or rule override. Pre-kernel configuration, collection, target, or output failures emit a fixed machine-readable delivery failure and no bundle. Reported GitHub checks remain Observations, never Verification Receipts or independent acceptance.
 
 See [docs/engineering/foundation-mechanization.md](docs/engineering/foundation-mechanization.md) for the current governance mechanics.
 
