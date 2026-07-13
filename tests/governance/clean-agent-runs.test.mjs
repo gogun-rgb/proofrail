@@ -142,6 +142,12 @@ function writeRunDirectory(root, candidateSha) {
   }
 }
 
+function replaceJsonFragment(filePath, target, replacement) {
+  const source = fs.readFileSync(filePath, "utf8");
+  assert.ok(source.includes(target), `missing JSON test fragment: ${target}`);
+  fs.writeFileSync(filePath, source.replace(target, replacement), "utf8");
+}
+
 test("two same-candidate same-input fresh-context runs validate deterministically", () => {
   const first = validate();
   const second = validate();
@@ -279,6 +285,67 @@ test("diagnostics are bounded and never include unknown property values", () => 
   assert.equal(result.findings.length, MAX_CLEAN_AGENT_FINDINGS);
   assert.ok(findingIds(result).includes("CLEAN_AGENT_FINDINGS_TRUNCATED"));
   assert.doesNotMatch(JSON.stringify(result), /private-value/);
+});
+
+test("standalone validation rejects duplicate run-record keys before semantic validation", async (t) => {
+  const cases = [
+    {
+      name: "candidateSha",
+      target: `  "candidateSha": "${CANDIDATE_SHA}",`,
+      replacement: `  "candidateSha": "private-candidate-value",\n  "candidateSha": "${CANDIDATE_SHA}",`,
+    },
+    {
+      name: "grading",
+      target: '    "interpretation": "PASS"',
+      replacement: '    "interpretation": "private-grading-value",\n    "interpretation": "PASS"',
+    },
+  ];
+
+  for (const duplicate of cases) {
+    await t.test(duplicate.name, () => {
+      const root = fs.mkdtempSync(path.join(os.tmpdir(), "proofrail-clean-agent-duplicate-"));
+      try {
+        writeRunDirectory(root, CANDIDATE_SHA);
+        const runPath = path.join(root, "governance/clean-agent-runs/clean-agent-run-01.json");
+        replaceJsonFragment(runPath, duplicate.target, duplicate.replacement);
+
+        const first = validateCleanAgentRunDirectory(root);
+        const second = validateCleanAgentRunDirectory(root);
+        assert.deepEqual(first, second);
+        assert.equal(first.runCount, 1);
+        assert.deepEqual(findingIds(first), [
+          "CLEAN_AGENT_RUN_COUNT_INVALID",
+          "CLEAN_AGENT_RUN_READ_FAILED",
+        ]);
+        assert.doesNotMatch(JSON.stringify(first), /private-(candidate|grading)-value/);
+      } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+      }
+    });
+  }
+});
+
+test("standalone validation rejects duplicate schema keys before compilation", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "proofrail-clean-agent-schema-duplicate-"));
+  try {
+    writeRunDirectory(root, CANDIDATE_SHA);
+    const schemaPath = path.join(root, "governance/clean-agent-run.schema.json");
+    const target = '  "$schema": "https://json-schema.org/draft/2020-12/schema",';
+    replaceJsonFragment(
+      schemaPath,
+      target,
+      `  "$schema": "private-schema-value",\n${target}`,
+    );
+
+    const first = validateCleanAgentRunDirectory(root);
+    const second = validateCleanAgentRunDirectory(root);
+    assert.deepEqual(first, second);
+    assert.equal(first.runCount, 2);
+    assert.deepEqual(findingIds(first), ["CLEAN_AGENT_SCHEMA_READ_FAILED"]);
+    assert.doesNotMatch(JSON.stringify(first), /private-schema-value/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("standalone directory validation accepts only two ordinary named records", () => {

@@ -6481,11 +6481,11 @@ Authority-change preflight confirmed that every retained path is under `scope.wr
 
 ### Product Fixture And Architecture Evidence
 
-The committed product corpus contains 38 sorted synthetic fixtures. Every implemented input-bearing surface has positive, negative, malformed, and adversarial classes; `contracts.constants` is the explicit no-input exception. The strict manifest schema, runner, coverage map, and inventory generator reject malformed or duplicate JSON, unsorted or duplicate identity, operation/surface mismatch, unmapped or ambiguously mapped implemented entry points, missing required classes, digest drift, oracle drift, stale inventory bytes, and unimplemented coverage claims. A real duplicate-key mutation made the product CLI exit nonzero with `JSON_MALFORMED_OR_DUPLICATE`, after which the exact manifest bytes were restored.
+The committed product corpus contains 41 sorted synthetic fixtures. Every exact implemented input-bearing operation and trust boundary has positive, negative, malformed, and adversarial classes; `contracts.constants` is the explicit no-input exception. The strict manifest schema, runner, operation-aware coverage map, and inventory generator reject malformed or duplicate JSON, unsorted or duplicate identity, operation/surface/boundary mismatch, cross-operation class borrowing, unmapped or ambiguously mapped implemented entry points, missing required classes, unsafe spawned-CLI arguments, digest drift, oracle drift, stale inventory bytes, and unimplemented coverage claims. Absolute and relative outside-sentinel output attempts fail before spawn with sentinel bytes unchanged. A real duplicate-key mutation made the product CLI exit nonzero with `JSON_MALFORMED_OR_DUPLICATE`, after which the exact manifest bytes were restored.
 
-The architecture checker covers every loading form present in retained production source and narrows the existing GitHub subprocess allowance to the exact `packages/evidence-gate/src/github.js` `execFile("gh")` boundary. Removing that path guard caused its focused negative test to fail. The checker remains bounded static analysis rather than general binding, data-flow, transitive dependency, generated-code, target-repository, or future loading-form enforcement.
+The architecture checker covers every loading form present in retained production source and rejects callable `Function`, direct or computed `process.getBuiltinModule`, escaped or computed `globalThis.require`, aliased or computed `require`, `eval`, `createRequire`, and subprocess-loaded code. It narrows the existing GitHub subprocess allowance to the exact `packages/evidence-gate/src/github.js` `execFile("gh")` boundary. Focused mutations for the disguised loader forms fail closed while ordinary strings and comments remain inert. The checker remains bounded static analysis rather than general binding, data-flow, transitive dependency, generated-code, target-repository, or future loading-form enforcement.
 
-The LF verifier checks the complete selected attribute set for `text=set` and `eol=lf`, creates a temporary `core.autocrlf=true` checkout, and compares checkout bytes with index bytes. Removing one required product-fixture rule caused the focused mutation check to fail; the retained rule set and byte comparison pass.
+The LF verifier derives one complete tracked exact-byte set, checks every selected path for `text=set` and `eol=lf`, creates a temporary `core.autocrlf=true` checkout for the same set, and compares checkout bytes with index bytes. A path-specific `-text -eol` override on an otherwise LF-only fixture fails with exact attribute findings even though its checkout bytes remain equal; an empty selected set also fails closed.
 
 ### Clean Agent Evidence
 
@@ -6502,16 +6502,16 @@ The focused commands and the clean evidence-head full verification completed fro
 ```text
 pnpm governance:check                 exit 0
 pnpm governance:check-json            exit 0; parsed status VALID
-pnpm test:governance                  exit 0; 61 passed, 0 failed
+pnpm test:governance                  exit 0; 67 passed, 0 failed
 pnpm governance:check-lf-checkout     exit 0; LF attributes and autocrlf checkout bytes passed
 pnpm clean-agent:validate             exit 0; VALID, 2 runs, 0 findings
 pnpm architecture:check               exit 0
-pnpm test:architecture                exit 0; 40 passed, 0 failed, 2 Windows EPERM file-symlink skips
+pnpm test:architecture                exit 0; 45 passed, 0 failed, 2 Windows EPERM file-symlink skips
 pnpm product:reason-codes             exit 0
 pnpm test:product-reason-codes        exit 0; 23 passed, 0 failed
-pnpm product:fixtures                 exit 0; 38/38 fixtures PASS in stable order
+pnpm product:fixtures                 exit 0; 41/41 fixtures PASS in stable order
 pnpm product:fixture-inventory        exit 0; generated inventory equality PASS
-pnpm test:product-fixtures            exit 0; 9 passed, 0 failed
+pnpm test:product-fixtures            exit 0; 13 passed, 0 failed
 pnpm test:trusted-config              exit 0; 13 passed, 0 failed, 1 Windows EPERM file-symlink skip
 pnpm test:release-orchestrator        exit 0; 9 passed, 0 failed
 pnpm test:evidence-gate              exit 0; 229 passed, 0 failed, 8 Windows symlink skips
@@ -6519,7 +6519,7 @@ pnpm proofrail-release:fixture        exit 0; committed canonical release input 
 pnpm test:static-evaluator            exit 0; 10 passed, 0 failed
 pnpm typecheck:phase1                 exit 0
 pnpm test:kernel                      exit 0; 475 passed, 0 failed
-pnpm verify                           exit 0; clean evidence commit 4810e8314c003095640cd72381aaa2165706c4f1
+pnpm verify                           exit 0; complete review-remediation diff, 149.3 seconds
 git diff --check                      exit 0 as part of pnpm verify
 ```
 

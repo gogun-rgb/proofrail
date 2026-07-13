@@ -133,9 +133,9 @@ Owner: Proofrail maintainers.
 
 Target milestone: Completed for current implemented surfaces by `PRODUCT-HARDEN-001`.
 
-Dependencies: Satisfied by the strict manifest schema, 38 checked-in synthetic fixtures, deterministic runner, and coverage map.
+Dependencies: Satisfied by the strict manifest schema, 41 checked-in synthetic fixtures, deterministic runner, and operation-aware coverage map.
 
-Observation: `fixtures/product` contains 38 stable fixtures. Every implemented input-bearing surface has positive, negative, malformed, and adversarial classes; `contracts.constants` is the explicit no-input exception. Each manifest records its implemented surface, trust boundary, synthetic provenance, digest, deterministic oracle, and limitations. The runner validates manifests before execution, rejects identity, mapping, coverage-class, digest, and oracle drift, and processes fixtures in stable id order.
+Observation: `fixtures/product` contains 41 stable fixtures. Every exact implemented input-bearing operation and trust boundary has positive, negative, malformed, and adversarial classes; `contracts.constants` is the explicit no-input exception. Each manifest records its implemented operation, surface, trust boundary, synthetic provenance, digest, deterministic oracle, and limitations. The runner validates manifests before execution, rejects unsafe CLI argument shapes before spawning, rejects identity, operation, mapping, coverage-class, digest, and oracle drift, and processes fixtures in stable id order.
 
 Risk: The corpus does not claim repository inspection, target execution, adapters, Verification Receipts, or future surfaces. New implemented boundaries must extend the coverage map and required classes before this closure can be carried forward.
 
@@ -147,7 +147,7 @@ Exit criteria:
 - Implemented trust boundaries have adversarial cases with explicit oracles.
 - Malformed, ambiguous, and unsupported inputs fail closed without weakened assertions or skips.
 
-Verification: The product runner reported 38/38 `PASS`, generated inventory equality passed, the focused suite passed 9/9, a real duplicate-key mutation failed closed, and the full `pnpm verify` passed.
+Verification: The product runner reported 41/41 `PASS`, generated inventory equality passed, and the focused suite passed 13/13. Absolute and relative outside-sentinel output attempts were rejected before spawn with sentinel bytes unchanged; cross-operation class borrowing also failed closed. A real duplicate-key mutation failed closed, and the full `pnpm verify` passed.
 
 ### DEBT-005: Product Fixture Inventory Separation
 

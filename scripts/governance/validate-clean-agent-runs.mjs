@@ -21,6 +21,83 @@ function compareText(left, right) {
   return 0;
 }
 
+function assertNoDuplicateObjectKeys(source) {
+  let cursor = 0;
+  const skipWhitespace = () => {
+    while (/\s/.test(source[cursor] ?? "")) cursor += 1;
+  };
+  const scanString = () => {
+    let escaped = false;
+    for (cursor += 1; cursor < source.length; cursor += 1) {
+      const character = source[cursor];
+      if (escaped) escaped = false;
+      else if (character === "\\") escaped = true;
+      else if (character === "\"") {
+        cursor += 1;
+        return;
+      }
+    }
+  };
+  const scanValue = () => {
+    skipWhitespace();
+    if (source[cursor] === "{") {
+      cursor += 1;
+      skipWhitespace();
+      const keys = new Set();
+      while (source[cursor] !== "}") {
+        const keyStart = cursor;
+        scanString();
+        const key = JSON.parse(source.slice(keyStart, cursor));
+        if (keys.has(key)) throw new SyntaxError("duplicate object key");
+        keys.add(key);
+        skipWhitespace();
+        cursor += 1;
+        scanValue();
+        skipWhitespace();
+        if (source[cursor] === ",") {
+          cursor += 1;
+          skipWhitespace();
+        } else {
+          break;
+        }
+      }
+      cursor += 1;
+      return;
+    }
+    if (source[cursor] === "[") {
+      cursor += 1;
+      skipWhitespace();
+      while (source[cursor] !== "]") {
+        scanValue();
+        skipWhitespace();
+        if (source[cursor] === ",") {
+          cursor += 1;
+          skipWhitespace();
+        } else {
+          break;
+        }
+      }
+      cursor += 1;
+      return;
+    }
+    if (source[cursor] === "\"") {
+      scanString();
+      return;
+    }
+    while (cursor < source.length && !/[\s,}\]]/.test(source[cursor])) cursor += 1;
+  };
+
+  scanValue();
+  skipWhitespace();
+  if (cursor !== source.length) throw new SyntaxError("malformed JSON");
+}
+
+function parseStrictJson(source) {
+  const value = JSON.parse(source);
+  assertNoDuplicateObjectKeys(source);
+  return value;
+}
+
 function makeCollector() {
   const findings = [];
   let truncated = false;
@@ -573,7 +650,7 @@ function readBoundedJson(root, repoPath, maximumBytes, collector, readFailureId)
     return undefined;
   }
   try {
-    return JSON.parse(text);
+    return parseStrictJson(text);
   } catch {
     collector.add(readFailureId, repoPath, "/", "The required JSON file contains malformed JSON.");
     return undefined;

@@ -102,7 +102,7 @@ Proofrail still does not have the complete product runtime. Any implementation b
 
 `PRODUCT-RELEASE-001` adds an exact release-candidate vertical slice. Separately supplied Trusted Configuration, Policy, and Evidence Contract bytes select `gogun-rgb/proofrail#27`; `@proofrail/trusted-config` validates and binds those bytes, `@proofrail/release-orchestrator` converts the sanitized collector snapshot into kernel input, and the unchanged kernel finalizes the Evidence Bundle. `PRODUCT-RELEASE-002` adds only `baseRefOid` to the existing bounded metadata query, validates it as `baseOid`, and supplies the previously missing `target.baseSha` Observation. The authorized live result and offline golden are byte-identical and `ADMISSIBLE`, with no Verification Receipt. This is not by itself a trusted release or external release decision.
 
-`PRODUCT-HARDEN-001` adds bounded repository-engineering hardening without changing production package behavior: exact LF checkout verification, stronger current-source architecture loading checks, a 38-case deterministic product fixture corpus with a separate generated inventory, and two retained fresh-context Clean Agent Test records with matching independently graded `PASS` interpretations. These controls close the corresponding current-surface debt; they do not add target execution, adapters, Verification Receipts, a delivery surface, product reliability authority, or release authority.
+`PRODUCT-HARDEN-001` adds bounded repository-engineering hardening without changing production package behavior: complete-set exact LF checkout verification, stronger current-source architecture loading checks, a 41-case deterministic product fixture corpus with a separate generated inventory, and two retained fresh-context Clean Agent Test records with matching independently graded `PASS` interpretations. The fixture runner rejects unsafe spawned-CLI arguments before execution and enforces class coverage per exact operation and trust boundary. These controls close the corresponding current-surface debt; they do not add target execution, adapters, Verification Receipts, a delivery surface, product reliability authority, or release authority.
 
 ## Static Phase 1 Kernel Evaluation
 
@@ -159,7 +159,7 @@ The deterministic TypeScript-AST guard checks the current built-in Verdict reaso
 
 ### Product fixtures
 
-The checked-in product corpus contains 38 synthetic fixtures across the current six-package surface. Every implemented input-bearing surface has positive, negative, malformed, and adversarial classes; `contracts.constants` is the explicit no-input exception. Each manifest binds an exact implemented surface and trust boundary to a digest and deterministic oracle.
+The checked-in product corpus contains 41 synthetic fixtures across the current six-package surface. Every exact implemented input-bearing operation and trust boundary has positive, negative, malformed, and adversarial classes; `contracts.constants` is the explicit no-input exception. Each manifest binds an exact implemented operation, surface, and trust boundary to a digest and deterministic oracle. Spawned CLI fixtures accept only the fixed inert `--input {input}` driver shape, so fixture metadata cannot select an output path.
 
 ```bash
 pnpm product:fixtures

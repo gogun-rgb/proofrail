@@ -706,7 +706,10 @@ function collectModuleReferences(sourceFile, onReference, onBypass, authorizedGh
     }
     seen.add(node);
 
-    if (
+    const disguisedLoader = disguisedLoaderTarget(node);
+    if (disguisedLoader) {
+      onBypass({ node, target: disguisedLoader });
+    } else if (
       ts.isElementAccessExpression(node)
       && ts.isIdentifier(node.expression)
       && node.expression.text === "require"
@@ -779,6 +782,55 @@ function collectModuleReferences(sourceFile, onReference, onBypass, authorizedGh
   }
 
   visit(sourceFile);
+}
+
+function disguisedLoaderTarget(node) {
+  if (
+    ts.isCallExpression(node)
+    && ts.isIdentifier(node.expression)
+    && node.expression.text === "Function"
+  ) {
+    return "Function";
+  }
+  if (
+    !ts.isPropertyAccessExpression(node)
+    && !ts.isElementAccessExpression(node)
+  ) {
+    return null;
+  }
+  if (!ts.isIdentifier(node.expression)) {
+    return null;
+  }
+
+  const propertyName = ts.isPropertyAccessExpression(node)
+    ? node.name.text
+    : staticString(node.argumentExpression);
+  if (node.expression.text === "process" && propertyName === "getBuiltinModule") {
+    return "process.getBuiltinModule";
+  }
+  if (node.expression.text === "globalThis" && propertyName === "require") {
+    return "globalThis.require";
+  }
+  return null;
+}
+
+function staticString(node) {
+  const literal = literalText(node);
+  if (literal !== null) {
+    return literal;
+  }
+  if (ts.isParenthesizedExpression(node)) {
+    return staticString(node.expression);
+  }
+  if (
+    ts.isBinaryExpression(node)
+    && node.operatorToken.kind === ts.SyntaxKind.PlusToken
+  ) {
+    const left = staticString(node.left);
+    const right = staticString(node.right);
+    return left === null || right === null ? null : left + right;
+  }
+  return null;
 }
 
 function isAllowedRequireIdentifierUse(node) {

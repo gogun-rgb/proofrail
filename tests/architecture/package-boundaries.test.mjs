@@ -531,6 +531,31 @@ test("fails closed on each newly guarded dynamic or disguised loader bypass", as
     ["eval", 'eval(\'require("@proofrail/contracts")\');', "eval"],
     ["new-Function", 'new Function(\'return import("@proofrail/contracts")\');', "Function"],
     [
+      "callable-Function",
+      'Function(\'return require("@proofrail/contracts")\')();',
+      "Function",
+    ],
+    [
+      "direct-getBuiltinModule",
+      'process.getBuiltinModule("node:fs");',
+      "process.getBuiltinModule",
+    ],
+    [
+      "computed-getBuiltinModule",
+      'process["getBuiltinModule"]("node:fs");',
+      "process.getBuiltinModule",
+    ],
+    [
+      "escaped-global-require",
+      'globalThis["\\x72equire"]("@proofrail/contracts");',
+      "globalThis.require",
+    ],
+    [
+      "computed-global-require",
+      'globalThis["requ" + "ire"]("@proofrail/contracts");',
+      "globalThis.require",
+    ],
+    [
       "aliased-require",
       'const load = require; load("@proofrail/contracts");',
       "require-reference",
@@ -614,7 +639,10 @@ test("does not treat comments or ordinary strings as module loads", async (t) =>
     "text.js",
     [
       'const text = "import \\\"@proofrail/kernel\\\"";',
+      'const functionText = "Function(\'return require()\')()";',
+      'const builtinText = "process.getBuiltinModule(\'node:fs\')";',
       '// require("@proofrail/kernel");',
+      '// globalThis["require"]("@proofrail/kernel");',
       '/* export * from "@proofrail/kernel"; */',
       "export { text };",
     ].join("\n"),

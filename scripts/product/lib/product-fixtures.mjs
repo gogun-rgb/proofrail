@@ -42,7 +42,7 @@ const PACKAGE_DIRECTORIES = Object.freeze([
 ]);
 const FIXTURE_CLASSES = Object.freeze(["adversarial", "malformed", "negative", "positive"]);
 const CLASS_COVERAGE_EXCEPTIONS = Object.freeze({
-  "@proofrail/contracts#export:.": Object.freeze({
+  "contracts.constants": Object.freeze({
     expected: Object.freeze(["positive"]),
     reason: "No-input constant export; negative, malformed, and adversarial fixture classes are inapplicable.",
   }),
@@ -62,6 +62,23 @@ const OPERATION_SURFACES = Object.freeze({
   "static-evaluator.cli": ["@proofrail/static-evaluator#bin:static-evaluate"],
   "trusted-config.load": ["@proofrail/trusted-config#export:."],
   "trusted-config.strict-json": ["@proofrail/trusted-config#export:."],
+});
+const OPERATION_BOUNDARIES = Object.freeze({
+  "contracts.constants": "contract-constants",
+  "evidence-gate.github-arguments": "github-cli-arguments",
+  "evidence-gate.github-normalize": "github-readonly-normalization",
+  "evidence-gate.packet": "static-evidence-packet",
+  "evidence-gate.static-cli": "static-cli-input",
+  "kernel.evaluate": "deterministic-kernel-boundary",
+  "release-orchestrator.offline": "offline-release-orchestration",
+  "release.arguments": "release-cli-arguments",
+  "static-evaluator.cli": "static-evaluator-cli",
+  "trusted-config.load": "trusted-configuration-loader",
+  "trusted-config.strict-json": "strict-json-parser",
+});
+const SAFE_CLI_ARGUMENTS = Object.freeze({
+  "evidence-gate.static-cli": Object.freeze(["--input", "{input}"]),
+  "static-evaluator.cli": Object.freeze(["--input", "{input}"]),
 });
 
 export class ProductFixtureError extends Error {
@@ -152,9 +169,9 @@ export async function renderProductFixtureInventory(options = {}) {
   });
   const coverageRows = corpus.coverage.surfaces.map((surface) => {
     const classes = coverageClasses(surface, fixturesById).join(", ");
-    const exception = CLASS_COVERAGE_EXCEPTIONS[surface.id];
+    const exception = CLASS_COVERAGE_EXCEPTIONS[surface.operation];
     const applicability = exception ? `${classes}; ${exception.reason}` : classes;
-    return `| \`${surface.id}\` | \`${surface.boundary}\` | ${surface.fixtureIds.map((id) => `\`${id}\``).join("<br>")} | ${applicability} |`;
+    return `| \`${surface.id}\` | \`${surface.operation}\` | \`${surface.boundary}\` | ${surface.fixtureIds.map((id) => `\`${id}\``).join("<br>")} | ${applicability} |`;
   });
   return [
     "# Product Fixture Inventory",
@@ -173,8 +190,8 @@ export async function renderProductFixtureInventory(options = {}) {
     "",
     "The coverage map is derived from the current six package manifests and validation fails on drift.",
     "",
-    "| Surface | Boundary | Fixture ids | Class coverage and applicability |",
-    "| --- | --- | --- | --- |",
+    "| Surface | Operation | Boundary | Fixture ids | Class coverage and applicability |",
+    "| --- | --- | --- | --- | --- |",
     ...coverageRows,
     "",
     "## Explicitly not covered",
@@ -300,10 +317,16 @@ async function stageDocuments(driver, manifest, corpus) {
       await copyFile(source, destination);
     }
     if (driver.mutation !== null && driver.mutation !== undefined) {
-      if (!declared.has(driver.mutation.path) || driver.mutation.kind !== "append-space") fail("DRIVER_INVALID", manifest.id);
+      if (!declared.has(driver.mutation.path)) fail("DRIVER_INVALID", manifest.id);
       const target = resolveWithin(temporaryRoot, driver.mutation.path);
-      const bytes = await readFile(target);
-      await writeFile(target, Buffer.concat([bytes, Buffer.from(" ", "utf8")]));
+      if (driver.mutation.kind === "append-space") {
+        const bytes = await readFile(target);
+        await writeFile(target, Buffer.concat([bytes, Buffer.from(" ", "utf8")]));
+      } else if (driver.mutation.kind === "replace-with-malformed-json") {
+        await writeFile(target, "{\n", "utf8");
+      } else {
+        fail("DRIVER_INVALID", manifest.id);
+      }
     }
     return temporaryRoot;
   } catch (error) {
@@ -329,6 +352,7 @@ async function loadStructuredInput(driver, manifest, corpus) {
 }
 
 async function runCliFixture(scriptPath, driver, manifest, corpus) {
+  validateCliFixtureArguments(manifest.operation, driver.arguments, manifest.id);
   const directory = await mkdtemp(path.join(tmpdir(), "proofrail-product-cli-"));
   try {
     const inputPath = path.join(directory, "input.bin");
@@ -428,35 +452,50 @@ function validateCoverage(coverage, manifests, derivedSurfaces) {
   if (coverage.schemaVersion !== "proofrail.product-fixture-coverage.v1" || !Array.isArray(coverage.surfaces)) {
     fail("COVERAGE_MAP_INVALID", "shape");
   }
-  const ids = coverage.surfaces.map(({ id }) => id);
-  assertSortedUnique(ids, "COVERAGE_SURFACES_UNSORTED_OR_DUPLICATE");
+  const recordKeys = coverage.surfaces.map(({ id, operation, boundary }) => `${id}\u0000${operation}\u0000${boundary}`);
+  assertSortedUnique(recordKeys, "COVERAGE_SURFACES_UNSORTED_OR_DUPLICATE");
+  const ids = [...new Set(coverage.surfaces.map(({ id }) => id))].sort(compare);
   if (canonicalJson(ids) !== canonicalJson(derivedSurfaces)) fail("COVERAGE_SURFACE_DRIFT", "package exports or bins are unmapped");
+  const operationSurfacePairs = coverage.surfaces
+    .map(({ id, operation }) => `${operation}\u0000${id}`)
+    .sort(compare);
+  const expectedOperationSurfacePairs = Object.entries(OPERATION_SURFACES)
+    .flatMap(([operation, surfaces]) => surfaces.map((id) => `${operation}\u0000${id}`))
+    .sort(compare);
+  if (canonicalJson(operationSurfacePairs) !== canonicalJson(expectedOperationSurfacePairs)) {
+    fail("COVERAGE_OPERATION_DRIFT", "implemented operations or surfaces are unmapped");
+  }
   const fixtures = new Map(manifests.map((manifest) => [manifest.id, manifest]));
   const mappedPairs = new Set();
   for (const record of coverage.surfaces) {
-    assertExactKeys(record, ["id", "boundary", "fixtureIds"], "COVERAGE_MAP_INVALID");
-    if (typeof record.boundary !== "string" || !Array.isArray(record.fixtureIds) || record.fixtureIds.length === 0) {
+    assertExactKeys(record, ["id", "operation", "boundary", "fixtureIds"], "COVERAGE_MAP_INVALID");
+    if (typeof record.operation !== "string" || record.boundary !== OPERATION_BOUNDARIES[record.operation]
+        || !OPERATION_SURFACES[record.operation]?.includes(record.id)
+        || !Array.isArray(record.fixtureIds) || record.fixtureIds.length === 0) {
       fail("COVERAGE_MAP_INVALID", record.id);
     }
     assertSortedUnique(record.fixtureIds, "COVERAGE_FIXTURES_UNSORTED_OR_DUPLICATE");
     const observedClasses = coverageClasses(record, fixtures);
-    const expectedClasses = CLASS_COVERAGE_EXCEPTIONS[record.id]?.expected ?? FIXTURE_CLASSES;
+    const expectedClasses = CLASS_COVERAGE_EXCEPTIONS[record.operation]?.expected ?? FIXTURE_CLASSES;
     if (canonicalJson(observedClasses) !== canonicalJson(expectedClasses)) {
       fail("COVERAGE_CLASS_INCOMPLETE", record.id);
     }
     for (const fixtureId of record.fixtureIds) {
       const manifest = fixtures.get(fixtureId);
       if (!manifest) fail("COVERAGE_UNKNOWN_FIXTURE", fixtureId);
+      if (manifest.operation !== record.operation) {
+        fail("COVERAGE_OPERATION_MISMATCH", `${record.id}:${fixtureId}`);
+      }
       const declarations = manifest.surfaces.filter((surface) => surfaceId(surface) === record.id);
       if (declarations.length !== 1 || declarations[0].boundary !== record.boundary) {
         fail("COVERAGE_BOUNDARY_MISMATCH", `${record.id}:${fixtureId}`);
       }
-      mappedPairs.add(`${fixtureId}\u0000${record.id}`);
+      mappedPairs.add(`${fixtureId}\u0000${record.operation}\u0000${record.id}\u0000${record.boundary}`);
     }
   }
   for (const manifest of manifests) {
     for (const surface of manifest.surfaces) {
-      if (!mappedPairs.has(`${manifest.id}\u0000${surfaceId(surface)}`)) {
+      if (!mappedPairs.has(`${manifest.id}\u0000${manifest.operation}\u0000${surfaceId(surface)}\u0000${surface.boundary}`)) {
         fail("FIXTURE_SURFACE_UNMAPPED", `${manifest.id}:${surfaceId(surface)}`);
       }
     }
@@ -484,12 +523,19 @@ function validateManifestOrdering(manifest, manifestPath) {
   assertSortedUnique(manifest.surfaces.map(surfaceId), "MANIFEST_SURFACES_UNSORTED_OR_DUPLICATE");
   assertSortedUnique(manifest.limitations, "MANIFEST_LIMITATIONS_UNSORTED_OR_DUPLICATE");
   if (
-    canonicalJson(manifest.surfaces.map(surfaceId))
-    !== canonicalJson(OPERATION_SURFACES[manifest.operation])
+    canonicalJson(manifest.surfaces.map((surface) => `${surfaceId(surface)}\u0000${surface.boundary}`))
+    !== canonicalJson(OPERATION_SURFACES[manifest.operation]?.map((id) => `${id}\u0000${OPERATION_BOUNDARIES[manifest.operation]}`))
   ) {
     fail("MANIFEST_OPERATION_SURFACE_MISMATCH", manifest.id);
   }
   if (!manifestPath.endsWith("/manifest.json")) fail("MANIFEST_PATH_INVALID", manifestPath);
+}
+
+function validateCliFixtureArguments(operation, args, fixtureId) {
+  const expected = SAFE_CLI_ARGUMENTS[operation];
+  if (!expected || canonicalJson(args) !== canonicalJson(expected)) {
+    fail("CLI_FIXTURE_ARGUMENTS_UNSAFE", fixtureId);
+  }
 }
 
 async function scanCorpus(fixturesRoot) {

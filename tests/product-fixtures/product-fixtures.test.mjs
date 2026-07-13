@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { access, cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -35,6 +36,10 @@ function rejectsWith(code) {
   return (error) => error?.code === code;
 }
 
+function sha256(bytes) {
+  return createHash("sha256").update(bytes).digest("hex").toUpperCase();
+}
+
 test("all manifest schema references resolve to the one committed schema", async () => {
   const suite = await readJson(path.join(FIXTURES, "suite.json"));
   for (const relativeManifest of suite.manifests) {
@@ -46,9 +51,9 @@ test("all manifest schema references resolve to the one committed schema", async
   }
 });
 
-test("the committed corpus runs exactly 38 fixtures in stable PASS order", async () => {
+test("the committed corpus runs exactly 41 fixtures in stable PASS order", async () => {
   const results = await runProductFixtures();
-  assert.equal(results.length, 38);
+  assert.equal(results.length, 41);
   assert.deepEqual(
     results.map(({ id }) => id),
     [...results.map(({ id }) => id)].sort(),
@@ -90,6 +95,66 @@ test("every input-bearing surface retains all four fixture classes", async (t) =
     loadProductFixtureCorpus({ repositoryRoot: ROOT, fixturesRoot }),
     rejectsWith("COVERAGE_CLASS_INCOMPLETE"),
   );
+});
+
+test("class coverage cannot be borrowed across operations on one export", async (t) => {
+  const fixturesRoot = await copiedCorpus(t);
+  const manifestPath = path.join(
+    fixturesRoot,
+    "cases",
+    "trusted-config.strict-json-adversarial.v1",
+    "manifest.json",
+  );
+  const manifest = await readJson(manifestPath);
+  manifest.class = "positive";
+  await writeJson(manifestPath, manifest);
+
+  await assert.rejects(
+    loadProductFixtureCorpus({ repositoryRoot: ROOT, fixturesRoot }),
+    rejectsWith("COVERAGE_CLASS_INCOMPLETE"),
+  );
+});
+
+test("CLI fixture arguments cannot write an outside sentinel", async (t) => {
+  for (const outputKind of ["absolute", "relative"]) {
+    await t.test(outputKind, async (t) => {
+      const fixturesRoot = await copiedCorpus(t);
+      const sentinelPath = path.resolve(fixturesRoot, "..", "..", `${outputKind}-sentinel.json`);
+      const sentinel = Buffer.from(`sentinel:${outputKind}\n`, "utf8");
+      await writeFile(sentinelPath, sentinel);
+
+      const inputPath = path.join(
+        fixturesRoot,
+        "cases",
+        "evidence-gate.cli-positive.v1",
+        "input.json",
+      );
+      const manifestPath = path.join(
+        fixturesRoot,
+        "cases",
+        "evidence-gate.cli-positive.v1",
+        "manifest.json",
+      );
+      const input = await readJson(inputPath);
+      input.arguments.push(
+        "--output",
+        outputKind === "absolute" ? sentinelPath : path.relative(ROOT, sentinelPath),
+      );
+      const inputBytes = Buffer.from(`${JSON.stringify(input)}\n`, "utf8");
+      await writeFile(inputPath, inputBytes);
+      const manifest = await readJson(manifestPath);
+      const declaredInput = manifest.inputs.find(({ path: declaredPath }) =>
+        declaredPath === "cases/evidence-gate.cli-positive.v1/input.json");
+      declaredInput.sha256 = sha256(inputBytes);
+      await writeJson(manifestPath, manifest);
+
+      await assert.rejects(
+        runProductFixtures({ repositoryRoot: ROOT, fixturesRoot }),
+        rejectsWith("CLI_FIXTURE_ARGUMENTS_UNSAFE"),
+      );
+      assert.deepEqual(await readFile(sentinelPath), sentinel);
+    });
+  }
 });
 
 test("duplicate JSON keys fail closed before corpus execution", async (t) => {

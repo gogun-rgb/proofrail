@@ -6,32 +6,6 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-export const REQUIRED_LF_ATTRIBUTE_PATHS = Object.freeze([
-  "config/evidence-contracts/proofrail-ai-pr-github-ci-v1.json",
-  "config/policies/proofrail-ai-pr-github-ci-v1.json",
-  "config/reason-codes/product-reason-codes.json",
-  "config/trusted/proofrail-release-v0.1.json",
-  "docs/reference/product-fixtures.md",
-  "docs/reference/reason-codes.md",
-  "examples/evidence-gate/expected-output.json",
-  "examples/evidence-gate/expected-report.txt",
-  "examples/evidence-gate/github/declared-scope.json",
-  "examples/evidence-gate/github/sanitized-pr-snapshot.json",
-  "examples/evidence-gate/input.json",
-  "examples/release/expected-evidence-bundle.json",
-  "examples/release/expected-kernel-input.json",
-  "examples/release/github-pr-27.snapshot.json",
-  "examples/static-evaluator/expected-output.json",
-  "examples/static-evaluator/input.json",
-  "fixtures/product/_attribute-probe/manifest.json",
-  "fixtures/product/_attribute-probe/expected-output.txt",
-  "governance/architecture-check-preparation.json",
-  "governance/clean-agent-run.schema.json",
-  "governance/clean-agent-runs/_attribute-probe.json",
-  "governance/tasks/PRODUCT-HARDEN-001.json",
-  "schemas/product/fixture-manifest.schema.json",
-]);
-
 const TRACKED_PATHSPECS = Object.freeze([
   ":(glob)config/evidence-contracts/*.json",
   ":(glob)config/policies/*.json",
@@ -50,11 +24,19 @@ const TRACKED_PATHSPECS = Object.freeze([
 ]);
 
 export function checkLfAttributes(repositoryRoot) {
+  const selected = selectTrackedPaths(repositoryRoot);
+  if (selected.findings.length > 0) {
+    return selected.findings;
+  }
+  return checkLfAttributesForPaths(repositoryRoot, selected.paths);
+}
+
+function checkLfAttributesForPaths(repositoryRoot, tracked) {
   let output;
   try {
     output = runGit(
       repositoryRoot,
-      ["check-attr", "-z", "text", "eol", "--", ...REQUIRED_LF_ATTRIBUTE_PATHS],
+      ["check-attr", "-z", "text", "eol", "--", ...tracked],
       "utf8",
     );
   } catch {
@@ -73,7 +55,7 @@ export function checkLfAttributes(repositoryRoot) {
   }
 
   const findings = [];
-  for (const file of REQUIRED_LF_ATTRIBUTE_PATHS) {
+  for (const file of tracked) {
     if (attributes.get(`${file}\0text`) !== "set") {
       findings.push(finding("LFCHK_ATTRIBUTE_INVALID", file, "text"));
     }
@@ -81,29 +63,21 @@ export function checkLfAttributes(repositoryRoot) {
       findings.push(finding("LFCHK_ATTRIBUTE_INVALID", file, "eol"));
     }
   }
-  if (attributes.size !== REQUIRED_LF_ATTRIBUTE_PATHS.length * 2) {
+  if (attributes.size !== tracked.length * 2) {
     findings.push(finding("LFCHK_ATTRIBUTE_OUTPUT_INVALID", ".gitattributes", "<attribute-set>"));
   }
   return findings.sort(compareFindings);
 }
 
 export async function checkAutocrlfCheckout(repositoryRoot) {
-  let tracked;
-  try {
-    const output = runGit(
-      repositoryRoot,
-      ["ls-files", "-z", "--", ...TRACKED_PATHSPECS],
-      "utf8",
-    );
-    tracked = output.split("\0").filter(Boolean).sort(compareStrings);
-  } catch {
-    return [finding("LFCHK_GIT_FAILURE", ".gitattributes", "<ls-files>")];
+  const selected = selectTrackedPaths(repositoryRoot);
+  if (selected.findings.length > 0) {
+    return selected.findings;
   }
+  return checkAutocrlfCheckoutForPaths(repositoryRoot, selected.paths);
+}
 
-  if (tracked.length === 0) {
-    return [finding("LFCHK_TRACKED_SET_EMPTY", ".gitattributes", "<tracked>")];
-  }
-
+async function checkAutocrlfCheckoutForPaths(repositoryRoot, tracked) {
   const checkoutRoot = await mkdtemp(path.join(tmpdir(), "proofrail-lf-checkout-"));
   const findings = [];
   try {
@@ -150,10 +124,39 @@ export async function checkAutocrlfCheckout(repositoryRoot) {
 }
 
 export async function verifyLfCheckout(repositoryRoot) {
+  const selected = selectTrackedPaths(repositoryRoot);
+  if (selected.findings.length > 0) {
+    return selected.findings;
+  }
   return [
-    ...checkLfAttributes(repositoryRoot),
-    ...await checkAutocrlfCheckout(repositoryRoot),
+    ...checkLfAttributesForPaths(repositoryRoot, selected.paths),
+    ...await checkAutocrlfCheckoutForPaths(repositoryRoot, selected.paths),
   ].sort(compareFindings);
+}
+
+function selectTrackedPaths(repositoryRoot) {
+  let output;
+  try {
+    output = runGit(
+      repositoryRoot,
+      ["ls-files", "-z", "--", ...TRACKED_PATHSPECS],
+      "utf8",
+    );
+  } catch {
+    return {
+      findings: [finding("LFCHK_GIT_FAILURE", ".gitattributes", "<ls-files>")],
+      paths: [],
+    };
+  }
+
+  const paths = output.split("\0").filter(Boolean).sort(compareStrings);
+  if (paths.length === 0) {
+    return {
+      findings: [finding("LFCHK_TRACKED_SET_EMPTY", ".gitattributes", "<tracked>")],
+      paths,
+    };
+  }
+  return { findings: [], paths };
 }
 
 function runGit(repositoryRoot, args, encoding) {
