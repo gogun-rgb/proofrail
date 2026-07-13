@@ -1,0 +1,1 @@
+{"result":{"exitCode":1,"output":{"exists":false},"stderr":{"bytes":50,"endsWithLf":true,"sha256":"C23EADFF667A2BE6D79404AE8C462942E4D7DE40F0AAAA320AAD9B923E476838","text":"evidence-gate: input file contains malformed JSON\n"},"stdout":{"bytes":0,"endsWithLf":false,"sha256":"E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855","text":""}}}

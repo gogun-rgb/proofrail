@@ -536,6 +536,26 @@ test("fails closed on each newly guarded dynamic or disguised loader bypass", as
       "Function",
     ],
     [
+      "aliased-Function",
+      'const F = Function; F(\'return require("@proofrail/contracts")\')();',
+      "Function",
+    ],
+    [
+      "extended-Function",
+      'class Loader extends Function {} new Loader(\'return require("@proofrail/contracts")\')();',
+      "Function",
+    ],
+    [
+      "direct-global-Function",
+      'globalThis.Function(\'return require("@proofrail/contracts")\')();',
+      "globalThis.Function",
+    ],
+    [
+      "computed-global-Function",
+      'globalThis["Function"](\'return require("@proofrail/contracts")\')();',
+      "globalThis.Function",
+    ],
+    [
       "direct-getBuiltinModule",
       'process.getBuiltinModule("node:fs");',
       "process.getBuiltinModule",
@@ -640,9 +660,13 @@ test("does not treat comments or ordinary strings as module loads", async (t) =>
     [
       'const text = "import \\\"@proofrail/kernel\\\"";',
       'const functionText = "Function(\'return require()\')()";',
+      'const aliasText = "const F = Function; F(\'return require()\')()";',
+      'const heritageText = "class Loader extends Function {}";',
       'const builtinText = "process.getBuiltinModule(\'node:fs\')";',
       '// require("@proofrail/kernel");',
       '// globalThis["require"]("@proofrail/kernel");',
+      '// globalThis.Function("return require()")();',
+      '/* globalThis["Function"]("return require()")(); */',
       '/* export * from "@proofrail/kernel"; */',
       "export { text };",
     ].join("\n"),

@@ -722,7 +722,9 @@ function collectModuleReferences(sourceFile, onReference, onBypass, authorizedGh
     ) {
       onBypass({ node, target: "Function" });
     } else if (ts.isIdentifier(node)) {
-      if (node.text === "eval") {
+      if (node.text === "Function" && !isAllowedFunctionIdentifierUse(node)) {
+        onBypass({ node, target: "Function" });
+      } else if (node.text === "eval") {
         onBypass({ node, target: "eval" });
       } else if (node.text === "createRequire") {
         onBypass({ node, target: "createRequire" });
@@ -808,6 +810,9 @@ function disguisedLoaderTarget(node) {
   if (node.expression.text === "process" && propertyName === "getBuiltinModule") {
     return "process.getBuiltinModule";
   }
+  if (node.expression.text === "globalThis" && propertyName === "Function") {
+    return "globalThis.Function";
+  }
   if (node.expression.text === "globalThis" && propertyName === "require") {
     return "globalThis.require";
   }
@@ -831,6 +836,23 @@ function staticString(node) {
     return left === null || right === null ? null : left + right;
   }
   return null;
+}
+
+function isAllowedFunctionIdentifierUse(node) {
+  const parent = node.parent;
+  if (ts.isShorthandPropertyAssignment(parent)) {
+    return false;
+  }
+  if (ts.isDeclarationName(node)) {
+    return true;
+  }
+  if (
+    (ts.isCallExpression(parent) || ts.isNewExpression(parent))
+    && parent.expression === node
+  ) {
+    return true;
+  }
+  return ts.isPropertyAccessExpression(parent) && parent.name === node;
 }
 
 function isAllowedRequireIdentifierUse(node) {

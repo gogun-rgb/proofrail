@@ -64,22 +64,29 @@ const OPERATION_SURFACES = Object.freeze({
   "trusted-config.strict-json": ["@proofrail/trusted-config#export:."],
 });
 const OPERATION_BOUNDARIES = Object.freeze({
-  "contracts.constants": "contract-constants",
-  "evidence-gate.github-arguments": "github-cli-arguments",
-  "evidence-gate.github-normalize": "github-readonly-normalization",
-  "evidence-gate.packet": "static-evidence-packet",
-  "evidence-gate.static-cli": "static-cli-input",
-  "kernel.evaluate": "deterministic-kernel-boundary",
-  "release-orchestrator.offline": "offline-release-orchestration",
-  "release.arguments": "release-cli-arguments",
-  "static-evaluator.cli": "static-evaluator-cli",
-  "trusted-config.load": "trusted-configuration-loader",
-  "trusted-config.strict-json": "strict-json-parser",
+  "contracts.constants": Object.freeze(["contract-constants"]),
+  "evidence-gate.github-arguments": Object.freeze(["github-cli-arguments"]),
+  "evidence-gate.github-normalize": Object.freeze(["github-readonly-normalization"]),
+  "evidence-gate.packet": Object.freeze(["static-evidence-packet"]),
+  "evidence-gate.static-cli": Object.freeze(["static-cli-input", "static-cli-output"]),
+  "kernel.evaluate": Object.freeze(["deterministic-kernel-boundary"]),
+  "release-orchestrator.offline": Object.freeze(["offline-release-orchestration"]),
+  "release.arguments": Object.freeze(["release-cli-arguments"]),
+  "static-evaluator.cli": Object.freeze(["static-evaluator-cli", "static-evaluator-cli-output"]),
+  "trusted-config.load": Object.freeze(["trusted-configuration-loader"]),
+  "trusted-config.strict-json": Object.freeze(["strict-json-parser"]),
 });
 const SAFE_CLI_ARGUMENTS = Object.freeze({
-  "evidence-gate.static-cli": Object.freeze(["--input", "{input}"]),
-  "static-evaluator.cli": Object.freeze(["--input", "{input}"]),
+  "evidence-gate.static-cli": Object.freeze([
+    Object.freeze(["--input", "{input}"]),
+    Object.freeze(["--input", "{input}", "--output", "{output}"]),
+  ]),
+  "static-evaluator.cli": Object.freeze([
+    Object.freeze(["--input", "{input}"]),
+    Object.freeze(["--input", "{input}", "--output", "{output}"]),
+  ]),
 });
+const CLI_ENVIRONMENT = Object.freeze({ NO_COLOR: "1" });
 
 export class ProductFixtureError extends Error {
   constructor(code, detail) {
@@ -356,26 +363,46 @@ async function runCliFixture(scriptPath, driver, manifest, corpus) {
   const directory = await mkdtemp(path.join(tmpdir(), "proofrail-product-cli-"));
   try {
     const inputPath = path.join(directory, "input.bin");
+    const outputPath = path.join(directory, "output.bin");
     await writeFile(inputPath, await materializePayload(driver.payload, manifest, corpus));
-    const args = driver.arguments.map((argument) => argument === "{input}" ? inputPath : argument);
+    const args = driver.arguments.map((argument) => {
+      if (argument === "{input}") return inputPath;
+      if (argument === "{output}") return outputPath;
+      return argument;
+    });
     const result = spawnSync(process.execPath, [resolveWithin(corpus.repositoryRoot, scriptPath), ...args], {
       cwd: corpus.repositoryRoot,
       encoding: "buffer",
-      env: { ...process.env, NO_COLOR: "1" },
+      env: CLI_ENVIRONMENT,
       maxBuffer: 2 * 1024 * 1024,
       shell: false,
       timeout: 15_000,
       windowsHide: true,
     });
     if (result.error) throw result.error;
-    return {
+    const outcome = {
       exitCode: result.status,
       stderr: streamSummary(result.stderr),
       stdout: streamSummary(result.stdout),
     };
+    if (driver.arguments.includes("{output}")) outcome.output = await stagedOutputSummary(outputPath);
+    return outcome;
   } finally {
     await rm(directory, { force: true, recursive: true });
   }
+}
+
+async function stagedOutputSummary(outputPath) {
+  let details;
+  try {
+    details = await lstat(outputPath);
+  } catch (error) {
+    if (error?.code === "ENOENT") return { exists: false };
+    throw error;
+  }
+  if (!details.isFile() || details.isSymbolicLink()) fail("CLI_OUTPUT_NOT_REGULAR", "staged output");
+  if (details.size > MAX_CORPUS_FILE_BYTES) fail("CLI_OUTPUT_TOO_LARGE", "staged output");
+  return { exists: true, ...streamSummary(await readFile(outputPath)) };
 }
 
 async function materializePayload(payload, manifest, corpus) {
@@ -448,28 +475,39 @@ async function derivePackageSurfaces(repositoryRoot) {
 }
 
 function validateCoverage(coverage, manifests, derivedSurfaces) {
-  assertExactKeys(coverage, ["schemaVersion", "surfaces"], "COVERAGE_MAP_INVALID");
-  if (coverage.schemaVersion !== "proofrail.product-fixture-coverage.v1" || !Array.isArray(coverage.surfaces)) {
+  assertExactKeys(coverage, ["schemaVersion", "fixtureClasses", "surfaces"], "COVERAGE_MAP_INVALID");
+  if (coverage.schemaVersion !== "proofrail.product-fixture-coverage.v1"
+      || !Array.isArray(coverage.fixtureClasses) || !Array.isArray(coverage.surfaces)) {
     fail("COVERAGE_MAP_INVALID", "shape");
   }
   const recordKeys = coverage.surfaces.map(({ id, operation, boundary }) => `${id}\u0000${operation}\u0000${boundary}`);
   assertSortedUnique(recordKeys, "COVERAGE_SURFACES_UNSORTED_OR_DUPLICATE");
   const ids = [...new Set(coverage.surfaces.map(({ id }) => id))].sort(compare);
   if (canonicalJson(ids) !== canonicalJson(derivedSurfaces)) fail("COVERAGE_SURFACE_DRIFT", "package exports or bins are unmapped");
-  const operationSurfacePairs = coverage.surfaces
-    .map(({ id, operation }) => `${operation}\u0000${id}`)
+  const expectedRecordKeys = Object.entries(OPERATION_SURFACES)
+    .flatMap(([operation, surfaces]) => surfaces.flatMap((id) =>
+      OPERATION_BOUNDARIES[operation].map((boundary) => `${id}\u0000${operation}\u0000${boundary}`)))
     .sort(compare);
-  const expectedOperationSurfacePairs = Object.entries(OPERATION_SURFACES)
-    .flatMap(([operation, surfaces]) => surfaces.map((id) => `${operation}\u0000${id}`))
-    .sort(compare);
-  if (canonicalJson(operationSurfacePairs) !== canonicalJson(expectedOperationSurfacePairs)) {
-    fail("COVERAGE_OPERATION_DRIFT", "implemented operations or surfaces are unmapped");
+  if (canonicalJson(recordKeys) !== canonicalJson(expectedRecordKeys)) {
+    fail("COVERAGE_OPERATION_DRIFT", "implemented operations, surfaces, or boundaries are unmapped");
   }
   const fixtures = new Map(manifests.map((manifest) => [manifest.id, manifest]));
+  const classBindingIds = coverage.fixtureClasses.map(({ id }) => id);
+  assertSortedUnique(classBindingIds, "FIXTURE_CLASS_BINDINGS_UNSORTED_OR_DUPLICATE");
+  if (canonicalJson(classBindingIds) !== canonicalJson([...fixtures.keys()])) {
+    fail("FIXTURE_CLASS_BINDING_DRIFT", "fixture identities are not exactly bound");
+  }
+  for (const binding of coverage.fixtureClasses) {
+    assertExactKeys(binding, ["id", "class"], "COVERAGE_MAP_INVALID");
+    if (!FIXTURE_CLASSES.includes(binding.class)) fail("COVERAGE_MAP_INVALID", binding.id);
+    if (fixtures.get(binding.id)?.class !== binding.class) {
+      fail("FIXTURE_CLASS_BINDING_MISMATCH", binding.id);
+    }
+  }
   const mappedPairs = new Set();
   for (const record of coverage.surfaces) {
     assertExactKeys(record, ["id", "operation", "boundary", "fixtureIds"], "COVERAGE_MAP_INVALID");
-    if (typeof record.operation !== "string" || record.boundary !== OPERATION_BOUNDARIES[record.operation]
+    if (typeof record.operation !== "string" || !OPERATION_BOUNDARIES[record.operation]?.includes(record.boundary)
         || !OPERATION_SURFACES[record.operation]?.includes(record.id)
         || !Array.isArray(record.fixtureIds) || record.fixtureIds.length === 0) {
       fail("COVERAGE_MAP_INVALID", record.id);
@@ -522,18 +560,20 @@ function validateManifestOrdering(manifest, manifestPath) {
   assertSortedUnique(manifest.inputs.map(({ origin, path: inputPath }) => `${origin}:${inputPath}`), "MANIFEST_INPUTS_UNSORTED_OR_DUPLICATE");
   assertSortedUnique(manifest.surfaces.map(surfaceId), "MANIFEST_SURFACES_UNSORTED_OR_DUPLICATE");
   assertSortedUnique(manifest.limitations, "MANIFEST_LIMITATIONS_UNSORTED_OR_DUPLICATE");
-  if (
-    canonicalJson(manifest.surfaces.map((surface) => `${surfaceId(surface)}\u0000${surface.boundary}`))
-    !== canonicalJson(OPERATION_SURFACES[manifest.operation]?.map((id) => `${id}\u0000${OPERATION_BOUNDARIES[manifest.operation]}`))
-  ) {
+  const boundaries = [...new Set(manifest.surfaces.map(({ boundary }) => boundary))];
+  const expectedPairs = boundaries.length === 1 && OPERATION_BOUNDARIES[manifest.operation]?.includes(boundaries[0])
+    ? OPERATION_SURFACES[manifest.operation].map((id) => `${id}\u0000${boundaries[0]}`)
+    : [];
+  if (canonicalJson(manifest.surfaces.map((surface) => `${surfaceId(surface)}\u0000${surface.boundary}`))
+      !== canonicalJson(expectedPairs)) {
     fail("MANIFEST_OPERATION_SURFACE_MISMATCH", manifest.id);
   }
   if (!manifestPath.endsWith("/manifest.json")) fail("MANIFEST_PATH_INVALID", manifestPath);
 }
 
 function validateCliFixtureArguments(operation, args, fixtureId) {
-  const expected = SAFE_CLI_ARGUMENTS[operation];
-  if (!expected || canonicalJson(args) !== canonicalJson(expected)) {
+  const allowed = SAFE_CLI_ARGUMENTS[operation];
+  if (!allowed?.some((expected) => canonicalJson(args) === canonicalJson(expected))) {
     fail("CLI_FIXTURE_ARGUMENTS_UNSAFE", fixtureId);
   }
 }

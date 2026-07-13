@@ -1,0 +1,1 @@
+{"arguments":["--input","{input}","--output","{output}"],"payload":{"kind":"repository-file","path":"examples/static-evaluator/input.json"}}
