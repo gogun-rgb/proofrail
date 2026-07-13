@@ -87,7 +87,7 @@ Exit criteria:
 - Synthetic negative cases demonstrate that each newly in-scope forbidden edge fails closed.
 - Documentation states any remaining unenforced architecture semantics.
 
-Verification: `pnpm architecture:check` passed; `pnpm test:architecture` reported 49 passed, 0 failed, and 2 Windows `EPERM` file-symlink construction skips; the complete underlying `pnpm verify` command chain passed. Synthetic cases reject direct and borrowed `Function`, recognized global and builtin loaders, `require`, `createRequire`, and subprocess-loaded code while leaving strings and comments inert.
+Verification: `pnpm architecture:check` passed; `pnpm test:architecture` reported 55 passed, 0 failed, and 2 Windows `EPERM` file-symlink construction skips; the complete underlying `pnpm verify` command chain passed. Synthetic cases reject direct, borrowed, and parenthesized `Function`, recognized global and builtin loaders, `require`, `createRequire`, and subprocess-loaded code while leaving strings and comments inert.
 
 ### DEBT-003: Clean Agent Test Execution Evidence
 
@@ -147,7 +147,7 @@ Exit criteria:
 - Implemented trust boundaries have adversarial cases with explicit oracles.
 - Malformed, ambiguous, and unsupported inputs fail closed without weakened assertions or skips.
 
-Verification: The product runner reported 49/49 `PASS`, generated inventory equality passed, and the focused suite passed 17/17. Absolute and relative outside-sentinel output attempts were rejected before spawn with sentinel bytes unchanged; paired and cross-operation class borrowing failed closed; unknown fixture ids without a class-bearing suffix or closed legacy binding failed closed; ambient Node preload options did not reach spawned CLIs; and both implemented CLI output boundaries were exercised in four classes with runner-owned staged output. A real duplicate-key mutation failed closed, and the complete underlying `pnpm verify` command chain passed.
+Verification: The product runner reported 49/49 `PASS`, generated inventory equality passed, and the focused suite passed 23/23. The closed registry rejected coordinated identity/class/path/coverage relabeling, unknown identities, manifest path swaps, and corpus/registry set drift. Repository inputs, package manifests, and CLI scripts escaped through real ancestor junctions before remediation; all three regressions now execute on Windows without skips and reject the escape before read or spawn. Absolute and relative outside-sentinel output attempts were rejected before spawn with sentinel bytes unchanged; paired and cross-operation class borrowing failed closed; ambient Node preload options did not reach spawned CLIs; and both implemented CLI output boundaries were exercised in four classes with runner-owned staged output. A real duplicate-key mutation failed closed, and the complete underlying `pnpm verify` command chain passed.
 
 ### DEBT-005: Product Fixture Inventory Separation
 
@@ -177,4 +177,4 @@ Exit criteria:
 - Coverage claims name the exact implemented product surfaces exercised by each suite.
 - User-facing documentation does not present governance test counts as product reliability evidence.
 
-Verification: `pnpm product:fixture-inventory` reported `PASS`, `pnpm test:product-fixtures` passed 17/17, and the complete underlying `pnpm verify` command chain passed without presenting governance test counts as product reliability evidence.
+Verification: `pnpm product:fixture-inventory` reported `PASS`, `pnpm test:product-fixtures` passed 23/23, and the complete underlying `pnpm verify` command chain passed without presenting governance test counts as product reliability evidence.

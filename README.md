@@ -159,7 +159,7 @@ The deterministic TypeScript-AST guard checks the current built-in Verdict reaso
 
 ### Product fixtures
 
-The checked-in product corpus contains 49 synthetic fixtures across the current six-package surface. Every exact implemented input-bearing operation and trust boundary has positive, negative, malformed, and adversarial classes; `contracts.constants` is the explicit no-input exception. Each manifest binds an exact implemented operation, surface, and trust boundary to a digest and deterministic oracle. Spawned CLI fixtures accept only fixed `--input {input}` or runner-controlled `--input {input} --output {output}` shapes. The output placeholder is resolved inside a temporary runner directory, its bounded bytes are compared with the oracle, and ambient Node execution options are not inherited.
+The checked-in product corpus contains 49 synthetic fixtures across the current six-package surface. Every exact implemented input-bearing operation and trust boundary has positive, negative, malformed, and adversarial classes; `contracts.constants` is the explicit no-input exception. A closed 49-identity registry binds every manifest path and class, while each manifest binds an exact implemented operation, surface, trust boundary, digest, and deterministic oracle. Repository-origin files, package manifests, and CLI scripts must resolve to real paths inside the selected repository root. Spawned CLI fixtures accept only fixed `--input {input}` or runner-controlled `--input {input} --output {output}` shapes. The output placeholder is resolved inside a temporary runner directory, its bounded bytes are compared with the oracle, and ambient Node execution options are not inherited.
 
 ```bash
 pnpm product:fixtures
