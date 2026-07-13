@@ -82,18 +82,10 @@ test("an operation cannot claim an unrelated implemented surface", async (t) => 
 
 test("every input-bearing surface retains all four fixture classes", async (t) => {
   const fixturesRoot = await copiedCorpus(t);
-  const manifestPath = path.join(
-    fixturesRoot,
-    "cases",
-    "static-evaluator.negative.v1",
-    "manifest.json",
-  );
-  const manifest = await readJson(manifestPath);
-  manifest.class = "positive";
-  await writeJson(manifestPath, manifest);
   const coveragePath = path.join(fixturesRoot, "coverage-map.json");
   const coverage = await readJson(coveragePath);
-  coverage.fixtureClasses.find(({ id }) => id === manifest.id).class = "positive";
+  const boundary = coverage.surfaces.find(({ boundary: name }) => name === "static-evaluator-cli");
+  boundary.fixtureIds = boundary.fixtureIds.filter((id) => id !== "static-evaluator.negative.v1");
   await writeJson(coveragePath, coverage);
 
   await assert.rejects(
@@ -104,18 +96,11 @@ test("every input-bearing surface retains all four fixture classes", async (t) =
 
 test("class coverage cannot be borrowed across operations on one export", async (t) => {
   const fixturesRoot = await copiedCorpus(t);
-  const manifestPath = path.join(
-    fixturesRoot,
-    "cases",
-    "trusted-config.strict-json-adversarial.v1",
-    "manifest.json",
-  );
-  const manifest = await readJson(manifestPath);
-  manifest.class = "positive";
-  await writeJson(manifestPath, manifest);
   const coveragePath = path.join(fixturesRoot, "coverage-map.json");
   const coverage = await readJson(coveragePath);
-  coverage.fixtureClasses.find(({ id }) => id === manifest.id).class = "positive";
+  const boundary = coverage.surfaces.find(({ boundary: name }) => name === "strict-json-parser");
+  boundary.fixtureIds = boundary.fixtureIds.filter((id) =>
+    id !== "trusted-config.strict-json-adversarial.v1");
   await writeJson(coveragePath, coverage);
 
   await assert.rejects(
@@ -146,7 +131,25 @@ test("paired class-label swaps within one operation fail closed", async (t) => {
 
   await assert.rejects(
     loadProductFixtureCorpus({ repositoryRoot: ROOT, fixturesRoot }),
-    rejectsWith("FIXTURE_CLASS_BINDING_MISMATCH"),
+    rejectsWith("FIXTURE_CLASS_MISMATCH"),
+  );
+});
+
+test("fixture identities without a class suffix must have an explicit binding", async (t) => {
+  const fixturesRoot = await copiedCorpus(t);
+  const manifestPath = path.join(
+    fixturesRoot,
+    "cases",
+    "contracts.constants.v1",
+    "manifest.json",
+  );
+  const manifest = await readJson(manifestPath);
+  manifest.id = "contracts.unbound.v1";
+  await writeJson(manifestPath, manifest);
+
+  await assert.rejects(
+    loadProductFixtureCorpus({ repositoryRoot: ROOT, fixturesRoot }),
+    rejectsWith("FIXTURE_CLASS_UNBOUND"),
   );
 });
 

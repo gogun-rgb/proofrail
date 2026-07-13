@@ -35,4 +35,4 @@ Future authorized runtime work should:
 
 Reliability includes refusing to make a determination when a valid determination cannot be made. `BLOCKED` is a legitimate outcome when authority, boundary, or prerequisite conditions prevent evaluation.
 
-A negative, malformed, or adversarial product fixture passes only when the implemented surface produces its explicit expected deterministic rejection. That fixture result is not an acceptance of malformed input and does not widen product authority.
+A negative or malformed product fixture passes only when the implemented surface produces its explicit expected deterministic rejection. An adversarial fixture passes only when actual behavior matches its explicit oracle, which may require safe acceptance of inert content or deterministic rejection. No fixture result widens product authority.

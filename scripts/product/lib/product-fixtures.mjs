@@ -41,6 +41,17 @@ const PACKAGE_DIRECTORIES = Object.freeze([
   "trusted-config",
 ]);
 const FIXTURE_CLASSES = Object.freeze(["adversarial", "malformed", "negative", "positive"]);
+const FIXTURE_CLASS_EXCEPTIONS = Object.freeze({
+  "contracts.constants.v1": "positive",
+  "kernel.forbidden-authority.v1": "adversarial",
+  "kernel.malformed-input.v1": "malformed",
+  "kernel.unknown-field.v1": "negative",
+  "release-orchestrator.offline-golden.v1": "positive",
+  "static-evaluator.invalid-utf8.v1": "malformed",
+  "static-evaluator.oversize.v1": "adversarial",
+  "trusted-config.hash-mismatch.v1": "negative",
+});
+const FIXTURE_CLASS_SUFFIX = /(?:^|[.-])(adversarial|malformed|negative|positive)\.v[1-9][0-9]*$/;
 const CLASS_COVERAGE_EXCEPTIONS = Object.freeze({
   "contracts.constants": Object.freeze({
     expected: Object.freeze(["positive"]),
@@ -121,6 +132,8 @@ export async function loadProductFixtureCorpus(options = {}) {
       fail("MANIFEST_SCHEMA_INVALID", `${manifestPath} ${errors}`);
     }
     validateManifestOrdering(manifest, manifestPath);
+    const expectedClass = fixtureClassFromId(manifest.id);
+    if (manifest.class !== expectedClass) fail("FIXTURE_CLASS_MISMATCH", manifest.id);
     const driver = manifest.inputs.find(({ origin, path: inputPath }) =>
       origin === "fixture" && inputPath === manifest.driverInput);
     if (!driver) fail("DRIVER_INPUT_UNDECLARED", manifest.id);
@@ -475,9 +488,8 @@ async function derivePackageSurfaces(repositoryRoot) {
 }
 
 function validateCoverage(coverage, manifests, derivedSurfaces) {
-  assertExactKeys(coverage, ["schemaVersion", "fixtureClasses", "surfaces"], "COVERAGE_MAP_INVALID");
-  if (coverage.schemaVersion !== "proofrail.product-fixture-coverage.v1"
-      || !Array.isArray(coverage.fixtureClasses) || !Array.isArray(coverage.surfaces)) {
+  assertExactKeys(coverage, ["schemaVersion", "surfaces"], "COVERAGE_MAP_INVALID");
+  if (coverage.schemaVersion !== "proofrail.product-fixture-coverage.v1" || !Array.isArray(coverage.surfaces)) {
     fail("COVERAGE_MAP_INVALID", "shape");
   }
   const recordKeys = coverage.surfaces.map(({ id, operation, boundary }) => `${id}\u0000${operation}\u0000${boundary}`);
@@ -492,18 +504,6 @@ function validateCoverage(coverage, manifests, derivedSurfaces) {
     fail("COVERAGE_OPERATION_DRIFT", "implemented operations, surfaces, or boundaries are unmapped");
   }
   const fixtures = new Map(manifests.map((manifest) => [manifest.id, manifest]));
-  const classBindingIds = coverage.fixtureClasses.map(({ id }) => id);
-  assertSortedUnique(classBindingIds, "FIXTURE_CLASS_BINDINGS_UNSORTED_OR_DUPLICATE");
-  if (canonicalJson(classBindingIds) !== canonicalJson([...fixtures.keys()])) {
-    fail("FIXTURE_CLASS_BINDING_DRIFT", "fixture identities are not exactly bound");
-  }
-  for (const binding of coverage.fixtureClasses) {
-    assertExactKeys(binding, ["id", "class"], "COVERAGE_MAP_INVALID");
-    if (!FIXTURE_CLASSES.includes(binding.class)) fail("COVERAGE_MAP_INVALID", binding.id);
-    if (fixtures.get(binding.id)?.class !== binding.class) {
-      fail("FIXTURE_CLASS_BINDING_MISMATCH", binding.id);
-    }
-  }
   const mappedPairs = new Set();
   for (const record of coverage.surfaces) {
     assertExactKeys(record, ["id", "operation", "boundary", "fixtureIds"], "COVERAGE_MAP_INVALID");
@@ -538,6 +538,13 @@ function validateCoverage(coverage, manifests, derivedSurfaces) {
       }
     }
   }
+}
+
+function fixtureClassFromId(fixtureId) {
+  if (Object.hasOwn(FIXTURE_CLASS_EXCEPTIONS, fixtureId)) return FIXTURE_CLASS_EXCEPTIONS[fixtureId];
+  const match = FIXTURE_CLASS_SUFFIX.exec(fixtureId);
+  if (!match) fail("FIXTURE_CLASS_UNBOUND", fixtureId);
+  return match[1];
 }
 
 function coverageClasses(record, fixtures) {
