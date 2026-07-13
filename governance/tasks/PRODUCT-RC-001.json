@@ -1,0 +1,149 @@
+{
+  "task": {
+    "id": "PRODUCT-RC-001",
+    "class": "product_runtime_reason_code_registry_mechanization",
+    "objective": "Resolve DEBT-001 by adding an authoritative, schema-validated registry and deterministic CI drift guard for every Proofrail-owned product runtime diagnostic and built-in Verdict reason code currently emitted by the six-package product surface, with a synchronized user-facing error reference and without changing current runtime behavior, Verdict semantics, trusted release authority, or target execution boundaries."
+  },
+  "scope": {
+    "write": [
+      "governance/tasks/PRODUCT-RC-001.json",
+      "schemas/product/reason-code-registry.schema.json",
+      "config/reason-codes/product-reason-codes.json",
+      "docs/reference/reason-codes.md",
+      "scripts/product/validate-reason-codes.mjs",
+      "scripts/product/reason-code-reference.mjs",
+      "tests/product/reason-code-registry.test.mjs",
+      "package.json",
+      "README.md",
+      "docs/plans/debt.md",
+      "docs/quality/foundation-gate.md",
+      "docs/engineering/validation-evidence.md"
+    ],
+    "read_only_authority": [
+      "AGENTS.md",
+      "docs/engineering/machine-task-contract.md",
+      "docs/constitution/product-constitution.md",
+      "docs/constitution/terminology.md",
+      "docs/constitution/trust-model.md",
+      "docs/product/verdict-semantics.md",
+      "docs/protocols/policy-schema.md",
+      "docs/architecture/dependency-rules.md",
+      "docs/architecture/execution-boundary.md",
+      "docs/engineering/fixture-strategy.md",
+      "docs/quality/reliability.md",
+      "governance/machine-task-contract.schema.json",
+      "governance/harness-reason-codes.json",
+      "governance/harness-reason-codes.schema.json",
+      "packages/*/src/**",
+      "packages/*/package.json",
+      "schemas/product/policy.schema.json",
+      "config/trusted/**",
+      "config/policies/**",
+      "config/evidence-contracts/**",
+      "scripts/architecture/**",
+      "tests/architecture/**",
+      "pnpm-workspace.yaml",
+      "pnpm-lock.yaml",
+      ".github/**"
+    ],
+    "forbidden": [
+      "all paths outside scope.write",
+      "modification of any existing Machine Task Contract",
+      "modification of AGENTS.md or any constitution, terminology, trust, Verdict, Policy, protocol, dependency, execution-boundary, or reliability authority document",
+      "modification of packages/** production or test files",
+      "modification of existing Trusted Configuration, Policy, Evidence Contract, product schema, release fixture, golden, or exact-byte authority artifact",
+      "modification of governance/machine-task-contract.schema.json, the HARN_ harness registry, or generated governance",
+      "new package, workspace edge, runtime import, external dependency, lockfile change, or build output",
+      "renaming or changing any currently emitted product code, Error shape, exit behavior, Verdict, Evidence, Observation, Rule, Policy, or Evidence Bundle behavior",
+      "treating Policy-authored Rule denial codes as Proofrail-owned global codes or weakening their existing structural and authority validation",
+      "target checkout, target repository content inspection, target command execution, verification execution, Verification Receipt creation, adapter behavior, GitHub write, API, MCP, web, model, or Inference Zone behavior",
+      "test deletion, skip, assertion weakening, validator bypass, or CI failure allowance",
+      "commit rewriting, force push, push, pull request creation or update, merge, tag, release, package publication, or deployment"
+    ]
+  },
+  "authority": {
+    "read": [
+      "AGENTS.md",
+      "docs/engineering/machine-task-contract.md",
+      "docs/constitution/product-constitution.md",
+      "docs/constitution/terminology.md",
+      "docs/constitution/trust-model.md",
+      "docs/product/verdict-semantics.md",
+      "docs/protocols/policy-schema.md",
+      "docs/architecture/dependency-rules.md",
+      "docs/architecture/execution-boundary.md",
+      "docs/quality/foundation-gate.md",
+      "docs/plans/debt.md",
+      "governance/machine-task-contract.schema.json",
+      "packages/*/src/**"
+    ],
+    "mayChangeAuthority": true,
+    "mayChangeProductSemantics": false
+  },
+  "acceptance": {
+    "requirements": [
+      "Treat these bytes as proposed content until external issuer github:gogun-rgb explicitly supplies the exact complete JSON bytes or their SHA-256 as PRODUCT-RC-001 through authorization event operator-event:product-rc-001-reason-code-registry-v1.",
+      "Use exact baseline a182800ee711894fd933f25dbe81b30f3830d893 from origin/main and materialize the externally supplied PRODUCT-RC-001 contract as the first task artifact and first local task commit before any implementation edit.",
+      "Add schemas/product/reason-code-registry.schema.json as the strict schema for proofrail.reason-code-registry.v1 with closed objects, stable uppercase code identities, explicit kind, category, owning surface, severity, retryability, status, description, remediation, and deprecation replacement metadata.",
+      "Add config/reason-codes/product-reason-codes.json in deterministic code-id order and register every Proofrail-owned product runtime code currently emitted by packages/*/src, including the kernel-owned missing-Evidence Verdict reason, KernelBoundaryError issue categories, public Error code values, and machine-readable delivery codes.",
+      "Keep Foundation HARN_ diagnostics structurally separate and reject any HARN_ entry in the product registry.",
+      "Classify a Rule denial reason code supplied by an authorized Policy as Policy-owned rather than a Proofrail-owned global code; preserve the existing Policy and kernel validation path and document this boundary without changing accepted Policy bytes or Rule behavior.",
+      "Do not convert natural-language-only legacy CLI messages into invented machine codes in this slice; document that only actual machine-readable code surfaces are registry subjects and keep later CLI unification outside this task.",
+      "Implement a deterministic non-mutating validator using only existing development dependencies and Node built-ins. It must validate the registry against its schema, reject duplicate or unsorted code ids, reject aliases, enforce deprecation replacement integrity without cycles, scan all six package production source trees for supported machine-code emitter forms, and fail closed when a Proofrail-owned emitted code is absent from the registry.",
+      "The source scan must use the existing TypeScript parser rather than regex-only matching, reject dynamically uninspectable machine-code emission in supported code surfaces, and report deterministic bounded diagnostics without printing source content.",
+      "Add docs/reference/reason-codes.md as a deterministic reference rendered from the registry and make validation fail when its exact LF bytes drift from the registry; include code meaning, owning surface, retryability, remediation, status, deprecation policy, no-alias policy, and the Policy-owned Rule-code boundary.",
+      "Add focused positive and negative tests for valid registry and reference output, malformed schema, duplicate and unsorted ids, HARN_ contamination, alias-shaped fields, missing emitted codes, dynamic uninspectable emission, invalid deprecation replacement, deprecation cycles, deterministic diagnostics, and reference drift. Do not skip fixture or platform cases needed by this slice.",
+      "Add product:reason-codes and test:product-reason-codes scripts and include both deterministic checks in pnpm verify without deleting, weakening, reordering away, or bypassing any existing verification stage.",
+      "Update README, Foundation Gate mechanization status, validation evidence, and DEBT-001 only after the retained implementation proves the registry, emitted-code coverage, error-reference equality, focused tests, and full pnpm verify. Mark DEBT-001 CLOSED only if every exit criterion is met; leave DEBT-004 and DEBT-005 unchanged.",
+      "Preserve the exact six-package architecture, every production source byte, current Trusted Configuration, Policy, Evidence Contract, fixture and golden byte, canonical Verdict vocabulary and precedence, Evidence authority, Trust semantics, current receipt-free bounded release behavior, and every execution boundary.",
+      "Perform a fresh evidence-based second-pass review over the final retained diff, original Phase A reason-code requirements, test strength, hidden scope expansion, generated/reference equality, protected paths, and verification evidence without relying on the Builder summary or confidence.",
+      "After all required verification and review pass, create local implementation commit(s) without amending the contract commit. Do not push, open or update a pull request, merge, tag, release, publish, or deploy under this contract."
+    ]
+  },
+  "verification": {
+    "commands": [
+      "pnpm governance:check",
+      "pnpm governance:check-json",
+      "pnpm test:governance",
+      "pnpm product:reason-codes",
+      "pnpm test:product-reason-codes",
+      "pnpm architecture:check",
+      "pnpm test:architecture",
+      "pnpm verify",
+      "git diff --check"
+    ],
+    "requiredInvariants": [
+      "The externally supplied PRODUCT-RC-001 contract is the first commit after exact baseline a182800ee711894fd933f25dbe81b30f3830d893 and every changed path is writable.",
+      "Every Proofrail-owned machine-readable code emitted by the six-package production source is registered exactly once and every unregistered or dynamically uninspectable supported emission fails closed.",
+      "The committed reference document is exact deterministic output from the committed registry and all registry ids, diagnostics, and rendered rows are stable across repeated runs.",
+      "HARN_ governance codes and Policy-owned Rule denial codes remain outside the Proofrail-owned global registry under their existing authority paths.",
+      "All production package files, current authority JSON bytes, existing schemas, fixtures, goldens, package graph, dependencies, lockfile, runtime behavior, Verdict semantics, Trust semantics, Evidence semantics, and execution boundaries remain byte-identical.",
+      "No existing test or verification stage is removed, skipped, weakened, or bypassed; focused checks and full pnpm verify pass on the retained diff."
+    ]
+  },
+  "requiredArtifacts": [
+    "externally supplied PRODUCT-RC-001 Machine Task Contract committed first",
+    "strict product reason-code registry schema",
+    "deterministically ordered product reason-code registry",
+    "AST-based emitted-code drift validator",
+    "deterministic user-facing reason-code reference renderer and committed reference",
+    "focused positive and negative registry tests",
+    "pnpm verify integration",
+    "updated README, Foundation Gate state, validation evidence, and DEBT-001 disposition",
+    "fresh evidence-based second-pass review record in the final report"
+  ],
+  "stopConditions": [
+    "The exact complete PRODUCT-RC-001 bytes or SHA-256 have not been externally supplied through operator-event:product-rc-001-reason-code-registry-v1: BLOCKED_AUTHORITY",
+    "The exact origin/main baseline differs from a182800ee711894fd933f25dbe81b30f3830d893 or contains unreviewed overlapping changes: BLOCKED_BASELINE",
+    "A production package edit, existing authority JSON or schema edit, dependency, lockfile, package graph, runtime behavior, Verdict, Trust, Evidence, Policy, or execution-boundary change is required: BLOCKED_SCOPE",
+    "Target checkout, target content inspection, target command execution, verification execution, Verification Receipt, adapter, network, GitHub write, API, MCP, web, model, inference, credential, billing, paid service, publication, release, or deployment behavior is required: BLOCKED_SCOPE",
+    "The registry cannot cover existing machine-readable product code surfaces without inventing aliases, hiding an emitted code, weakening validation, or conflating HARN_ or Policy-owned codes: BLOCKED_SEMANTIC_CONFLICT",
+    "A test is weakened, an expected failure is hidden, deterministic output drifts, a protected path changes, or any required verification command fails: BLOCKED_VERIFICATION",
+    "A push, pull request, merge, tag, release, package publication, deployment, credential value, or external acceptance would need to be performed or fabricated: BLOCKED_EXTERNAL_AUTHORITY"
+  ],
+  "review": {
+    "expectation": "evidence_based_self_review_required",
+    "reviewerMustNotRelyOnBuilderClaim": true,
+    "independentHumanRequired": false
+  }
+}
