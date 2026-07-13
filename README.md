@@ -1,12 +1,85 @@
 # Proofrail
 
+[![CI](https://github.com/gogun-rgb/proofrail/actions/workflows/foundation-governance.yml/badge.svg)](https://github.com/gogun-rgb/proofrail/actions/workflows/foundation-governance.yml)
+![Node.js 24](https://img.shields.io/badge/Node.js-24-339933?logo=node.js&logoColor=white)
+
 > Claim is not evidence. Verify it.
 
 Proofrail is an evidence control plane for autonomous software changes.
 
 AI can write the code. Proofrail determines whether the change is admissible.
 
-## Current Phase
+## What Proofrail does
+
+Proofrail collects bounded pull request facts, keeps Claims separate from Observations, identifies missing Evidence and scope findings, and produces deterministic JSON or a human-readable review packet.
+
+The current Phase 2 implementation supports caller-supplied static inputs, sanitized read-only GitHub metadata collection, and one exact externally configured release-candidate workflow.
+
+## See the result
+
+The checked-in example starts with this Claim:
+
+```text
+Builder claims the change is ready for release.
+```
+
+Proofrail's human report shows the basis separately:
+
+```text
+Observed evidence: 1 supplied changed-path summary
+Missing evidence: 1 required review record
+Outside declared scope: README.md
+Review needs: 4
+Product Verdict: not produced
+```
+
+This makes the review gap visible without treating the Builder's statement as Evidence. See [the complete input](examples/evidence-gate/input.json), [canonical packet](examples/evidence-gate/expected-output.json), and [human report](examples/evidence-gate/expected-report.txt).
+
+## First local run
+
+Requirements: Node.js 24 and pnpm 11.7.0 through Corepack.
+
+```bash
+corepack enable
+pnpm install --frozen-lockfile
+pnpm evidence-gate --input examples/evidence-gate/input.json --format human
+```
+
+Use the local GitHub importer after installing and authenticating the GitHub CLI:
+
+```bash
+gh auth status
+pnpm evidence-gate:github --repo owner/name --pr 123 --format human
+```
+
+Proofrail reads the existing local `gh` authentication. It does not request or store a GitHub token.
+
+## What `ADMISSIBLE` currently means
+
+The fixed release-candidate workflow can produce the following canonical fields:
+
+```json
+{
+  "verdict": "ADMISSIBLE",
+  "verificationReceipts": []
+}
+```
+
+In the current workflow, this means the selected Policy and Evidence Contract were satisfied by the allowed GitHub metadata Observations for the exact configured target. Zero Verification Receipts means Proofrail did not checkout the target, inspect repository content, or rerun tests, lint, build, or security commands.
+
+`ADMISSIBLE` therefore does not by itself mean the code was independently executed, is safe, is deployment-ready, or has received a trusted release decision.
+
+## Current boundaries
+
+- No target repository checkout, content inspection, patch analysis, or target command execution.
+- GitHub-reported checks are Observations, not Proofrail-executed Verification Receipts.
+- The exact release-candidate workflow remains bound to its externally supplied Trusted Configuration and fixed target.
+- No GitHub writes, Action, Check Run, API, MCP, web UI, adapter, model provider, or Inference Zone implementation.
+- Version `0.2.0-rc.1` is private workspace pre-release metadata. No npm package, binary, or general product release is published.
+
+See [versioning](docs/releasing/versioning.md), [compatibility](docs/releasing/compatibility.md), and [known debt](docs/plans/debt.md) for the maintained operational details.
+
+## Project state and assurance history
 
 Phase 0 Foundation is closed for baseline `7865ea299f98b3fd0158d1486272f73468b345ac` after external independent Foundation Gate PASS.
 
@@ -24,7 +97,7 @@ The current product focus is Phase 2 AI PR Evidence Gate: a practical first prod
 
 `GATE-GH-001` adds a bounded v0.2 local GitHub PR importer. It uses an already-authenticated local `gh` CLI to freeze selected pull request facts into the existing deterministic packet workflow.
 
-Proofrail still does not have the complete product runtime. Any implementation beyond these bounded local workflows requires a later valid Machine Task Contract and independent review.
+Proofrail still does not have the complete product runtime. Any implementation beyond these bounded local workflows requires a later valid Machine Task Contract and the configured evidence-based repository engineering review.
 
 `PRODUCT-RELEASE-001` adds an exact release-candidate vertical slice. Separately supplied Trusted Configuration, Policy, and Evidence Contract bytes select `gogun-rgb/proofrail#27`; `@proofrail/trusted-config` validates and binds those bytes, `@proofrail/release-orchestrator` converts the sanitized collector snapshot into kernel input, and the unchanged kernel finalizes the Evidence Bundle. `PRODUCT-RELEASE-002` adds only `baseRefOid` to the existing bounded metadata query, validates it as `baseOid`, and supplies the previously missing `target.baseSha` Observation. The authorized live result and offline golden are byte-identical and `ADMISSIBLE`, with no Verification Receipt. This is not by itself a trusted release or external release decision.
 
@@ -77,7 +150,7 @@ node scripts/validate-foundation.mjs
 node scripts/validate-foundation.mjs --format json
 ```
 
-## AI PR Evidence Gate v0.1 Quick Start
+## AI PR Evidence Gate v0.1 Detailed Usage
 
 After checkout and dependency installation, this workflow takes under three minutes. From the repository root, generate a packet from the checked-in example:
 
