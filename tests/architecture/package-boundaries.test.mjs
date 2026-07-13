@@ -556,6 +556,16 @@ test("fails closed on each newly guarded dynamic or disguised loader bypass", as
       "globalThis.Function",
     ],
     [
+      "parenthesized-direct-global-Function",
+      '(globalThis).Function(\'return require("@proofrail/contracts")\')();',
+      "globalThis.Function",
+    ],
+    [
+      "parenthesized-computed-global-Function",
+      '(globalThis)["Function"](\'return require("@proofrail/contracts")\')();',
+      "globalThis.Function",
+    ],
+    [
       "direct-getBuiltinModule",
       'process.getBuiltinModule("node:fs");',
       "process.getBuiltinModule",
@@ -566,6 +576,16 @@ test("fails closed on each newly guarded dynamic or disguised loader bypass", as
       "process.getBuiltinModule",
     ],
     [
+      "parenthesized-direct-getBuiltinModule",
+      '(process).getBuiltinModule("node:fs");',
+      "process.getBuiltinModule",
+    ],
+    [
+      "parenthesized-computed-getBuiltinModule",
+      '(process)["getBuiltinModule"]("node:fs");',
+      "process.getBuiltinModule",
+    ],
+    [
       "escaped-global-require",
       'globalThis["\\x72equire"]("@proofrail/contracts");',
       "globalThis.require",
@@ -573,6 +593,16 @@ test("fails closed on each newly guarded dynamic or disguised loader bypass", as
     [
       "computed-global-require",
       'globalThis["requ" + "ire"]("@proofrail/contracts");',
+      "globalThis.require",
+    ],
+    [
+      "parenthesized-global-require",
+      '(globalThis)["require"]("@proofrail/contracts");',
+      "globalThis.require",
+    ],
+    [
+      "parenthesized-computed-global-require",
+      '(globalThis)["requ" + "ire"]("@proofrail/contracts");',
       "globalThis.require",
     ],
     [
@@ -663,9 +693,12 @@ test("does not treat comments or ordinary strings as module loads", async (t) =>
       'const aliasText = "const F = Function; F(\'return require()\')()";',
       'const heritageText = "class Loader extends Function {}";',
       'const builtinText = "process.getBuiltinModule(\'node:fs\')";',
+      'const receiverText = "(process).getBuiltinModule(\'node:fs\')";',
       '// require("@proofrail/kernel");',
       '// globalThis["require"]("@proofrail/kernel");',
       '// globalThis.Function("return require()")();',
+      '// (globalThis).Function("return require()")();',
+      '/* (globalThis)["require"]("@proofrail/kernel"); */',
       '/* globalThis["Function"]("return require()")(); */',
       '/* export * from "@proofrail/kernel"; */',
       "export { text };",

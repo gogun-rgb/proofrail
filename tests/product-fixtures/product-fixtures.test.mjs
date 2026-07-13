@@ -1,6 +1,17 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { access, cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  access,
+  copyFile,
+  cp,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rename,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -39,6 +50,47 @@ function rejectsWith(code) {
 
 function sha256(bytes) {
   return createHash("sha256").update(bytes).digest("hex").toUpperCase();
+}
+
+async function createDirectoryLink(t, target, link) {
+  try {
+    await symlink(target, link, process.platform === "win32" ? "junction" : "dir");
+    return true;
+  } catch (error) {
+    if (!["EACCES", "EINVAL", "ENOTSUP", "EPERM"].includes(error?.code)) throw error;
+    t.skip(`directory links are unavailable: ${error.code}`);
+    return false;
+  }
+}
+
+async function copiedRepository(t, fixturesRoot) {
+  const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), "proofrail-repository-link-test-"));
+  const repositoryRoot = path.join(temporaryRoot, "repository");
+  await mkdir(repositoryRoot, { recursive: true });
+  t.after(() => rm(temporaryRoot, { force: true, recursive: true }));
+
+  const suite = await readJson(path.join(fixturesRoot, "suite.json"));
+  for (const manifestPath of suite.manifests) {
+    const manifest = await readJson(path.join(fixturesRoot, manifestPath));
+    for (const input of manifest.inputs.filter(({ origin }) => origin === "repository")) {
+      const destination = path.join(repositoryRoot, ...input.path.split("/"));
+      await mkdir(path.dirname(destination), { recursive: true });
+      await copyFile(path.join(ROOT, ...input.path.split("/")), destination);
+    }
+  }
+  for (const packageName of [
+    "contracts",
+    "evidence-gate",
+    "kernel",
+    "release-orchestrator",
+    "static-evaluator",
+    "trusted-config",
+  ]) {
+    const destination = path.join(repositoryRoot, "packages", packageName, "package.json");
+    await mkdir(path.dirname(destination), { recursive: true });
+    await copyFile(path.join(ROOT, "packages", packageName, "package.json"), destination);
+  }
+  return repositoryRoot;
 }
 
 test("all manifest schema references resolve to the one committed schema", async () => {
@@ -135,7 +187,7 @@ test("paired class-label swaps within one operation fail closed", async (t) => {
   );
 });
 
-test("fixture identities without a class suffix must have an explicit binding", async (t) => {
+test("unknown fixture identities fail closed", async (t) => {
   const fixturesRoot = await copiedCorpus(t);
   const manifestPath = path.join(
     fixturesRoot,
@@ -149,8 +201,197 @@ test("fixture identities without a class suffix must have an explicit binding", 
 
   await assert.rejects(
     loadProductFixtureCorpus({ repositoryRoot: ROOT, fixturesRoot }),
-    rejectsWith("FIXTURE_CLASS_UNBOUND"),
+    rejectsWith("FIXTURE_ID_UNREGISTERED"),
   );
+});
+
+test("coordinated fixture id, class, path, and coverage relabeling fails closed", async (t) => {
+  const fixturesRoot = await copiedCorpus(t);
+  const relabels = [
+    {
+      fixtureClass: "malformed",
+      from: "evidence-gate.cli-adversarial.v1",
+      to: "evidence-gate.cli-relabeled-malformed.v1",
+    },
+    {
+      fixtureClass: "adversarial",
+      from: "evidence-gate.cli-malformed.v1",
+      to: "evidence-gate.cli-relabeled-adversarial.v1",
+    },
+  ];
+
+  for (const { fixtureClass, from, to } of relabels) {
+    const destination = path.join(fixturesRoot, "cases", to);
+    await rename(path.join(fixturesRoot, "cases", from), destination);
+    const manifestPath = path.join(destination, "manifest.json");
+    const manifest = await readJson(manifestPath);
+    manifest.id = to;
+    manifest.class = fixtureClass;
+    manifest.driverInput = manifest.driverInput.replace(from, to);
+    manifest.inputs = manifest.inputs.map((input) => ({
+      ...input,
+      path: input.path.replace(from, to),
+    }));
+    manifest.oracle.path = manifest.oracle.path.replace(from, to);
+    await writeJson(manifestPath, manifest);
+  }
+
+  const suitePath = path.join(fixturesRoot, "suite.json");
+  const suite = await readJson(suitePath);
+  suite.manifests = suite.manifests
+    .map((manifestPath) => {
+      const relabel = relabels.find(({ from }) => manifestPath.includes(from));
+      return relabel ? manifestPath.replace(relabel.from, relabel.to) : manifestPath;
+    })
+    .sort();
+  await writeJson(suitePath, suite);
+
+  const coveragePath = path.join(fixturesRoot, "coverage-map.json");
+  const coverage = await readJson(coveragePath);
+  for (const record of coverage.surfaces) {
+    record.fixtureIds = record.fixtureIds
+      .map((fixtureId) => relabels.find(({ from }) => from === fixtureId)?.to ?? fixtureId)
+      .sort();
+  }
+  await writeJson(coveragePath, coverage);
+
+  await assert.rejects(
+    loadProductFixtureCorpus({ repositoryRoot: ROOT, fixturesRoot }),
+    rejectsWith("FIXTURE_ID_UNREGISTERED"),
+  );
+});
+
+test("registered fixture identities are bound to their exact manifest paths", async (t) => {
+  const fixturesRoot = await copiedCorpus(t);
+  const adversarialPath = path.join(
+    fixturesRoot,
+    "cases",
+    "evidence-gate.cli-adversarial.v1",
+    "manifest.json",
+  );
+  const malformedPath = path.join(
+    fixturesRoot,
+    "cases",
+    "evidence-gate.cli-malformed.v1",
+    "manifest.json",
+  );
+  const adversarial = await readJson(adversarialPath);
+  const malformed = await readJson(malformedPath);
+  [adversarial.id, malformed.id] = [malformed.id, adversarial.id];
+  [adversarial.class, malformed.class] = [malformed.class, adversarial.class];
+  await writeJson(adversarialPath, adversarial);
+  await writeJson(malformedPath, malformed);
+
+  await assert.rejects(
+    loadProductFixtureCorpus({ repositoryRoot: ROOT, fixturesRoot }),
+    rejectsWith("MANIFEST_ID_PATH_MISMATCH"),
+  );
+});
+
+test("the fixture registry cannot contain an identity absent from the corpus", async (t) => {
+  const fixturesRoot = await copiedCorpus(t);
+  const fixtureId = "evidence-gate.cli-positive.v1";
+  const suitePath = path.join(fixturesRoot, "suite.json");
+  const suite = await readJson(suitePath);
+  suite.manifests = suite.manifests.filter((manifestPath) => !manifestPath.includes(fixtureId));
+  await writeJson(suitePath, suite);
+  await rm(path.join(fixturesRoot, "cases", fixtureId), { recursive: true });
+
+  await assert.rejects(
+    loadProductFixtureCorpus({ repositoryRoot: ROOT, fixturesRoot }),
+    rejectsWith("FIXTURE_REGISTRY_DRIFT"),
+  );
+});
+
+test("repository inputs cannot escape through an ancestor link", async (t) => {
+  const fixturesRoot = await copiedCorpus(t);
+  const repositoryRoot = await copiedRepository(t, fixturesRoot);
+  const outsideRoot = path.join(path.dirname(repositoryRoot), "outside");
+  await mkdir(outsideRoot, { recursive: true });
+
+  const outsideBytes = await readFile(path.join(ROOT, "examples", "static-evaluator", "input.json"));
+  await writeFile(path.join(outsideRoot, "input.json"), outsideBytes);
+  if (!await createDirectoryLink(t, outsideRoot, path.join(repositoryRoot, "linked"))) return;
+
+  const manifestPath = path.join(
+    fixturesRoot,
+    "cases",
+    "static-evaluator.positive.v1",
+    "manifest.json",
+  );
+  const manifest = await readJson(manifestPath);
+  const repositoryInput = manifest.inputs.find(({ origin }) => origin === "repository");
+  repositoryInput.path = "linked/input.json";
+  repositoryInput.sha256 = sha256(outsideBytes);
+  await writeJson(manifestPath, manifest);
+
+  await assert.rejects(
+    loadProductFixtureCorpus({ repositoryRoot, fixturesRoot }),
+    rejectsWith("REPOSITORY_INPUT_ESCAPE"),
+  );
+});
+
+test("package manifest reads cannot escape through an ancestor link", async (t) => {
+  const fixturesRoot = await copiedCorpus(t);
+  const repositoryRoot = await copiedRepository(t, fixturesRoot);
+  const outsidePackage = path.join(path.dirname(repositoryRoot), "outside-package");
+  await mkdir(outsidePackage, { recursive: true });
+  await copyFile(
+    path.join(ROOT, "packages", "contracts", "package.json"),
+    path.join(outsidePackage, "package.json"),
+  );
+  await rm(path.join(repositoryRoot, "packages", "contracts"), { recursive: true });
+  if (!await createDirectoryLink(
+    t,
+    outsidePackage,
+    path.join(repositoryRoot, "packages", "contracts"),
+  )) return;
+
+  await assert.rejects(
+    loadProductFixtureCorpus({ repositoryRoot, fixturesRoot }),
+    rejectsWith("REPOSITORY_INPUT_ESCAPE"),
+  );
+});
+
+test("fixture CLI scripts cannot execute through an ancestor link", async (t) => {
+  const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), "proofrail-cli-link-test-"));
+  const repositoryRoot = path.join(temporaryRoot, "repository");
+  const fixturesRoot = path.join(temporaryRoot, "fixtures");
+  const outsideSource = path.join(temporaryRoot, "outside-source");
+  const sentinelPath = path.join(temporaryRoot, "sentinel.txt");
+  const sentinel = Buffer.from("unchanged\n", "utf8");
+  await mkdir(path.join(repositoryRoot, "packages", "evidence-gate"), { recursive: true });
+  await mkdir(fixturesRoot, { recursive: true });
+  await mkdir(outsideSource, { recursive: true });
+  await writeFile(sentinelPath, sentinel);
+  await writeFile(
+    path.join(outsideSource, "cli.mjs"),
+    `import { writeFileSync } from "node:fs";\nwriteFileSync(${JSON.stringify(sentinelPath)}, "executed\\n");\n`,
+    "utf8",
+  );
+  await writeJson(path.join(fixturesRoot, "driver.json"), {
+    arguments: ["--input", "{input}"],
+    payload: { kind: "json", value: {} },
+  });
+  t.after(() => rm(temporaryRoot, { force: true, recursive: true }));
+  if (!await createDirectoryLink(
+    t,
+    outsideSource,
+    path.join(repositoryRoot, "packages", "evidence-gate", "src"),
+  )) return;
+
+  const error = await executeProductFixture({
+    driverInput: "driver.json",
+    id: "synthetic.cli-positive.v1",
+    inputs: [],
+    operation: "evidence-gate.static-cli",
+  }, {
+    fixturesRoot,
+    repositoryRoot,
+  }).then(() => null, (caught) => caught);
+
+  assert.deepEqual(await readFile(sentinelPath), sentinel);
+  assert.equal(error?.code, "REPOSITORY_INPUT_ESCAPE");
 });
 
 test("CLI fixture arguments cannot write an outside sentinel", async (t) => {

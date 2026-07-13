@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFile, lstat, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { copyFile, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -41,17 +41,57 @@ const PACKAGE_DIRECTORIES = Object.freeze([
   "trusted-config",
 ]);
 const FIXTURE_CLASSES = Object.freeze(["adversarial", "malformed", "negative", "positive"]);
-const FIXTURE_CLASS_EXCEPTIONS = Object.freeze({
+const FIXTURE_CLASS_REGISTRY = Object.freeze({
   "contracts.constants.v1": "positive",
+  "evidence-gate.cli-adversarial.v1": "adversarial",
+  "evidence-gate.cli-malformed.v1": "malformed",
+  "evidence-gate.cli-negative.v1": "negative",
+  "evidence-gate.cli-output-adversarial.v1": "adversarial",
+  "evidence-gate.cli-output-malformed.v1": "malformed",
+  "evidence-gate.cli-output-negative.v1": "negative",
+  "evidence-gate.cli-output-positive.v1": "positive",
+  "evidence-gate.cli-positive.v1": "positive",
+  "evidence-gate.github-arguments-adversarial.v1": "adversarial",
+  "evidence-gate.github-arguments-malformed.v1": "malformed",
+  "evidence-gate.github-arguments-negative.v1": "negative",
+  "evidence-gate.github-arguments-positive.v1": "positive",
+  "evidence-gate.github-normalize-adversarial.v1": "adversarial",
+  "evidence-gate.github-normalize-malformed.v1": "malformed",
+  "evidence-gate.github-normalize-negative.v1": "negative",
+  "evidence-gate.github-normalize-positive.v1": "positive",
+  "evidence-gate.packet-adversarial.v1": "adversarial",
+  "evidence-gate.packet-malformed.v1": "malformed",
+  "evidence-gate.packet-negative.v1": "negative",
+  "evidence-gate.packet-positive.v1": "positive",
+  "evidence-gate.release-arguments-adversarial.v1": "adversarial",
+  "evidence-gate.release-arguments-malformed.v1": "malformed",
+  "evidence-gate.release-arguments-negative.v1": "negative",
+  "evidence-gate.release-arguments-positive.v1": "positive",
   "kernel.forbidden-authority.v1": "adversarial",
   "kernel.malformed-input.v1": "malformed",
+  "kernel.positive.v1": "positive",
   "kernel.unknown-field.v1": "negative",
   "release-orchestrator.offline-golden.v1": "positive",
+  "release-orchestrator.snapshot-adversarial.v1": "adversarial",
+  "release-orchestrator.snapshot-malformed.v1": "malformed",
+  "release-orchestrator.snapshot-negative.v1": "negative",
   "static-evaluator.invalid-utf8.v1": "malformed",
+  "static-evaluator.negative.v1": "negative",
+  "static-evaluator.output-adversarial.v1": "adversarial",
+  "static-evaluator.output-malformed.v1": "malformed",
+  "static-evaluator.output-negative.v1": "negative",
+  "static-evaluator.output-positive.v1": "positive",
   "static-evaluator.oversize.v1": "adversarial",
+  "static-evaluator.positive.v1": "positive",
   "trusted-config.hash-mismatch.v1": "negative",
+  "trusted-config.loader-malformed.v1": "malformed",
+  "trusted-config.loader-positive.v1": "positive",
+  "trusted-config.path-traversal-adversarial.v1": "adversarial",
+  "trusted-config.strict-json-adversarial.v1": "adversarial",
+  "trusted-config.strict-json-malformed.v1": "malformed",
+  "trusted-config.strict-json-negative.v1": "negative",
+  "trusted-config.strict-json-positive.v1": "positive",
 });
-const FIXTURE_CLASS_SUFFIX = /(?:^|[.-])(adversarial|malformed|negative|positive)\.v[1-9][0-9]*$/;
 const CLASS_COVERAGE_EXCEPTIONS = Object.freeze({
   "contracts.constants": Object.freeze({
     expected: Object.freeze(["positive"]),
@@ -133,14 +173,19 @@ export async function loadProductFixtureCorpus(options = {}) {
     }
     validateManifestOrdering(manifest, manifestPath);
     const expectedClass = fixtureClassFromId(manifest.id);
+    if (manifestPath !== `cases/${manifest.id}/manifest.json`) {
+      fail("MANIFEST_ID_PATH_MISMATCH", `${manifest.id}:${manifestPath}`);
+    }
     if (manifest.class !== expectedClass) fail("FIXTURE_CLASS_MISMATCH", manifest.id);
     const driver = manifest.inputs.find(({ origin, path: inputPath }) =>
       origin === "fixture" && inputPath === manifest.driverInput);
     if (!driver) fail("DRIVER_INPUT_UNDECLARED", manifest.id);
     for (const input of manifest.inputs) {
-      const base = input.origin === "fixture" ? fixturesRoot : repositoryRoot;
-      const absolute = resolveWithin(base, input.path);
-      await assertRegularBounded(absolute, `${manifest.id}:${input.path}`);
+      const label = `${manifest.id}:${input.path}`;
+      const absolute = input.origin === "fixture"
+        ? resolveWithin(fixturesRoot, input.path)
+        : await resolveRepositoryInput(repositoryRoot, input.path, label);
+      if (input.origin === "fixture") await assertRegularBounded(absolute, label);
       const bytes = await readFile(absolute);
       if (sha256(bytes) !== input.sha256) fail("INPUT_DIGEST_MISMATCH", `${manifest.id}:${input.path}`);
       if (input.origin === "fixture") referencedFiles.add(input.path);
@@ -156,7 +201,11 @@ export async function loadProductFixtureCorpus(options = {}) {
     manifests.push(Object.freeze({ ...manifest, oracleValue: oracle }));
   }
 
-  assertSortedUnique(manifests.map(({ id }) => id), "FIXTURE_IDENTITIES_UNSORTED_OR_DUPLICATE");
+  const manifestIds = manifests.map(({ id }) => id);
+  assertSortedUnique(manifestIds, "FIXTURE_IDENTITIES_UNSORTED_OR_DUPLICATE");
+  if (canonicalJson(manifestIds) !== canonicalJson(Object.keys(FIXTURE_CLASS_REGISTRY).sort(compare))) {
+    fail("FIXTURE_REGISTRY_DRIFT", "registered fixture identities must exactly match the corpus");
+  }
   const unreferenced = corpusFiles.filter((file) => !referencedFiles.has(file));
   if (unreferenced.length > 0) fail("UNREFERENCED_CORPUS_FILE", unreferenced[0]);
 
@@ -310,10 +359,15 @@ async function runOfflineReleaseFixture(driver, manifest, corpus) {
       repositoryRoot: temporaryRoot,
       trustedConfigurationPath: driver.trustedConfigurationPath,
     });
-    const snapshot = await readRepositoryJsonFile(resolveWithin(corpus.repositoryRoot, driver.snapshotPath), "release snapshot");
+    const snapshot = await readRepositoryJsonFile(
+      await resolveRepositoryInput(corpus.repositoryRoot, driver.snapshotPath, "release snapshot"),
+      "release snapshot",
+    );
     const bundle = evaluateReleaseCandidate(loaded, snapshot);
     const rendered = `${productCanonicalJson(bundle)}\n`;
-    const golden = await readFile(resolveWithin(corpus.repositoryRoot, driver.goldenPath));
+    const golden = await readFile(
+      await resolveRepositoryInput(corpus.repositoryRoot, driver.goldenPath, "release golden"),
+    );
     return {
       ...bundleProjection(bundle),
       goldenEqual: golden.equals(Buffer.from(rendered, "utf8")),
@@ -331,7 +385,11 @@ async function stageDocuments(driver, manifest, corpus) {
   try {
     for (const documentPath of driver.documents) {
       if (!declared.has(documentPath)) fail("DRIVER_INPUT_UNDECLARED", `${manifest.id}:${documentPath}`);
-      const source = resolveWithin(corpus.repositoryRoot, documentPath);
+      const source = await resolveRepositoryInput(
+        corpus.repositoryRoot,
+        documentPath,
+        `${manifest.id}:${documentPath}`,
+      );
       const destination = resolveWithin(temporaryRoot, documentPath);
       await mkdir(path.dirname(destination), { recursive: true });
       await copyFile(source, destination);
@@ -360,7 +418,10 @@ async function loadStructuredInput(driver, manifest, corpus) {
   const declared = manifest.inputs.some(({ origin, path: inputPath }) =>
     origin === "repository" && inputPath === driver.sourcePath);
   if (!declared) fail("DRIVER_INPUT_UNDECLARED", `${manifest.id}:${driver.sourcePath}`);
-  const value = structuredClone(await readRepositoryJsonFile(resolveWithin(corpus.repositoryRoot, driver.sourcePath), driver.sourcePath));
+  const value = structuredClone(await readRepositoryJsonFile(
+    await resolveRepositoryInput(corpus.repositoryRoot, driver.sourcePath, driver.sourcePath),
+    driver.sourcePath,
+  ));
   if (driver.mutation?.kind === "add-root-field") {
     value[driver.mutation.name] = driver.mutation.value;
   } else if (driver.mutation?.kind === "add-claim-field") {
@@ -373,6 +434,11 @@ async function loadStructuredInput(driver, manifest, corpus) {
 
 async function runCliFixture(scriptPath, driver, manifest, corpus) {
   validateCliFixtureArguments(manifest.operation, driver.arguments, manifest.id);
+  const script = await resolveRepositoryInput(
+    corpus.repositoryRoot,
+    scriptPath,
+    `${manifest.id}:${scriptPath}`,
+  );
   const directory = await mkdtemp(path.join(tmpdir(), "proofrail-product-cli-"));
   try {
     const inputPath = path.join(directory, "input.bin");
@@ -383,7 +449,7 @@ async function runCliFixture(scriptPath, driver, manifest, corpus) {
       if (argument === "{output}") return outputPath;
       return argument;
     });
-    const result = spawnSync(process.execPath, [resolveWithin(corpus.repositoryRoot, scriptPath), ...args], {
+    const result = spawnSync(process.execPath, [script, ...args], {
       cwd: corpus.repositoryRoot,
       encoding: "buffer",
       env: CLI_ENVIRONMENT,
@@ -422,7 +488,11 @@ async function materializePayload(payload, manifest, corpus) {
   if (payload.kind === "repository-file") {
     const declared = manifest.inputs.some(({ origin, path: inputPath }) => origin === "repository" && inputPath === payload.path);
     if (!declared) fail("DRIVER_INPUT_UNDECLARED", `${manifest.id}:${payload.path}`);
-    return readFile(resolveWithin(corpus.repositoryRoot, payload.path));
+    return readFile(await resolveRepositoryInput(
+      corpus.repositoryRoot,
+      payload.path,
+      `${manifest.id}:${payload.path}`,
+    ));
   }
   if (payload.kind === "json") return Buffer.from(`${JSON.stringify(payload.value)}\n`, "utf8");
   if (payload.kind === "hex") return Buffer.from(payload.value, "hex");
@@ -470,7 +540,12 @@ function bundleProjection(bundle) {
 async function derivePackageSurfaces(repositoryRoot) {
   const surfaces = [];
   for (const directory of PACKAGE_DIRECTORIES) {
-    const manifest = await readRepositoryJsonFile(path.join(repositoryRoot, "packages", directory, "package.json"), `${directory} package manifest`);
+    const label = `${directory} package manifest`;
+    const manifestPath = `packages/${directory}/package.json`;
+    const manifest = await readRepositoryJsonFile(
+      await resolveRepositoryInput(repositoryRoot, manifestPath, label),
+      label,
+    );
     if (manifest.exports !== undefined) {
       if (typeof manifest.exports === "string") {
         surfaces.push(`${manifest.name}#export:.`);
@@ -541,10 +616,8 @@ function validateCoverage(coverage, manifests, derivedSurfaces) {
 }
 
 function fixtureClassFromId(fixtureId) {
-  if (Object.hasOwn(FIXTURE_CLASS_EXCEPTIONS, fixtureId)) return FIXTURE_CLASS_EXCEPTIONS[fixtureId];
-  const match = FIXTURE_CLASS_SUFFIX.exec(fixtureId);
-  if (!match) fail("FIXTURE_CLASS_UNBOUND", fixtureId);
-  return match[1];
+  if (!Object.hasOwn(FIXTURE_CLASS_REGISTRY, fixtureId)) fail("FIXTURE_ID_UNREGISTERED", fixtureId);
+  return FIXTURE_CLASS_REGISTRY[fixtureId];
 }
 
 function coverageClasses(record, fixtures) {
@@ -641,6 +714,23 @@ async function assertRegularBounded(file, label) {
   }
   if (!details.isFile() || details.isSymbolicLink()) fail("FILE_NOT_REGULAR", label);
   if (details.size > MAX_CORPUS_FILE_BYTES) fail("FILE_TOO_LARGE", label);
+}
+
+async function resolveRepositoryInput(repositoryRoot, selectedPath, label) {
+  const selected = resolveWithin(repositoryRoot, selectedPath);
+  await assertRegularBounded(selected, label);
+  let actualRoot;
+  let actualFile;
+  try {
+    [actualRoot, actualFile] = await Promise.all([realpath(repositoryRoot), realpath(selected)]);
+  } catch {
+    fail("FILE_UNAVAILABLE", label);
+  }
+  const relative = path.relative(actualRoot, actualFile);
+  if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+    fail("REPOSITORY_INPUT_ESCAPE", selectedPath);
+  }
+  return actualFile;
 }
 
 function resolveWithin(root, selectedPath) {

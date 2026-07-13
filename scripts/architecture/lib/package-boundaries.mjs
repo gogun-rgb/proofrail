@@ -800,23 +800,30 @@ function disguisedLoaderTarget(node) {
   ) {
     return null;
   }
-  if (!ts.isIdentifier(node.expression)) {
+  const receiver = unwrapParentheses(node.expression);
+  if (!ts.isIdentifier(receiver)) {
     return null;
   }
 
   const propertyName = ts.isPropertyAccessExpression(node)
     ? node.name.text
     : staticString(node.argumentExpression);
-  if (node.expression.text === "process" && propertyName === "getBuiltinModule") {
+  if (receiver.text === "process" && propertyName === "getBuiltinModule") {
     return "process.getBuiltinModule";
   }
-  if (node.expression.text === "globalThis" && propertyName === "Function") {
+  if (receiver.text === "globalThis" && propertyName === "Function") {
     return "globalThis.Function";
   }
-  if (node.expression.text === "globalThis" && propertyName === "require") {
+  if (receiver.text === "globalThis" && propertyName === "require") {
     return "globalThis.require";
   }
   return null;
+}
+
+function unwrapParentheses(node) {
+  return ts.isParenthesizedExpression(node)
+    ? unwrapParentheses(node.expression)
+    : node;
 }
 
 function staticString(node) {
