@@ -77,7 +77,7 @@ Dependencies: Satisfied for the retained six-package surface by `PRODUCT-HARDEN-
 
 Observation: `ARCH-BOUND-001`, `PRODUCT-RELEASE-001`, and `PRODUCT-HARDEN-001` provide a bounded repository engineering checker that freezes the exact current six-package classification, workspace dependency declarations and edges, Node import allowlist, relative package containment, and every loading form present in retained production source. The final hardening also guards the exact authorized `github.js` subprocess form and rejects newly in-scope disguised loading forms with synthetic negative cases.
 
-Risk: General binding and data-flow resolution, generated code, `eval`, `new Function`, arbitrary aliasing, transitive dependencies, broader delivery-definition ownership, inference isolation, and future package classes remain outside this bounded static checker. Those are explicit nonclaims rather than uncovered current production loading forms; a new form must reopen or replace this debt under a new Machine Task Contract.
+Risk: General binding and data-flow resolution, generated code, arbitrary global-object alias chains, runtime-computed property names, constructor-chain tricks, transitive dependencies, broader delivery-definition ownership, inference isolation, and future package classes remain outside this bounded static checker. Direct `eval`, `Function` construction or borrowing, recognized global loader members, and the retained subprocess forms are guarded syntactically. The residuals are explicit nonclaims rather than uncovered current production loading forms; a new form must reopen or replace this debt under a new Machine Task Contract.
 
 Current control: `pnpm architecture:check` and `pnpm test:architecture` run inside `pnpm verify`; future packages, workspace edges, or runtime import surfaces fail closed until an explicit Machine Task Contract and checker update records them. `governance/architecture-check-preparation.json` records the bounded partial state without redefining dependency authority.
 
@@ -87,7 +87,7 @@ Exit criteria:
 - Synthetic negative cases demonstrate that each newly in-scope forbidden edge fails closed.
 - Documentation states any remaining unenforced architecture semantics.
 
-Verification: `pnpm architecture:check` passed; `pnpm test:architecture` reported 40 passed, 0 failed, and 2 Windows `EPERM` file-symlink construction skips; the full `pnpm verify` passed. Mutation evidence also showed that removing the exact subprocess path guard makes the focused architecture test fail.
+Verification: `pnpm architecture:check` passed; `pnpm test:architecture` reported 49 passed, 0 failed, and 2 Windows `EPERM` file-symlink construction skips; the complete underlying `pnpm verify` command chain passed. Synthetic cases reject direct and borrowed `Function`, recognized global and builtin loaders, `require`, `createRequire`, and subprocess-loaded code while leaving strings and comments inert.
 
 ### DEBT-003: Clean Agent Test Execution Evidence
 
@@ -117,7 +117,7 @@ Exit criteria:
 - The run records its exact repository SHA, inputs, outputs, and grading evidence.
 - A repeat run produces the same pass/fail interpretation under unchanged inputs.
 
-Verification: `pnpm clean-agent:validate` reported `VALID`, `runCount: 2`, and no findings; the focused Clean Agent suite passed 13/13; the full `pnpm verify` passed.
+Verification: `pnpm clean-agent:validate` reported `VALID`, `runCount: 2`, and no findings; the focused Clean Agent suite passed 17/17; the complete underlying `pnpm verify` command chain passed.
 
 ### DEBT-004: Bounded Product Fixture Corpus
 
@@ -133,9 +133,9 @@ Owner: Proofrail maintainers.
 
 Target milestone: Completed for current implemented surfaces by `PRODUCT-HARDEN-001`.
 
-Dependencies: Satisfied by the strict manifest schema, 41 checked-in synthetic fixtures, deterministic runner, and operation-aware coverage map.
+Dependencies: Satisfied by the strict manifest schema, 49 checked-in synthetic fixtures, deterministic runner, and operation-aware coverage map.
 
-Observation: `fixtures/product` contains 41 stable fixtures. Every exact implemented input-bearing operation and trust boundary has positive, negative, malformed, and adversarial classes; `contracts.constants` is the explicit no-input exception. Each manifest records its implemented operation, surface, trust boundary, synthetic provenance, digest, deterministic oracle, and limitations. The runner validates manifests before execution, rejects unsafe CLI argument shapes before spawning, rejects identity, operation, mapping, coverage-class, digest, and oracle drift, and processes fixtures in stable id order.
+Observation: `fixtures/product` contains 49 stable fixtures. Every exact implemented input-bearing operation and trust boundary has positive, negative, malformed, and adversarial classes; `contracts.constants` is the explicit no-input exception. Each manifest records its implemented operation, surface, trust boundary, synthetic provenance, digest, deterministic oracle, and limitations. The runner validates manifests before execution, rejects unsafe CLI argument shapes and class-binding drift before spawning, processes fixtures in stable id order, isolates child environments, and permits output only through a runner-owned temporary path whose bounded result is oracle-checked.
 
 Risk: The corpus does not claim repository inspection, target execution, adapters, Verification Receipts, or future surfaces. New implemented boundaries must extend the coverage map and required classes before this closure can be carried forward.
 
@@ -147,7 +147,7 @@ Exit criteria:
 - Implemented trust boundaries have adversarial cases with explicit oracles.
 - Malformed, ambiguous, and unsupported inputs fail closed without weakened assertions or skips.
 
-Verification: The product runner reported 41/41 `PASS`, generated inventory equality passed, and the focused suite passed 13/13. Absolute and relative outside-sentinel output attempts were rejected before spawn with sentinel bytes unchanged; cross-operation class borrowing also failed closed. A real duplicate-key mutation failed closed, and the full `pnpm verify` passed.
+Verification: The product runner reported 49/49 `PASS`, generated inventory equality passed, and the focused suite passed 16/16. Absolute and relative outside-sentinel output attempts were rejected before spawn with sentinel bytes unchanged; paired and cross-operation class borrowing failed closed; ambient Node preload options did not reach spawned CLIs; and both implemented CLI output boundaries were exercised in four classes with runner-owned staged output. A real duplicate-key mutation failed closed, and the complete underlying `pnpm verify` command chain passed.
 
 ### DEBT-005: Product Fixture Inventory Separation
 
@@ -177,4 +177,4 @@ Exit criteria:
 - Coverage claims name the exact implemented product surfaces exercised by each suite.
 - User-facing documentation does not present governance test counts as product reliability evidence.
 
-Verification: `pnpm product:fixture-inventory` reported `PASS`, `pnpm test:product-fixtures` passed 9/9, and the full `pnpm verify` passed without presenting governance test counts as product reliability evidence.
+Verification: `pnpm product:fixture-inventory` reported `PASS`, `pnpm test:product-fixtures` passed 16/16, and the complete underlying `pnpm verify` command chain passed without presenting governance test counts as product reliability evidence.

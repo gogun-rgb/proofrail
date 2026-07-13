@@ -18,7 +18,7 @@ Proofrail reliability depends on:
 
 ## Current Phase
 
-Current Phase 2 reliability evidence includes repository governance, complete-set exact LF checkout checks, the bounded six-package architecture guard, a 41-case deterministic product fixture corpus, its separate generated inventory, and two retained Clean Agent Test runs with matching independently graded interpretations. The fixture corpus covers positive, negative, malformed, and adversarial classes for every exact implemented input-bearing operation and trust boundary; `contracts.constants` is the explicit no-input exception. Spawned CLI fixture arguments are closed to the inert input-only shape and cannot select output paths.
+Current Phase 2 reliability evidence includes repository governance, complete-set exact LF checkout checks, the bounded six-package architecture guard, a 49-case deterministic product fixture corpus, its separate generated inventory, and two retained Clean Agent Test runs with matching independently graded interpretations. The fixture corpus covers positive, negative, malformed, and adversarial classes for every exact implemented input-bearing operation and trust boundary; `contracts.constants` is the explicit no-input exception. Spawned CLI fixture arguments are closed to exact input-only or runner-controlled staged-output shapes, receive no ambient host environment, and cannot select an arbitrary output path.
 
 These controls exercise only the current six-package local and exact release paths. They do not inspect a target repository, execute target commands, create Verification Receipts, exercise adapters, or prove general product reliability, deployment readiness, trusted-release status, or a Proofrail product Verdict.
 
