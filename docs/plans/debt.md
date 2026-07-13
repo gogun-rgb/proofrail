@@ -147,7 +147,7 @@ Exit criteria:
 - Implemented trust boundaries have adversarial cases with explicit oracles.
 - Malformed, ambiguous, and unsupported inputs fail closed without weakened assertions or skips.
 
-Verification: The product runner reported 49/49 `PASS`, generated inventory equality passed, and the focused suite passed 16/16. Absolute and relative outside-sentinel output attempts were rejected before spawn with sentinel bytes unchanged; paired and cross-operation class borrowing failed closed; ambient Node preload options did not reach spawned CLIs; and both implemented CLI output boundaries were exercised in four classes with runner-owned staged output. A real duplicate-key mutation failed closed, and the complete underlying `pnpm verify` command chain passed.
+Verification: The product runner reported 49/49 `PASS`, generated inventory equality passed, and the focused suite passed 17/17. Absolute and relative outside-sentinel output attempts were rejected before spawn with sentinel bytes unchanged; paired and cross-operation class borrowing failed closed; unknown fixture ids without a class-bearing suffix or closed legacy binding failed closed; ambient Node preload options did not reach spawned CLIs; and both implemented CLI output boundaries were exercised in four classes with runner-owned staged output. A real duplicate-key mutation failed closed, and the complete underlying `pnpm verify` command chain passed.
 
 ### DEBT-005: Product Fixture Inventory Separation
 
@@ -177,4 +177,4 @@ Exit criteria:
 - Coverage claims name the exact implemented product surfaces exercised by each suite.
 - User-facing documentation does not present governance test counts as product reliability evidence.
 
-Verification: `pnpm product:fixture-inventory` reported `PASS`, `pnpm test:product-fixtures` passed 16/16, and the complete underlying `pnpm verify` command chain passed without presenting governance test counts as product reliability evidence.
+Verification: `pnpm product:fixture-inventory` reported `PASS`, `pnpm test:product-fixtures` passed 17/17, and the complete underlying `pnpm verify` command chain passed without presenting governance test counts as product reliability evidence.

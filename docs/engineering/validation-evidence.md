@@ -6475,7 +6475,7 @@ Policy-authored Rule denial codes remain Policy-owned and retain their existing 
 
 Date: 2026-07-14.
 
-Exact required baseline: `4fcbe54e8f7468348cc33a6040a3cd6f291d611d`. The externally supplied `PRODUCT-HARDEN-001` Machine Task Contract is the first task commit `7f3ab53a3ff908391b81ca5c68b67fc372095c64`; its complete JSON bytes have SHA-256 `B3BF5B7458031298BEAED025F7D52D7AD5C8C4D89EE37B21D1DDD1D0EEFD4560`. The immutable Clean Agent implementation candidate is `e7df25ff368b789158a673498a187d9124e1912d`, followed by Clean Agent evidence commit `4810e8314c003095640cd72381aaa2165706c4f1`. Final review remediation is retained through `2fc5dcdc6269b91d90101aa9c27d349926ee0a31`.
+Exact required baseline: `4fcbe54e8f7468348cc33a6040a3cd6f291d611d`. The externally supplied `PRODUCT-HARDEN-001` Machine Task Contract is the first task commit `7f3ab53a3ff908391b81ca5c68b67fc372095c64`; its complete JSON bytes have SHA-256 `B3BF5B7458031298BEAED025F7D52D7AD5C8C4D89EE37B21D1DDD1D0EEFD4560`. The immutable Clean Agent implementation candidate is `e7df25ff368b789158a673498a187d9124e1912d`, followed by Clean Agent evidence commit `4810e8314c003095640cd72381aaa2165706c4f1`. Final review remediation is retained through `6addc97611bfc5e1eb4eb261504e7516a154c32b`.
 
 Authority-change preflight confirmed that every retained path is under `scope.write`, including the fixture schema and corpus, architecture and LF governance mechanics, Clean Agent schema and records, and bounded quality/debt documentation. No production package source, package manifest, dependency, lockfile, workspace edge, TypeScript configuration, Trusted Configuration, Policy, Evidence Contract, product reason-code registry, release fixture, release golden, canonical Verdict, Evidence authority, Trust semantic, execution authority, inference authority, or existing Machine Task Contract changed.
 
@@ -6511,7 +6511,7 @@ pnpm product:reason-codes             exit 0
 pnpm test:product-reason-codes        exit 0; 23 passed, 0 failed
 pnpm product:fixtures                 exit 0; 49/49 fixtures PASS in stable order
 pnpm product:fixture-inventory        exit 0; generated inventory equality PASS
-pnpm test:product-fixtures            exit 0; 16 passed, 0 failed
+pnpm test:product-fixtures            exit 0; 17 passed, 0 failed
 pnpm test:trusted-config              exit 0; 13 passed, 0 failed, 1 Windows EPERM file-symlink skip
 pnpm test:release-orchestrator        exit 0; 9 passed, 0 failed
 pnpm test:evidence-gate              exit 0; 229 passed, 0 failed, 8 Windows symlink skips
@@ -6519,7 +6519,7 @@ pnpm proofrail-release:fixture        exit 0; committed canonical release input 
 pnpm test:static-evaluator            exit 0; 10 passed, 0 failed
 pnpm typecheck:phase1                 exit 0
 pnpm test:kernel                      exit 0; 475 passed, 0 failed
-pnpm verify command chain             exit 0; 891 Node tests passed, 11 Windows environment skips, 0 failed
+pnpm verify command chain             exit 0; 892 Node tests passed, 11 Windows environment skips, 0 failed
 git diff --check                      exit 0 as part of pnpm verify
 ```
 
