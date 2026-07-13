@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1",
   "protocol": "clean-agent-test",
-  "status": "executable_run_record_contract_defined",
+  "status": "executed_two_run_pass_retained",
   "builderBoundary": "The protocol, schema, and validator may be implemented by the Builder, but a Builder summary, confidence statement, or completion claim is never Clean Agent Test grading evidence.",
   "freshContextRequirement": {
     "required": true,
@@ -126,7 +126,7 @@
     "samePassFailInterpretationRequired": true,
     "performedEditMustHavePreflightTarget": true,
     "builderClaimGradingForbidden": true,
-    "description": "This specification defines the executable evidence contract. It does not by itself claim that any run record exists, is valid, or passed."
+    "description": "Two retained run records bind one exact candidate and task input to separately graded PASS interpretations. Standalone validation must still recompute record validity and candidate ancestry."
   },
   "independentGradingBoundary": "A distinct fresh-context grading pass must use the recorded run output and protocol criteria without relying on Builder claims. No separate human, organization, GitHub account, or stable reviewer identity is required."
 }

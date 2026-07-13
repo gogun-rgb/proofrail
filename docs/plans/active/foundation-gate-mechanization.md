@@ -12,6 +12,8 @@ External independent review reported Agent Legibility Gate PASS, Clean Agent Tes
 
 Foundation Gate PASS is a repository engineering review decision, not a Proofrail product Verdict.
 
+Later `PRODUCT-HARDEN-001` work did not reopen or replace that historical decision. It added retained executable evidence for the current bounded six-package surface: exact LF checkout checks, expanded architecture loading checks, a deterministic product fixture corpus and separate inventory, and two fresh-context Clean Agent runs with matching separately graded `PASS` interpretations.
+
 ## Objective
 
 Convert mechanically verifiable parts of the Foundation Gate into repository checks and CI-ready validation without claiming that conceptual quality can be fully automated.
@@ -75,7 +77,7 @@ The external independent decision, not Builder claim, closed Foundation Gate acc
 
 ## Mechanically Verifiable Gate
 
-Expected future work includes:
+The historical Phase 0 mechanization list was:
 
 - required documentation checks
 - documentation authority index validation
@@ -85,6 +87,8 @@ Expected future work includes:
 - fixture strategy presence and reference validation
 - Machine Task Contract validation
 - architecture rule encoding preparation
+
+The retained repository now implements these checks and also validates the exact LF checkout set, current six-package architecture loading forms, product fixture manifests and inventory equality, and Clean Agent run-record structure and ancestry. These later mechanics are repository-engineering controls; they do not retroactively alter the Phase 0 decision baseline.
 
 ## Independently Reviewable Gate
 
@@ -96,7 +100,7 @@ The following require independent judgment:
 - architecture leakage risks
 - whether a clean agent can work without oral history
 
-## Future Executable Gate
+## Historical Future Executable Gate
 
 Later implementation phases may add:
 
@@ -105,6 +109,8 @@ Later implementation phases may add:
 - adversarial fixture tests derived from `docs/engineering/fixture-strategy.md`
 - protocol schema compatibility tests
 - Clean Agent Test protocol execution
+
+`PRODUCT-HARDEN-001` completed those four items only for the retained bounded repository surface. Target repository checkout or inspection, target verification execution, adapters, Verification Receipts, broader delivery, and general product reliability remain unimplemented and outside this historical Foundation plan.
 
 ## Stop Conditions
 

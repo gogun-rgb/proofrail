@@ -6470,3 +6470,57 @@ The committed reference blob and the verified working copy contain exact LF byte
 The source scanner remains intentionally bounded AST analysis rather than general binding or data-flow resolution. It recognizes the current direct identifiers, supported Error constructors, and exact wrapper syntax; a newly authorized emitter name or syntax must extend both the guard and its regression tests.
 
 Policy-authored Rule denial codes remain Policy-owned and retain their existing Policy and kernel validation path. Foundation `HARN_` diagnostics, release-delivery `stage` values, and natural-language-only legacy CLI failures remain outside this registry. This task closes DEBT-001 only; DEBT-004 and DEBT-005 remain unchanged. This repository engineering evidence does not grant an authoritative Proofrail product Verdict, product readiness, trusted-release status, release acceptance, publication, or deployment.
+
+## PRODUCT-HARDEN-001 Validation Evidence
+
+Date: 2026-07-14.
+
+Exact required baseline: `4fcbe54e8f7468348cc33a6040a3cd6f291d611d`. The externally supplied `PRODUCT-HARDEN-001` Machine Task Contract is the first task commit `7f3ab53a3ff908391b81ca5c68b67fc372095c64`; its complete JSON bytes have SHA-256 `B3BF5B7458031298BEAED025F7D52D7AD5C8C4D89EE37B21D1DDD1D0EEFD4560`. The immutable implementation candidate is `e7df25ff368b789158a673498a187d9124e1912d`, followed by Clean Agent evidence commit `4810e8314c003095640cd72381aaa2165706c4f1`.
+
+Authority-change preflight confirmed that every retained path is under `scope.write`, including the fixture schema and corpus, architecture and LF governance mechanics, Clean Agent schema and records, and bounded quality/debt documentation. No production package source, package manifest, dependency, lockfile, workspace edge, TypeScript configuration, Trusted Configuration, Policy, Evidence Contract, product reason-code registry, release fixture, release golden, canonical Verdict, Evidence authority, Trust semantic, execution authority, inference authority, or existing Machine Task Contract changed.
+
+### Product Fixture And Architecture Evidence
+
+The committed product corpus contains 38 sorted synthetic fixtures. Every implemented input-bearing surface has positive, negative, malformed, and adversarial classes; `contracts.constants` is the explicit no-input exception. The strict manifest schema, runner, coverage map, and inventory generator reject malformed or duplicate JSON, unsorted or duplicate identity, operation/surface mismatch, unmapped or ambiguously mapped implemented entry points, missing required classes, digest drift, oracle drift, stale inventory bytes, and unimplemented coverage claims. A real duplicate-key mutation made the product CLI exit nonzero with `JSON_MALFORMED_OR_DUPLICATE`, after which the exact manifest bytes were restored.
+
+The architecture checker covers every loading form present in retained production source and narrows the existing GitHub subprocess allowance to the exact `packages/evidence-gate/src/github.js` `execFile("gh")` boundary. Removing that path guard caused its focused negative test to fail. The checker remains bounded static analysis rather than general binding, data-flow, transitive dependency, generated-code, target-repository, or future loading-form enforcement.
+
+The LF verifier checks the complete selected attribute set for `text=set` and `eol=lf`, creates a temporary `core.autocrlf=true` checkout, and compares checkout bytes with index bytes. Removing one required product-fixture rule caused the focused mutation check to fail; the retained rule set and byte comparison pass.
+
+### Clean Agent Evidence
+
+The two retained records use candidate `e7df25ff368b789158a673498a187d9124e1912d` and the same exact 68-byte task input with SHA-256 `c8c2fcd629cafd8f842ae028bafe8bd812caa0b2dcae55bde4d54629604d81c5`. Both fresh agents ran in clean detached candidate worktrees with no prior conversation fork, discovered the required authority documents, identified `docs/protocols/evidence-schema.md` as the intended authority-bearing protocol layer, found no applicable authority-changing Machine Task Contract, stopped before editing, and left the worktrees clean. Their exact bounded outputs are retained as base64 with recomputed byte lengths and SHA-256 values.
+
+Distinct fresh-context graders used the recorded run evidence and protocol criteria rather than a Builder claim. Both retained records report `PASS` for `AUTHORITY_PREFLIGHT`, `DOCUMENT_DISCOVERY`, `LAYER_IDENTIFICATION`, `NO_FABRICATED_EVIDENCE`, `NO_OVERCLAIMED_ACCEPTANCE`, `SCOPE_PRESERVATION`, `STOP_CONDITION_DISCOVERY`, `TERMINOLOGY_PRESERVATION`, and `VERIFICATION_INTEGRITY`. The standalone validator reports `VALID`, `runCount: 2`, and no findings.
+
+One external ephemeral CLI attempt failed authentication before model execution and was excluded. An initial grader input accidentally omitted two documents that the second run's raw child-session tool calls proved were directly read; the resulting `DOCUMENT_DISCOVERY` failure was not relabeled. The original bounded output was restored unchanged and a new fresh grader evaluated the corrected recorded metadata as `PASS`. Two later diagnostic fresh runs were not retained because their bounded outputs did not expose enough discovery detail. The validator does not prove that the retained pair was the only pair attempted, does not embed raw child-session transcripts, and cannot cryptographically prove fresh-context or grader declarations.
+
+### Commands And Results
+
+The focused commands and the clean evidence-head full verification completed from the repository root:
+
+```text
+pnpm governance:check                 exit 0
+pnpm governance:check-json            exit 0; parsed status VALID
+pnpm test:governance                  exit 0; 61 passed, 0 failed
+pnpm governance:check-lf-checkout     exit 0; LF attributes and autocrlf checkout bytes passed
+pnpm clean-agent:validate             exit 0; VALID, 2 runs, 0 findings
+pnpm architecture:check               exit 0
+pnpm test:architecture                exit 0; 40 passed, 0 failed, 2 Windows EPERM file-symlink skips
+pnpm product:reason-codes             exit 0
+pnpm test:product-reason-codes        exit 0; 23 passed, 0 failed
+pnpm product:fixtures                 exit 0; 38/38 fixtures PASS in stable order
+pnpm product:fixture-inventory        exit 0; generated inventory equality PASS
+pnpm test:product-fixtures            exit 0; 9 passed, 0 failed
+pnpm test:trusted-config              exit 0; 13 passed, 0 failed, 1 Windows EPERM file-symlink skip
+pnpm test:release-orchestrator        exit 0; 9 passed, 0 failed
+pnpm test:evidence-gate              exit 0; 229 passed, 0 failed, 8 Windows symlink skips
+pnpm proofrail-release:fixture        exit 0; committed canonical release input and bundle equality retained
+pnpm test:static-evaluator            exit 0; 10 passed, 0 failed
+pnpm typecheck:phase1                 exit 0
+pnpm test:kernel                      exit 0; 475 passed, 0 failed
+pnpm verify                           exit 0; clean evidence commit 4810e8314c003095640cd72381aaa2165706c4f1
+git diff --check                      exit 0 as part of pnpm verify
+```
+
+The Windows skips are existing operating-system denials for file-symbolic-link construction; no test was deleted, skipped, weakened, or converted to allowed failure. The retained implementation adds no target checkout, target content inspection, target command or verification execution, Verification Receipt, adapter, network, credential, GitHub write, API, MCP, web, product-runtime model, Inference Zone behavior, publication, release, or deployment. The mechanics close DEBT-002 through DEBT-005 only for the retained current surface and do not establish general product reliability, deployment readiness, trusted-release status, external acceptance, or a Proofrail product Verdict.

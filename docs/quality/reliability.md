@@ -18,19 +18,21 @@ Proofrail reliability depends on:
 
 ## Current Phase
 
-Phase 0 reliability work is limited to repository legibility, governance validation, and documented harness strategy. The fixture and adversarial fixture strategy is defined in [../engineering/fixture-strategy.md](../engineering/fixture-strategy.md). No executable fixture corpus, runtime tests, or product reliability behavior is claimed.
+Current Phase 2 reliability evidence includes repository governance, exact LF checkout checks, the bounded six-package architecture guard, a 38-case deterministic product fixture corpus, its separate generated inventory, and two retained Clean Agent Test runs with matching independently graded interpretations. The fixture corpus covers positive, negative, malformed, and adversarial classes for every implemented input-bearing surface; `contracts.constants` is the explicit no-input exception.
+
+These controls exercise only the current six-package local and exact release paths. They do not inspect a target repository, execute target commands, create Verification Receipts, exercise adapters, or prove general product reliability, deployment readiness, trusted-release status, or a Proofrail product Verdict.
 
 ## Future Reliability Requirements
 
-Future runtime work should define:
+Future authorized runtime work should:
 
-- executable fixtures and tests derived from the documented fixture strategy
-- deterministic ordering requirements
-- reason-code registry checks
-- schema compatibility checks
-- architecture dependency checks
-- convergence remediation loops after independent review
+- extend the manifest coverage map and fixture classes whenever an implemented surface or trust boundary is added
+- add target-execution, adapter, and Verification Receipt fixtures only when those product surfaces are separately authorized and implemented
+- preserve deterministic ordering, bounded diagnostics, reason-code coverage, schema compatibility, and fail-closed architecture checks as the package surface evolves
+- retain fresh evidence-based review and remediation without treating a Builder claim as acceptance
 
 ## Failure Honesty
 
 Reliability includes refusing to make a determination when a valid determination cannot be made. `BLOCKED` is a legitimate outcome when authority, boundary, or prerequisite conditions prevent evaluation.
+
+A negative, malformed, or adversarial product fixture passes only when the implemented surface produces its explicit expected deterministic rejection. That fixture result is not an acceptance of malformed input and does not widen product authority.

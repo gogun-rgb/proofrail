@@ -159,6 +159,8 @@ Because evidence records are committed after the measured candidate exists, the 
 
 The schema and validator alone do not claim that run records exist or that the Clean Agent Test passed. Such a claim requires two retained records, a `VALID` standalone-validator result, criterion evidence, and the same recorded interpretation.
 
+The retained `PRODUCT-HARDEN-001` evidence satisfies that bounded condition for candidate `e7df25ff368b789158a673498a187d9124e1912d`. The two records under `governance/clean-agent-runs` use the same 68-byte task input, record clean candidate worktrees, preserve exact bounded output bytes, and have separate fresh-context graders that report `PASS` for the same nine criteria. `pnpm clean-agent:validate` reports `VALID` with two runs and no findings. This is repository-engineering evidence only; it does not cryptographically prove fresh-context declarations, establish product reliability, grant trusted-release status, or create a Proofrail product Verdict.
+
 ## Independent Grading Boundary
 
 The Clean Agent Test requires a distinct fresh-context grading pass or equivalent assumption-resistant review of each recorded run. The grader must use the bounded output and protocol criteria and must not rely on a Builder summary, model confidence, or a completion claim. A separate human, organization, GitHub account, or stable reviewer identity is not required.
