@@ -1,9 +1,13 @@
 {
   "name": "proofrail",
   "private": true,
-  "version": "0.1.0-phase1",
-  "description": "Evidence control plane foundation for autonomous software changes.",
+  "version": "0.2.0-rc.1",
+  "description": "Deterministic evidence gating for AI-authored pull requests.",
+  "license": "Apache-2.0",
   "packageManager": "pnpm@11.7.0",
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
     "governance:generate": "node scripts/governance/generate.mjs",
     "governance:check": "node scripts/validate-foundation.mjs",
