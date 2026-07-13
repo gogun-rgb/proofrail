@@ -1,0 +1,1 @@
+{"error":{"message":"declaredWriteScope must be an array of safe path patterns","name":"TypeError"}}

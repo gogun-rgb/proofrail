@@ -1,5 +1,14 @@
 config/evidence-contracts/*.json text eol=lf
 config/policies/*.json text eol=lf
+config/reason-codes/*.json text eol=lf
 config/trusted/*.json text eol=lf
+docs/reference/product-fixtures.md text eol=lf
+docs/reference/reason-codes.md text eol=lf
 examples/**/*.json text eol=lf
 examples/**/*expected*.txt text eol=lf
+fixtures/product/**/*.json text eol=lf
+fixtures/product/**/*expected*.txt text eol=lf
+governance/*.json text eol=lf
+governance/clean-agent-runs/**/*.json text eol=lf
+governance/tasks/*.json text eol=lf
+schemas/product/*.json text eol=lf

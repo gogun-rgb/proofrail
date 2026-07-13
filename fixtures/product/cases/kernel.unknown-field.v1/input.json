@@ -1,0 +1,1 @@
+{"sourcePath":"examples/static-evaluator/input.json","mutation":{"kind":"add-root-field","name":"unexpected","value":true}}

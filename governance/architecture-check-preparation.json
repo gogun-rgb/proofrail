@@ -2,30 +2,50 @@
   "schemaVersion": "1",
   "artifact": "architecture-check-preparation",
   "authority": "docs/architecture/dependency-rules.md",
-  "enforcementState": "bounded_partial_current_package_enforcement",
+  "enforcementState": "bounded_current_six_package_loading_enforcement",
   "productionPackageLayout": "present_six_classified_packages",
-  "scopeBoundary": "The repository engineering checker freezes the exact current six-package classification, workspace dependency declarations and imports, approved Node import surface, relative package containment, and statically recognizable production source loads. It does not redefine authoritative dependency edges or claim complete semantic enforcement of docs/architecture/dependency-rules.md.",
+  "scopeBoundary": "The repository engineering checker freezes the exact retained six-package classification, runtime dependency declarations, workspace and Node imports, manifest loading fields, relative containment, recognized production-source module forms, and explicitly guarded loader bypass syntax. It does not redefine dependency authority or grant product execution authority.",
+  "coveredLoadingForms": [
+    "static_import_and_reexport",
+    "typescript_import_equals_and_import_type",
+    "attached_jsdoc_import",
+    "direct_dynamic_import",
+    "direct_require",
+    "direct_require_resolve",
+    "exact_evidence_gate_execfile_gh"
+  ],
+  "guardedBypassForms": [
+    "direct_eval",
+    "new_function",
+    "aliased_or_escaped_require",
+    "computed_property_require",
+    "direct_create_require_reference",
+    "non_exact_subprocess_loader"
+  ],
+  "residualUnenforcedSemantics": [
+    "general_module_resolution",
+    "transitive_dependencies",
+    "generated_code",
+    "arbitrary_global_or_computed_object_property_discovery",
+    "full_lexical_binding_and_data_flow_resolution",
+    "native_or_vm_loading_without_a_guarded_identifier",
+    "runtime_behavior_of_the_separately_authorized_literal_gh_process",
+    "delivery_private_domain_definition_semantics",
+    "future_inference_isolation"
+  ],
   "futureCheckClasses": [
     {
-      "id": "package_layer_direction",
-      "description": "The current bounded checker freezes the exact accepted workspace edges for the six present packages. Future package additions or edge changes require an explicit checker and Machine Task Contract update."
-    },
-    {
-      "id": "kernel_forbidden_imports",
-      "description": "The current bounded checker freezes the kernel's exact workspace and Node import surface. Complete semantic detection of delivery frameworks, model providers, services, language parsers, and target build tools remains future work."
-    },
-    {
-      "id": "contracts_no_runtime_imports",
-      "description": "The current bounded checker rejects all workspace, Node, and external bare imports from contracts when they use the recognized static forms. Aliased or generated loading paths remain outside this check."
+      "id": "future_package_or_loading_surface",
+      "description": "Any future package, entry point, edge, source extension, or loading syntax requires an explicit Machine Task Contract and matching deterministic checker tests."
     },
     {
       "id": "inference_isolation",
-      "description": "Future checks should verify that inference packages are not imported by kernel, policy evaluation, evidence satisfaction, or bundle finalization paths."
+      "description": "No inference package exists in the retained six-package surface. A future inference package requires explicit isolation checks before it can be classified."
     },
     {
       "id": "delivery_no_private_domain_definitions",
-      "description": "Future checks should detect delivery surfaces defining private Verdict, Evidence, Evidence Requirement, Policy, Rule, or Evidence Bundle concepts."
+      "description": "The loading guard does not prove semantic absence of private Verdict, Evidence, Evidence Requirement, Policy, Rule, or Evidence Bundle definitions in delivery code."
     }
   ],
-  "partialEnforcementStatement": "ARCH-BOUND-001 is a repository engineering drift guard over current packages/*/src imports and runtime manifest sections. It is not general module resolution, transitive dependency analysis, generated-code analysis, target-repository inspection, delivery-definition analysis, inference isolation proof, or complete architecture quality enforcement."
+  "partialEnforcementStatement": "PRODUCT-HARDEN-001 closes the observable current six-package loading-form gaps enumerated by the bounded checker. The result remains a repository engineering drift guard, not general module resolution, transitive or generated-code analysis, target-repository inspection, inference-isolation proof, delivery-definition analysis, or complete architecture quality enforcement."
 }

@@ -31,12 +31,28 @@ const PACKAGE_MANIFESTS = Object.freeze({
     version: "0.0.0-test",
     private: true,
     type: "module",
+    exports: Object.freeze({
+      ".": Object.freeze({
+        types: "./src/index.d.ts",
+        default: "./src/index.js",
+      }),
+    }),
   }),
   "evidence-gate": Object.freeze({
     name: "@proofrail/evidence-gate",
     version: "0.0.0-test",
     private: true,
     type: "module",
+    bin: Object.freeze({
+      "evidence-gate": "./src/cli.mjs",
+      "evidence-gate-github": "./src/github-cli.mjs",
+      "proofrail-release": "./src/release-cli.mjs",
+    }),
+    exports: Object.freeze({
+      ".": Object.freeze({ default: "./src/index.js" }),
+      "./github": Object.freeze({ default: "./src/github.js" }),
+      "./release": Object.freeze({ default: "./src/release-cli.mjs" }),
+    }),
     dependencies: Object.freeze({
       "@proofrail/release-orchestrator": "workspace:*",
     }),
@@ -46,6 +62,9 @@ const PACKAGE_MANIFESTS = Object.freeze({
     version: "0.0.0-test",
     private: true,
     type: "module",
+    exports: Object.freeze({
+      ".": Object.freeze({ default: "./src/index.js" }),
+    }),
     dependencies: Object.freeze({ "@proofrail/contracts": "workspace:*" }),
   }),
   "release-orchestrator": Object.freeze({
@@ -53,6 +72,9 @@ const PACKAGE_MANIFESTS = Object.freeze({
     version: "0.0.0-test",
     private: true,
     type: "module",
+    exports: Object.freeze({
+      ".": Object.freeze({ default: "./src/index.js" }),
+    }),
     dependencies: Object.freeze({
       "@proofrail/kernel": "workspace:*",
       "@proofrail/trusted-config": "workspace:*",
@@ -63,6 +85,9 @@ const PACKAGE_MANIFESTS = Object.freeze({
     version: "0.0.0-test",
     private: true,
     type: "module",
+    bin: Object.freeze({
+      "static-evaluate": "./src/cli.mjs",
+    }),
     dependencies: Object.freeze({ "@proofrail/kernel": "workspace:*" }),
   }),
   "trusted-config": Object.freeze({
@@ -70,12 +95,46 @@ const PACKAGE_MANIFESTS = Object.freeze({
     version: "0.0.0-test",
     private: true,
     type: "module",
+    exports: Object.freeze({
+      ".": Object.freeze({ default: "./src/index.js" }),
+    }),
   }),
 });
 
 test("the current repository satisfies the frozen package boundary", async () => {
   assert.deepEqual(await checkPackageBoundaries(REPOSITORY_ROOT), []);
 });
+
+test("freezes exact manifest loading and production entry-point fields", async (t) => {
+  const root = await createFixture(t);
+  assert.deepEqual(await checkPackageBoundaries(root), []);
+
+  await updateManifest(root, "contracts", (manifest) => ({
+    ...manifest,
+    main: "./src/alternate.js",
+  }));
+  await updateManifest(root, "evidence-gate", (manifest) => ({
+    ...manifest,
+    bin: { ...manifest.bin, "proofrail-release": "./src/alternate.mjs" },
+  }));
+  await updateManifest(root, "kernel", (manifest) => ({
+    ...manifest,
+    exports: { ...manifest.exports, "./alternate": "./src/alternate.js" },
+  }));
+
+  const findings = (await checkPackageBoundaries(root)).filter(
+    ({ id }) => id === "ARCHCHK_MANIFEST_ENTRYPOINT_DRIFT",
+  );
+  assert.deepEqual(
+    findings.map(({ path: findingPath, target }) => [findingPath, target]),
+    [
+      ["packages/contracts/package.json", "main"],
+      ["packages/evidence-gate/package.json", "bin"],
+      ["packages/kernel/package.json", "exports"],
+    ],
+  );
+});
+
 
 test("the no-argument CLI succeeds and unsupported arguments fail with stable ARCHCHK output", () => {
   const success = spawnSync(process.execPath, [ARCHITECTURE_CLI], {
@@ -466,6 +525,86 @@ test("fails closed on computed dynamic import, require, and require.resolve targ
   const findings = await checkPackageBoundaries(root);
   assert.equal(findings.filter(({ id }) => id === "ARCHCHK_IMPORT_UNINSPECTABLE").length, 3);
 });
+
+test("fails closed on each newly guarded dynamic or disguised loader bypass", async (t) => {
+  const cases = [
+    ["eval", 'eval(\'require("@proofrail/contracts")\');', "eval"],
+    ["new-Function", 'new Function(\'return import("@proofrail/contracts")\');', "Function"],
+    [
+      "aliased-require",
+      'const load = require; load("@proofrail/contracts");',
+      "require-reference",
+    ],
+    [
+      "computed-require",
+      'require["resolve"]("@proofrail/contracts");',
+      "require-computed-property",
+    ],
+    ["aliased-createRequire", "const makeLoader = createRequire; void makeLoader;", "createRequire"],
+    ["subprocess-loaded-code", 'fork("./worker.js");', "subprocess-loader"],
+  ];
+
+  for (const [label, source, expectedTarget] of cases) {
+    await t.test(label, async (subtest) => {
+      const root = await createFixture(subtest);
+      await writeSource(root, "kernel", `${label}.js`, source);
+      const findings = (await checkPackageBoundaries(root)).filter(
+        ({ id }) => id === "ARCHCHK_LOADER_BYPASS",
+      );
+      assert.deepEqual(findings.map(({ target }) => target), [expectedTarget]);
+    });
+  }
+});
+
+test("limits the gh subprocess exception to the exact GitHub adapter import and path", async (t) => {
+  const allowedRoot = await createFixture(t);
+  await writeSource(
+    allowedRoot,
+    "evidence-gate",
+    "github.js",
+    [
+      'import { execFile } from "node:child_process";',
+      'execFile("gh", ["api", "/repos/example/example"]);',
+    ].join("\n"),
+  );
+  assert.equal(
+    (await checkPackageBoundaries(allowedRoot)).filter(
+      ({ id }) => id === "ARCHCHK_LOADER_BYPASS",
+    ).length,
+    0,
+  );
+
+  const wrongPathRoot = await createFixture(t);
+  await writeSource(
+    wrongPathRoot,
+    "evidence-gate",
+    "other.js",
+    [
+      'import { execFile } from "node:child_process";',
+      'execFile("gh", ["api", "/repos/example/example"]);',
+    ].join("\n"),
+  );
+  assert(
+    (await checkPackageBoundaries(wrongPathRoot)).some(
+      ({ id, target }) => id === "ARCHCHK_LOADER_BYPASS" && target === "subprocess-loader",
+    ),
+  );
+
+  const missingImportRoot = await createFixture(t);
+  await writeSource(
+    missingImportRoot,
+    "evidence-gate",
+    "github.js",
+    'execFile("gh", ["api", "/repos/example/example"]);',
+  );
+  assert.deepEqual(
+    (await checkPackageBoundaries(missingImportRoot))
+      .filter(({ id }) => id === "ARCHCHK_LOADER_BYPASS")
+      .map(({ target }) => target),
+    ["subprocess-loader"],
+  );
+});
+
 
 test("does not treat comments or ordinary strings as module loads", async (t) => {
   const root = await createFixture(t);

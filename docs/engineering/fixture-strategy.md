@@ -2,9 +2,21 @@
 
 ## Authority
 
-This document is authoritative for Phase 0 fixture and adversarial fixture strategy for the Proofrail engineering harness. It does not implement fixtures, runtime tests, repository inspection, verification execution, adapters, policy evaluation, or the product kernel.
+This document is authoritative for Proofrail fixture and adversarial fixture strategy. It does not grant repository inspection, verification execution, adapter, target-execution, release, or product authority.
 
-Phase 0 defines the strategy only. Future executable fixtures and tests must be created by later authorized tasks.
+Phase 0 defined the strategy only. `PRODUCT-HARDEN-001` later materialized the bounded current six-package product corpus described below without changing production package behavior.
+
+## Current Bounded Product Fixture Corpus
+
+The executable product corpus is rooted at `fixtures/product`. Its closed manifest schema is `schemas/product/fixture-manifest.schema.json`; `suite.json` fixes stable execution order and `coverage-map.json` binds all 11 current exports and CLI bins to exact implemented boundaries and fixture ids.
+
+`pnpm product:fixtures` validates the complete corpus before executing it. It rejects malformed or duplicate JSON keys, invalid or unsorted identities, unsafe paths, unreferenced files, input or oracle digest drift, noncanonical oracle bytes, operation-to-surface mismatches, incomplete class coverage, coverage drift, and unexpected runtime output. `pnpm test:product-fixtures` protects those failure paths.
+
+The retained corpus contains 38 positive, negative, malformed, and adversarial fixtures. Every input-bearing implemented surface has all four classes. The contracts constant export has no product input, so only its positive case is meaningful; assigning negative, malformed, or adversarial labels to its ignored driver record would fabricate coverage. This exception is mechanically checked and printed in the generated inventory.
+
+Fixtures run in stable id order, use synthetic inert inputs or digest-bound references to committed repository bytes, and compare exact deterministic JSON-LF oracles. The runner uses no network, credentials, wall-clock value, target checkout, target content inspection, target command or verification execution, adapter, Verification Receipt, or product-runtime model.
+
+`pnpm product:fixture-inventory` checks exact equality with `docs/reference/product-fixtures.md`. That generated product inventory remains separate from governance test inventories and explicitly names unimplemented surfaces as not covered.
 
 ## Fixture Taxonomy
 
@@ -123,4 +135,4 @@ Secret-shaped test data must be synthetic and labeled as test data. It must not 
 
 ## Phase 0 Boundary
 
-This strategy does not claim that any fixture corpus exists. It defines how later authorized tasks should create, identify, version, mutate, and validate fixtures without widening Proofrail product scope.
+This section preserves the historical Phase 0 boundary: at that baseline the strategy did not claim that a corpus existed. The later bounded corpus above implements only the current six-package local surfaces and does not widen Proofrail product scope or establish product readiness, trusted release status, or an authoritative Proofrail Verdict.

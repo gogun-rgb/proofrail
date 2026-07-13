@@ -1,8 +1,8 @@
 {
   "schemaVersion": "1",
   "protocol": "clean-agent-test",
-  "status": "protocol_defined_not_executed",
-  "builderBoundary": "FND-MECH-001 Builder defines the protocol and must not grade or claim PASS for the Clean Agent Test.",
+  "status": "executable_run_record_contract_defined",
+  "builderBoundary": "The protocol, schema, and validator may be implemented by the Builder, but a Builder summary, confidence statement, or completion claim is never Clean Agent Test grading evidence.",
   "freshContextRequirement": {
     "required": true,
     "description": "The tested agent starts with no conversational history, hidden summaries, or Builder-provided explanations beyond bounded task input."
@@ -99,14 +99,34 @@
     "overclaimed_acceptance"
   ],
   "evidenceCollection": [
-    "task_input",
-    "agent_transcript_or_bounded_output",
+    "exact_candidate_sha",
+    "exact_task_input_bytes_and_sha256",
+    "bounded_agent_output_bytes_and_sha256",
     "documents_discovered",
+    "authority_paths_discovered",
     "edits_proposed_or_made",
     "authority_change_preflight_answers",
     "verification_commands_actually_run",
     "stop_conditions_identified",
-    "fabricated_claims_or_overclaims"
+    "fresh_context_grading_criteria_and_interpretation",
+    "fabricated_claims_or_overclaims",
+    "recorded_limitations"
   ],
-  "independentGradingBoundary": "A separate fresh-context agent or equivalent independent review process must grade the Clean Agent Test."
+  "runEvidence": {
+    "recordSchema": "governance/clean-agent-run.schema.json",
+    "recordDirectory": "governance/clean-agent-runs",
+    "validator": "scripts/governance/validate-clean-agent-runs.mjs",
+    "requiredRunCount": 2,
+    "sameCandidateShaRequired": true,
+    "candidateCommitMustExist": true,
+    "candidateMustBeAncestorOfEvidenceHead": true,
+    "sameTaskInputBytesAndDigestRequired": true,
+    "freshContextPerRunRequired": true,
+    "cleanWorktreePerRunRequired": true,
+    "samePassFailInterpretationRequired": true,
+    "performedEditMustHavePreflightTarget": true,
+    "builderClaimGradingForbidden": true,
+    "description": "This specification defines the executable evidence contract. It does not by itself claim that any run record exists, is valid, or passed."
+  },
+  "independentGradingBoundary": "A distinct fresh-context grading pass must use the recorded run output and protocol criteria without relying on Builder claims. No separate human, organization, GitHub account, or stable reviewer identity is required."
 }

@@ -1,0 +1,1 @@
+{"result":{"exitCode":1,"stderr":{"bytes":38,"endsWithLf":true,"sha256":"A9219B074535BA30CCC093B8ABAFDAE926BD0E07C1F89A2221D1DACF19B9FD48","text":"static-evaluator: input exceeds 1 MiB\n"},"stdout":{"bytes":0,"endsWithLf":false,"sha256":"E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855","text":""}}}
