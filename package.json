@@ -15,6 +15,8 @@
     "test:governance": "node --test tests/governance/*.test.mjs",
     "architecture:check": "node scripts/architecture/check-package-boundaries.mjs",
     "test:architecture": "node --test tests/architecture/*.test.mjs",
+    "product:reason-codes": "node scripts/product/validate-reason-codes.mjs",
+    "test:product-reason-codes": "node --test tests/product/*.test.mjs",
     "evidence-gate": "node packages/evidence-gate/src/cli.mjs",
     "evidence-gate:github": "node packages/evidence-gate/src/github-cli.mjs",
     "evidence-gate:demo": "node packages/evidence-gate/src/cli.mjs --input examples/evidence-gate/input.json",
@@ -29,7 +31,7 @@
     "typecheck:phase1": "tsc -p tsconfig.json",
     "test:kernel": "node --test packages/kernel/test/*.test.js",
     "validate:foundation": "node scripts/validate-foundation.mjs",
-    "verify": "pnpm governance:check && pnpm governance:check-json && pnpm test:governance && pnpm architecture:check && pnpm test:architecture && pnpm test:trusted-config && pnpm test:release-orchestrator && pnpm test:evidence-gate && pnpm proofrail-release:fixture && pnpm test:static-evaluator && pnpm typecheck:phase1 && pnpm test:kernel && git diff --check"
+    "verify": "pnpm governance:check && pnpm governance:check-json && pnpm test:governance && pnpm architecture:check && pnpm test:architecture && pnpm product:reason-codes && pnpm test:product-reason-codes && pnpm test:trusted-config && pnpm test:release-orchestrator && pnpm test:evidence-gate && pnpm proofrail-release:fixture && pnpm test:static-evaluator && pnpm typecheck:phase1 && pnpm test:kernel && git diff --check"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

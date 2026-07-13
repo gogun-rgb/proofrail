@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://proofrail.dev/schemas/product/reason-code-registry.schema.json",
+  "title": "Proofrail Product Reason-Code Registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "namespace",
+    "aliasPolicy",
+    "policyRuleCodeBoundary",
+    "codes"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "proofrail.reason-code-registry.v1"
+    },
+    "namespace": {
+      "const": "PROOFRAIL_OWNED_PRODUCT_CODES"
+    },
+    "aliasPolicy": {
+      "const": "FORBIDDEN"
+    },
+    "policyRuleCodeBoundary": {
+      "const": "POLICY_OWNED_EXCLUDED"
+    },
+    "codes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/code"
+      }
+    }
+  },
+  "$defs": {
+    "code": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "category",
+        "surfaces",
+        "visibility",
+        "severity",
+        "retryable",
+        "status",
+        "description",
+        "remediation",
+        "replacement"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^(?!HARN_)[A-Z][A-Z0-9_]*$"
+        },
+        "kind": {
+          "enum": [
+            "BOUNDARY_ISSUE",
+            "COMPONENT_ERROR",
+            "DELIVERY_ERROR",
+            "VERDICT_REASON"
+          ]
+        },
+        "category": {
+          "enum": [
+            "AUTHORITY",
+            "DELIVERY",
+            "EVIDENCE",
+            "FILESYSTEM",
+            "INPUT",
+            "INTEGRITY",
+            "TARGET"
+          ]
+        },
+        "surfaces": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "evidence-gate",
+              "kernel",
+              "release-orchestrator",
+              "trusted-config"
+            ]
+          }
+        },
+        "visibility": {
+          "enum": ["INTERNAL", "PUBLIC"]
+        },
+        "severity": {
+          "enum": ["ERROR"]
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "status": {
+          "enum": ["ACTIVE", "DEPRECATED"]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^\\r\\n|]+$"
+        },
+        "remediation": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^\\r\\n|]+$"
+        },
+        "replacement": {
+          "type": ["string", "null"],
+          "pattern": "^(?!HARN_)[A-Z][A-Z0-9_]*$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": { "const": "ACTIVE" }
+            }
+          },
+          "then": {
+            "properties": {
+              "replacement": { "const": null }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": { "const": "DEPRECATED" }
+            }
+          },
+          "then": {
+            "properties": {
+              "replacement": { "type": "string" }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
