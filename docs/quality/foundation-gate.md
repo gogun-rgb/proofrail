@@ -97,6 +97,7 @@ Mechanically verified gate:
 - committed JSON Machine Task Contract validation
 - HARN_ harness reason-code registry validation
 - validator emitted reason-code registration
+- product-owned reason-code registry schema, emitted-code, surface, deprecation, and generated-reference validation
 - repository identity hygiene checks
 - generated governance projection freshness
 - Documentation Authority Index structural checks
@@ -115,7 +116,6 @@ Independently reviewable gate:
 Future executable gate:
 
 - architecture dependency checks
-- product runtime reason-code registry validation
 - fixture and adversarial fixture checks derived from the documented fixture strategy
 - protocol schema compatibility checks
 - Clean Agent Test protocol execution

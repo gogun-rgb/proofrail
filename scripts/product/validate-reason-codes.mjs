@@ -31,10 +31,17 @@ const SOURCE_EXTENSIONS = Object.freeze([
   ".tsx",
 ]);
 const MACHINE_CALLS = new Set(["fail", "throwBoundaryError"]);
-const FORWARDING_ERROR_CLASSES = new Set([
+const SUPPORTED_ERROR_CONSTRUCTORS = new Set([
   "FileIoError",
   "ReleaseOrchestratorError",
   "TrustedConfigurationError",
+]);
+const GUARDED_EMITTER_IDENTIFIERS = new Set([
+  ...MACHINE_CALLS,
+  ...SUPPORTED_ERROR_CONSTRUCTORS,
+]);
+const VERIFIED_WRAPPER_CONSTRUCTORS = new Map([
+  ["fail", new Set(["ReleaseOrchestratorError", "TrustedConfigurationError"])],
 ]);
 const CODE_PATTERN = /^[A-Z][A-Z0-9_]*$/;
 
@@ -64,7 +71,7 @@ export function validateRegistryData({ schema, registry, emissions, reference })
   let validate;
 
   try {
-    validate = new Ajv2020({ allErrors: true, strict: false }).compile(schema);
+    validate = new Ajv2020({ allErrors: true, strict: true }).compile(schema);
   } catch {
     addFinding(findings, "RCHECK_SCHEMA_INVALID", SCHEMA_PATH, 1, 1, "<schema>");
     return sortFindings(findings);
@@ -331,9 +338,11 @@ export function inspectSourceText({ source, sourcePath, surface }) {
     if (
       ts.isNewExpression(node)
       && ts.isIdentifier(node.expression)
-      && node.expression.text === "FileIoError"
+      && SUPPORTED_ERROR_CONSTRUCTORS.has(node.expression.text)
     ) {
-      record(node, node.arguments?.[0], "FileIoError");
+      if (!isVerifiedWrapperConstruction(node)) {
+        record(node, node.arguments?.[0], node.expression.text);
+      }
     }
 
     if (
@@ -346,6 +355,14 @@ export function inspectSourceText({ source, sourcePath, surface }) {
       } else if (!isAllowedForwardingAssignment(node)) {
         record(node, undefined, "this.code");
       }
+    }
+
+    if (
+      ts.isIdentifier(node)
+      && GUARDED_EMITTER_IDENTIFIERS.has(node.text)
+      && !isAllowedEmitterIdentifierUse(node)
+    ) {
+      record(node, undefined, `emitter-reference:${node.text}`);
     }
 
     ts.forEachChild(node, visit);
@@ -366,13 +383,73 @@ function isAllowedForwardingAssignment(node) {
   if (!ts.isIdentifier(node.right) || node.right.text !== "code") {
     return false;
   }
-  let current = node.parent;
-  while (current) {
-    if (ts.isClassDeclaration(current)) {
-      return Boolean(current.name && FORWARDING_ERROR_CLASSES.has(current.name.text));
-    }
-    current = current.parent;
+
+  const statement = node.parent;
+  const body = statement?.parent;
+  const constructor = body?.parent;
+  const errorClass = constructor?.parent;
+  return ts.isExpressionStatement(statement)
+    && ts.isBlock(body)
+    && ts.isConstructorDeclaration(constructor)
+    && constructor.body === body
+    && ts.isClassDeclaration(errorClass)
+    && Boolean(errorClass.name && SUPPORTED_ERROR_CONSTRUCTORS.has(errorClass.name.text))
+    && constructor.parameters.length === 1
+    && ts.isIdentifier(constructor.parameters[0].name)
+    && constructor.parameters[0].name.text === "code"
+    && !constructor.parameters[0].dotDotDotToken
+    && !constructor.parameters[0].initializer;
+}
+
+function isVerifiedWrapperConstruction(node) {
+  if (
+    !ts.isIdentifier(node.expression)
+    || node.arguments?.length !== 1
+    || !ts.isIdentifier(node.arguments[0])
+  ) {
+    return false;
   }
+
+  const statement = node.parent;
+  const body = statement?.parent;
+  const wrapper = body?.parent;
+  if (
+    !ts.isThrowStatement(statement)
+    || !ts.isBlock(body)
+    || body.statements.length !== 1
+    || body.statements[0] !== statement
+    || !ts.isFunctionDeclaration(wrapper)
+    || wrapper.body !== body
+    || !wrapper.name
+    || wrapper.parameters.length !== 1
+    || !ts.isIdentifier(wrapper.parameters[0].name)
+    || wrapper.parameters[0].dotDotDotToken
+    || wrapper.parameters[0].initializer
+    || wrapper.parameters[0].name.text !== node.arguments[0].text
+  ) {
+    return false;
+  }
+
+  return VERIFIED_WRAPPER_CONSTRUCTORS.get(wrapper.name.text)?.has(node.expression.text) === true;
+}
+
+function isAllowedEmitterIdentifierUse(node) {
+  const parent = node.parent;
+  if (MACHINE_CALLS.has(node.text)) {
+    return (ts.isCallExpression(parent) && parent.expression === node)
+      || (ts.isFunctionDeclaration(parent) && parent.name === node);
+  }
+
+  if (SUPPORTED_ERROR_CONSTRUCTORS.has(node.text)) {
+    return (ts.isNewExpression(parent) && parent.expression === node)
+      || (ts.isClassDeclaration(parent) && parent.name === node)
+      || (
+        ts.isBinaryExpression(parent)
+        && parent.operatorToken.kind === ts.SyntaxKind.InstanceOfKeyword
+        && parent.right === node
+      );
+  }
+
   return false;
 }
 

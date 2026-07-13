@@ -134,7 +134,7 @@ Run the governance verifier from the repository root:
 pnpm verify
 ```
 
-The verifier checks required files and artifacts, local documentation links and anchors, exact-set canonical terminology and Verdict projections, governance configuration, Machine Task Contract instances, the HARN_ harness reason-code registry, generated projection freshness, authority-index routes, JSON-output parseability, governance tests, the bounded current-package architecture guard and its synthetic tests, package tests, Phase 1 type checking, diff whitespace, and repository identity hygiene. It is not a product runtime and does not provide independent acceptance.
+The verifier checks required files and artifacts, local documentation links and anchors, exact-set canonical terminology and Verdict projections, governance configuration, Machine Task Contract instances, the separate HARN_ harness and product-owned reason-code registries, product emitted-code and reference drift, generated projection freshness, authority-index routes, JSON-output parseability, governance tests, the bounded current-package architecture guard and its synthetic tests, package tests, Phase 1 type checking, diff whitespace, and repository identity hygiene. It is not a product runtime and does not provide independent acceptance.
 
 `pnpm verify` includes a local workspace diff whitespace check through no-argument `git diff --check`. That check reports whitespace errors in the current worktree and index diff. It is not a committed pull request base/head range check.
 
@@ -143,6 +143,17 @@ The GitHub Actions Foundation governance workflow runs committed change-range wh
 The architecture guard freezes the exact six-package surface and manifest names. `contracts` has no edge; `kernel` depends only on `contracts`; `trusted-config` has no workspace edge; `release-orchestrator` depends only on `kernel` and `trusted-config`; `evidence-gate` depends only on `release-orchestrator`; and `static-evaluator` depends only on `kernel`. It also freezes exact Node imports, rejects external bare production imports, checks recognized TypeScript-AST load forms under `packages/*/src`, rejects source symbolic links, and contains relative imports within their package. Run `pnpm architecture:check` and `pnpm test:architecture`.
 
 This is a bounded repository engineering drift guard, not complete enforcement of [the dependency rules](docs/architecture/dependency-rules.md). It does not perform general module resolution, transitive dependency analysis, generated-code analysis, target-repository inspection, or detect `eval`, `new Function`, aliased `require`, computed-property `require` invocation, aliased `createRequire`, or subprocess-loaded code. Future packages or allowed edges require an explicit task contract and checker update.
+
+### Product reason codes
+
+The schema-validated product registry is [config/reason-codes/product-reason-codes.json](config/reason-codes/product-reason-codes.json), with its generated user reference at [docs/reference/reason-codes.md](docs/reference/reason-codes.md). It contains the 45 unique Proofrail-owned machine-readable codes currently emitted by the six production packages.
+
+```bash
+pnpm product:reason-codes
+pnpm test:product-reason-codes
+```
+
+The deterministic TypeScript-AST guard checks the current built-in Verdict reason, kernel boundary issue categories, component Error codes, and release delivery code. It rejects unregistered or dynamically uninspectable supported emitters, registry or surface drift, malformed deprecation metadata, aliases, HARN_ contamination, and reference-byte drift. Policy-authored Rule denial codes remain Policy-owned; Foundation `HARN_` codes, release delivery stage values, and natural-language-only legacy CLI errors are intentionally outside the product-owned registry. The scanner is intentionally bounded to current direct identifiers, supported Error constructors, and exact wrapper syntax; adding a new emitter form requires a corresponding guard and regression-test update.
 
 For only the Foundation validator:
 

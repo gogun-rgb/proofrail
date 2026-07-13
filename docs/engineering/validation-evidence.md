@@ -6422,3 +6422,49 @@ The retained diff from `origin/main` was read again from the beginning and compa
 The second pass confirmed that no existing Machine Task Contract was edited; no test was deleted, skipped, or weakened; the synthetic valid fixture moved to the new default while an explicit positive test preserves the legacy shape; invalid expectation and Builder-claim reliance tests remain; and the independent-human negative case adds enforcement rather than bypassing it. The validator now fails closed if the exact review enum, default, Builder-claim prohibition, or optional independent-human false constant drifts. No product runtime, dependency, lockfile, workspace, CI, generated governance, Trusted Configuration, Policy, Evidence Contract, release-authority, product-reliability, or Verdict-semantic file changed.
 
 Remaining limitations are explicit. JSON Schema `default` is an annotation and does not fill an omitted required `review.expectation`; producers must still write the field. The repository can mechanically enforce contract shapes and test the validator, but it cannot cryptographically prove that a same-identity reviewer mentally discarded implementation assumptions; the required fresh pass and recorded evidence remain procedural controls. Windows `EPERM` prevents the pre-existing symbolic-link construction cases from running on this host. This repository engineering review evidence does not establish product reliability, trusted release, Trusted Configuration, Policy, Evidence Contract, or an authoritative Proofrail product Verdict.
+
+## PRODUCT-RC-001 Validation Evidence
+
+Date: 2026-07-13.
+
+Exact baseline: `a182800ee711894fd933f25dbe81b30f3830d893`. The externally supplied `PRODUCT-RC-001` MTC is the first task commit `48f709e`; its complete JSON bytes have SHA-256 `0A8CADF1228805741644B6ADFE4B8CCE85D50ACEB28A0F2932337A58B431458D`. Commit `c8e96f9` records the initial registry implementation; the final retained diff also includes the fresh-review remediation described below.
+
+Authority-change preflight confirmed that the new product registry schema and Foundation Gate classification are authority-bearing, are explicitly writable, and are covered by `authority.mayChangeAuthority: true`. The contract keeps `authority.mayChangeProductSemantics: false`; no production package source, Error shape, Policy, Evidence Contract, Trusted Configuration, Verdict, Trust, Evidence, execution boundary, dependency, lockfile, fixture, or golden changed.
+
+### Commands and results
+
+```text
+pnpm governance:check                 exit 0
+pnpm governance:check-json            exit 0; parsed status VALID
+pnpm test:governance                  exit 0; 47 passed, 0 failed
+pnpm architecture:check               exit 0
+pnpm test:architecture                exit 0; 33 total, 31 passed, 0 failed, 2 Windows EPERM symlink skips
+pnpm product:reason-codes             exit 0; 45 unique current emitted codes registered
+pnpm test:product-reason-codes        exit 0; 23 passed, 0 failed, 0 skipped
+pnpm verify                           exit 0; final retained tree
+git diff --check origin/main          exit 0
+```
+
+The first full implementation run passed before closure documentation was edited. An intermediate documentation run correctly failed the existing debt-metadata test because the closure wording had replaced the required `Release classification` value form and `Exit criteria` heading. Those two document-contract strings were restored without changing or weakening any test.
+
+The retained registry contains 45 sorted unique Proofrail-owned code identities across the current six-package source. The strengthened AST guard covers the current kernel-owned Verdict reason constant, direct `fail` and `throwBoundaryError` identifiers, supported direct construction of `TrustedConfigurationError`, `ReleaseOrchestratorError`, and `FileIoError`, the exact existing `fail(code)` wrapper form, constructor-only `this.code = code` forwarding, and guarded emitter-identifier escape. It fails closed for supported dynamic emission, missing registration, active-but-unemitted entries, surface drift, malformed schema, duplicate or unsorted identities, aliases, HARN_ contamination, invalid deprecation replacement, cycles, and generated-reference drift.
+
+### Fresh review findings and remediation
+
+The fresh review found three issues. First, the deterministic renderer left a blank EOF line even though its output used LF; the renderer now removes trailing empty rendered lines, terminates with exactly one LF, and the committed reference is synchronized. Second, the initial AST guard did not collect all supported direct Error-constructor emissions, allowed dynamic `this.code` forwarding elsewhere within a known class, and did not fail closed when guarded emitter identifiers were aliased or escaped. The retained implementation now recognizes the three supported direct constructors, permits dynamic construction only in the exact verified existing wrapper, limits forwarding to the exact known constructor assignment, and rejects unsupported guarded-identifier escape. Third, Ajv schema compilation used non-strict mode, which could ignore an unknown schema keyword; compilation now uses strict mode and fails closed on schema-keyword drift.
+
+Five focused regression tests were added:
+
+- `unknown registry schema keywords fail closed under strict compilation`
+- `supported direct error constructors collect literal codes`
+- `dynamic direct error construction is rejected outside an exact wrapper`
+- `only an exact known constructor assignment may forward this.code dynamically`
+- `emitter aliases and value escapes fail closed`
+
+### Final evidence-based second pass
+
+The final retained diff was re-read from `origin/main` against the PRODUCT-RC-001 writable scope, acceptance requirements, required invariants, and protected paths. No production package, dependency, lockfile, Trusted Configuration, Policy, Evidence Contract, existing schema, fixture, golden, Verdict, Trust, Evidence, or execution-boundary file changed. No test was removed, skipped, weakened, or bypassed; the focused suite increased from 18 to 23 tests, and the protected-path audit found no hidden scope expansion.
+
+The source scanner remains intentionally bounded AST analysis rather than general binding or data-flow resolution. It recognizes the current direct identifiers, supported Error constructors, and exact wrapper syntax; a newly authorized emitter name or syntax must extend both the guard and its regression tests.
+
+Policy-authored Rule denial codes remain Policy-owned and retain their existing Policy and kernel validation path. Foundation `HARN_` diagnostics, release-delivery `stage` values, and natural-language-only legacy CLI failures remain outside this registry. This task closes DEBT-001 only; DEBT-004 and DEBT-005 remain unchanged. This repository engineering evidence does not grant an authoritative Proofrail product Verdict, product readiness, trusted-release status, release acceptance, publication, or deployment.

@@ -60,6 +60,7 @@ test("committed reference is exact deterministic LF output", () => {
   assert.equal(first, second);
   assert.equal(first, reference);
   assert.equal(first.endsWith("\n"), true);
+  assert.equal(first.endsWith("\n\n"), false);
   assert.equal(first.includes("\r"), false);
 });
 
@@ -72,6 +73,14 @@ test("malformed registry data fails schema validation", () => {
 test("an invalid registry schema fails closed", () => {
   const candidateSchema = clone(schema);
   candidateSchema.type = "not-a-json-schema-type";
+  assert.deepEqual(findingIds(validate(registry, { schema: candidateSchema })), [
+    "RCHECK_SCHEMA_INVALID",
+  ]);
+});
+
+test("unknown registry schema keywords fail closed under strict compilation", () => {
+  const candidateSchema = clone(schema);
+  candidateSchema.properties.namespace.unrecognizedKeyword = true;
   assert.deepEqual(findingIds(validate(registry, { schema: candidateSchema })), [
     "RCHECK_SCHEMA_INVALID",
   ]);
@@ -131,6 +140,68 @@ test("supported dynamic emission is rejected without exposing source text", () =
   assert.deepEqual(findingIds(inspected.findings), ["RCHECK_EMITTER_UNINSPECTABLE"]);
   assert.deepEqual(inspected.emissions, []);
   assert.equal(JSON.stringify(inspected.findings).includes("synthetic(code)"), false);
+});
+
+test("supported direct error constructors collect literal codes", () => {
+  const inspected = inspectSourceText({
+    source: [
+      'new TrustedConfigurationError("TRUSTED_DIRECT");',
+      'new ReleaseOrchestratorError("ORCHESTRATOR_DIRECT");',
+      'new FileIoError("FILE_DIRECT");',
+    ].join("\n"),
+    sourcePath: "packages/evidence-gate/src/direct-errors.js",
+    surface: "evidence-gate",
+  });
+  assert.deepEqual(inspected.findings, []);
+  assert.deepEqual(inspected.emissions.map(({ id }) => id), [
+    "TRUSTED_DIRECT",
+    "ORCHESTRATOR_DIRECT",
+    "FILE_DIRECT",
+  ]);
+});
+
+test("dynamic direct error construction is rejected outside an exact wrapper", () => {
+  const inspected = inspectSourceText({
+    source: "export function synthetic(code) { throw new TrustedConfigurationError(code); }\n",
+    sourcePath: "packages/trusted-config/src/dynamic-error.js",
+    surface: "trusted-config",
+  });
+  assert.deepEqual(findingIds(inspected.findings), ["RCHECK_EMITTER_UNINSPECTABLE"]);
+  assert.deepEqual(inspected.emissions, []);
+});
+
+test("only an exact known constructor assignment may forward this.code dynamically", () => {
+  const inspected = inspectSourceText({
+    source: [
+      "class FileIoError extends Error {",
+      "  constructor(code) { this.code = code; }",
+      "  replace(code) { this.code = code; }",
+      "}",
+    ].join("\n"),
+    sourcePath: "packages/evidence-gate/src/error-method.js",
+    surface: "evidence-gate",
+  });
+  assert.deepEqual(findingIds(inspected.findings), ["RCHECK_EMITTER_UNINSPECTABLE"]);
+  assert.deepEqual(inspected.emissions, []);
+});
+
+test("emitter aliases and value escapes fail closed", () => {
+  const inspected = inspectSourceText({
+    source: [
+      "const alias = fail;",
+      'alias("ALIASED_FAIL");',
+      "const boundary = throwBoundaryError;",
+      "const fileError = FileIoError;",
+    ].join("\n"),
+    sourcePath: "packages/kernel/src/emitter-alias.js",
+    surface: "kernel",
+  });
+  assert.deepEqual(findingIds(inspected.findings), [
+    "RCHECK_EMITTER_UNINSPECTABLE",
+    "RCHECK_EMITTER_UNINSPECTABLE",
+    "RCHECK_EMITTER_UNINSPECTABLE",
+  ]);
+  assert.deepEqual(inspected.emissions, []);
 });
 
 test("invalid and HARN literal emitters fail closed", () => {

@@ -21,7 +21,7 @@ An `OPEN` status does not automatically make an item release-blocking. The relea
 
 | ID | Severity | Release classification | Owner | Target milestone | Status |
 | --- | --- | --- | --- | --- | --- |
-| DEBT-001 | High | `BLOCKS_PUBLIC_RELEASE` | Proofrail maintainers | Before first public package release | OPEN |
+| DEBT-001 | High | `BLOCKS_PUBLIC_RELEASE` | Proofrail maintainers | Completed by PRODUCT-RC-001 | CLOSED |
 | DEBT-002 | Medium | `DOES_NOT_BLOCK_RELEASE` | Proofrail maintainers | Before next package-surface expansion | OPEN |
 | DEBT-003 | Low | `RESEARCH_ONLY` | Repository engineering | Clean Agent Test automation slice | OPEN |
 | DEBT-004 | High | `BLOCKS_PUBLIC_RELEASE` | Proofrail maintainers | Before first public package release | OPEN |
@@ -29,35 +29,35 @@ An `OPEN` status does not automatically make an item release-blocking. The relea
 
 ## Debt Items
 
-### DEBT-001: Product Runtime Reason-Code Registry Not Yet Created
+### DEBT-001: Product Runtime Reason-Code Registry
 
-Status: OPEN.
+Status: CLOSED.
 
 Severity: High.
 
-Product impact: Public CLI or integration consumers cannot yet rely on one documented, stable product reason-code namespace.
+Product impact: Consumers now have one documented registry for the Proofrail-owned machine-readable codes emitted by the current six-package product surface.
 
-Release classification: `BLOCKS_PUBLIC_RELEASE`.
+Release classification: `BLOCKS_PUBLIC_RELEASE`; this condition is cleared by the CLOSED status. DEBT-004 still independently blocks a general public release.
 
 Owner: Proofrail maintainers.
 
-Target milestone: Before first public package release.
+Target milestone: Completed by `PRODUCT-RC-001`.
 
-Dependencies: An authorized product-runtime reason-code contract and error-reference surface.
+Dependencies: Satisfied by the externally supplied `PRODUCT-RC-001` authority, committed registry schema, registry, deterministic error reference, and CI drift guard.
 
-Observation: Stable reason codes are required by product direction. FND-MECH-001 creates a `HARN_` Foundation engineering harness registry, but no Proofrail product runtime reason-code registry exists.
+Observation: `config/reason-codes/product-reason-codes.json` registers 45 unique current codes. `schemas/product/reason-code-registry.schema.json` closes the shape, and `docs/reference/reason-codes.md` is exact deterministic output from the registry. Foundation `HARN_` codes and Policy-owned Rule denial codes remain separate.
 
-Risk: Future implementation may invent inconsistent reason-code namespaces.
+Risk: The AST guard deliberately recognizes the current supported machine-code emitter forms rather than claiming arbitrary semantic source analysis. A new production code form must extend the guard and its negative tests under a later authorized task.
 
-Current control: `governance/harness-reason-codes.json` separates harness findings from future product reason codes and the validator rejects unregistered harness findings.
+Current control: `pnpm product:reason-codes` validates schema, exact sorted identities, source surfaces, deprecation replacement integrity, no-alias and HARN_ separation, active emission coverage, and reference equality. `pnpm test:product-reason-codes` exercises positive and fail-closed cases, and both run inside `pnpm verify`.
 
 Exit criteria:
 
-- A product reason-code registry and schema are authorized and committed.
-- Every emitted product reason code is registered and documented.
-- Unknown and malformed reason codes fail closed in focused tests.
+- The externally supplied contract, strict schema, product registry, and deterministic error reference are committed.
+- Every currently emitted Proofrail-owned code is registered once and documented; Policy-owned Rule codes remain under Policy authority.
+- Missing, malformed, duplicate, unsorted, aliased, HARN_-contaminated, dynamically uninspectable, surface-drifted, and invalidly deprecated cases fail closed in focused tests.
 
-Verification: Focused registry tests, error-reference checks, and `pnpm verify` pass on the retained implementation.
+Verification: On the post-review retained implementation, `pnpm product:reason-codes`, 23 focused tests, exact error-reference equality, and the full `pnpm verify` passed.
 
 ### DEBT-002: Architecture Rules Are Only Partially Mechanically Enforced
 

@@ -43,5 +43,8 @@ export function renderReasonCodeReference(registry) {
     );
   }
 
+  while (lines.at(-1) === "") {
+    lines.pop();
+  }
   return `${lines.join("\n")}\n`;
 }
