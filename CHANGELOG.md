@@ -11,6 +11,7 @@ Notable repository changes are recorded here. This file does not itself publish 
 - Move current contributor and security guidance from stale Phase 0 language to the implemented Phase 2 boundary.
 - Upgrade GitHub-maintained workflow actions to Node.js 24-based releases and enable weekly GitHub Actions updates.
 - Classify known debt by severity, release impact, owner, target milestone, exit criteria, and verification.
+- License the repository under Apache License 2.0.
 
 ### Not included
 

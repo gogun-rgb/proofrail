@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/gogun-rgb/proofrail/actions/workflows/foundation-governance.yml/badge.svg)](https://github.com/gogun-rgb/proofrail/actions/workflows/foundation-governance.yml)
 ![Node.js 24](https://img.shields.io/badge/Node.js-24-339933?logo=node.js&logoColor=white)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 > Claim is not evidence. Verify it.
 
@@ -268,3 +269,7 @@ The Phase 1 implementation task was `KERNEL-VS-001`; the accepted Phase 1 source
 The narrowed Phase 2 focus plan is documented in [docs/plans/active/phase-2-ai-pr-evidence-gate.md](docs/plans/active/phase-2-ai-pr-evidence-gate.md).
 
 The earlier boundary-only record remains documented in [docs/plans/active/phase-2-boundary-definition.md](docs/plans/active/phase-2-boundary-definition.md).
+
+## License
+
+Proofrail is licensed under the [Apache License 2.0](LICENSE).

@@ -28,6 +28,7 @@ test("current package metadata uses one private Phase 2 pre-release version", ()
   const rootManifest = readJson("package.json");
   assert.equal(rootManifest.version, CURRENT_VERSION);
   assert.equal(rootManifest.description, CURRENT_DESCRIPTION);
+  assert.equal(rootManifest.license, "Apache-2.0");
   assert.equal(rootManifest.private, true);
   assert.equal(rootManifest.engines?.node, ">=24 <25");
 
@@ -36,6 +37,16 @@ test("current package metadata uses one private Phase 2 pre-release version", ()
     assert.equal(manifest.version, CURRENT_VERSION, `${manifestPath} version drifted`);
     assert.equal(manifest.private, true, `${manifestPath} must remain private`);
   }
+});
+
+test("repository exposes the Apache License 2.0 consistently", () => {
+  const license = readText("LICENSE");
+  const readme = readText("README.md");
+
+  assert.match(license, /Apache License\s+Version 2\.0, January 2004/);
+  assert.match(license, /END OF TERMS AND CONDITIONS/);
+  assert.match(readme, /License-Apache_2\.0-blue\.svg/);
+  assert.match(readme, /licensed under the \[Apache License 2\.0\]\(LICENSE\)/i);
 });
 
 test("current-facing documents describe Phase 2 instead of stale Phase 0 state", () => {
