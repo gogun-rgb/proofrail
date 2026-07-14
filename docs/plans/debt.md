@@ -37,7 +37,7 @@ Severity: High.
 
 Product impact: Consumers now have one documented registry for the Proofrail-owned machine-readable codes emitted by the current six-package product surface.
 
-Release classification: `BLOCKS_PUBLIC_RELEASE`; this condition is cleared by the CLOSED status. DEBT-004 still independently blocks a general public release.
+Release classification: `BLOCKS_PUBLIC_RELEASE`; this condition is cleared by the CLOSED status for the current implemented surfaces. Any broader distribution that adds unimplemented surfaces requires separate release evidence.
 
 Owner: Proofrail maintainers.
 
