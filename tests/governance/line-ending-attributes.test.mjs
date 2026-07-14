@@ -34,6 +34,9 @@ const LF_PATHS = [
   "governance/architecture-check-preparation.json",
   "governance/clean-agent-run.schema.json",
   "governance/clean-agent-runs/_attribute-probe.json",
+  "governance/generated/canonical-terminology.json",
+  "governance/generated/canonical-verdicts.json",
+  "governance/generated/documentation-authority-index.json",
   "governance/tasks/PRODUCT-HARDEN-001.json",
   "schemas/product/fixture-manifest.schema.json",
 ];

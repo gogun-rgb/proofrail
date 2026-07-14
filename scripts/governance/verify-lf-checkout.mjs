@@ -18,6 +18,7 @@ const TRACKED_PATHSPECS = Object.freeze([
   ":(glob)fixtures/product/**/*.json",
   ":(glob)fixtures/product/**/*expected*.txt",
   ":(glob)governance/*.json",
+  ":(glob)governance/generated/*.json",
   ":(glob)governance/clean-agent-runs/**/*.json",
   ":(glob)governance/tasks/*.json",
   ":(glob)schemas/product/*.json",
