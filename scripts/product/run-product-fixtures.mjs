@@ -3,6 +3,11 @@
 import { runProductFixtures } from "./lib/product-fixtures.mjs";
 
 try {
+  if (process.argv.length > 2) {
+    throw Object.assign(new Error("arguments are not supported"), {
+      code: "PRODUCT_FIXTURE_ARGUMENT_UNSUPPORTED",
+    });
+  }
   const results = await runProductFixtures();
   process.stdout.write(`${JSON.stringify({ fixtures: results, status: "PASS" })}\n`);
 } catch (error) {

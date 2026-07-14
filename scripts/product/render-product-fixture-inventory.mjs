@@ -10,6 +10,11 @@ const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url))
 const referencePath = path.join(repositoryRoot, "docs", "reference", "product-fixtures.md");
 
 try {
+  if (process.argv.length > 2) {
+    throw Object.assign(new Error("arguments are not supported"), {
+      code: "PRODUCT_FIXTURE_INVENTORY_ARGUMENT_UNSUPPORTED",
+    });
+  }
   const rendered = await renderProductFixtureInventory({ repositoryRoot });
   const committed = await readFile(referencePath, "utf8");
   if (committed !== rendered) {

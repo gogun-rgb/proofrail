@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   access,
@@ -27,6 +28,22 @@ import {
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const FIXTURES = path.join(ROOT, "fixtures", "product");
 const MANIFEST_SCHEMA = path.join(ROOT, "schemas", "product", "fixture-manifest.schema.json");
+
+test("product fixture commands reject unsupported arguments", () => {
+  for (const script of [
+    "scripts/product/run-product-fixtures.mjs",
+    "scripts/product/render-product-fixture-inventory.mjs",
+  ]) {
+    const result = spawnSync(process.execPath, [script, "--help"], {
+      cwd: ROOT,
+      encoding: "utf8",
+      windowsHide: true,
+    });
+    assert.equal(result.status, 1, `${script} must reject unsupported arguments`);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /arguments are not supported/);
+  }
+});
 
 async function copiedCorpus(t) {
   const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), "proofrail-product-fixtures-test-"));
