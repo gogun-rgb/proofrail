@@ -1,0 +1,1 @@
+{"arguments":["--repo","synthetic/example","--pr","7","--format","human","--output","staged/packet.txt","--scope-file","scope.json"]}

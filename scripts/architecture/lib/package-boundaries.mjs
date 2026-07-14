@@ -72,6 +72,74 @@ const PACKAGE_RULES = Object.freeze({
   }),
 });
 
+const PACKAGE_LOADING_SURFACES = Object.freeze({
+  "@proofrail/contracts": Object.freeze({
+    type: "module",
+    exports: Object.freeze({
+      ".": Object.freeze({
+        types: "./src/index.d.ts",
+        default: "./src/index.js",
+      }),
+    }),
+  }),
+  "@proofrail/evidence-gate": Object.freeze({
+    type: "module",
+    bin: Object.freeze({
+      "evidence-gate": "./src/cli.mjs",
+      "evidence-gate-github": "./src/github-cli.mjs",
+      "proofrail-release": "./src/release-cli.mjs",
+    }),
+    exports: Object.freeze({
+      ".": Object.freeze({ default: "./src/index.js" }),
+      "./github": Object.freeze({ default: "./src/github.js" }),
+      "./release": Object.freeze({ default: "./src/release-cli.mjs" }),
+    }),
+  }),
+  "@proofrail/kernel": Object.freeze({
+    type: "module",
+    exports: Object.freeze({
+      ".": Object.freeze({ default: "./src/index.js" }),
+    }),
+  }),
+  "@proofrail/release-orchestrator": Object.freeze({
+    type: "module",
+    exports: Object.freeze({
+      ".": Object.freeze({ default: "./src/index.js" }),
+    }),
+  }),
+  "@proofrail/static-evaluator": Object.freeze({
+    type: "module",
+    bin: Object.freeze({
+      "static-evaluate": "./src/cli.mjs",
+    }),
+  }),
+  "@proofrail/trusted-config": Object.freeze({
+    type: "module",
+    exports: Object.freeze({
+      ".": Object.freeze({ default: "./src/index.js" }),
+    }),
+  }),
+});
+const MANIFEST_LOADING_FIELDS = Object.freeze([
+  "type",
+  "main",
+  "module",
+  "browser",
+  "imports",
+  "exports",
+  "bin",
+]);
+const SUBPROCESS_LOADER_IDENTIFIERS = new Set([
+  "exec",
+  "execFile",
+  "execFileSync",
+  "execSync",
+  "fork",
+  "spawn",
+  "spawnSync",
+]);
+
+
 const PACKAGE_NAMES = Object.freeze(Object.keys(PACKAGE_RULES).sort(compareStrings));
 const PACKAGE_NAME_BY_DIRECTORY = Object.freeze(
   Object.fromEntries(
@@ -317,9 +385,25 @@ async function inspectRepository(root, findings) {
   }
 }
 
+function inspectManifestLoadingSurface(packageRecord, manifestPath, findings) {
+  const expected = PACKAGE_LOADING_SURFACES[packageRecord.name];
+  for (const field of MANIFEST_LOADING_FIELDS) {
+    if (!sameJsonValue(packageRecord.manifest[field], expected[field])) {
+      addFinding(findings, {
+        id: "ARCHCHK_MANIFEST_ENTRYPOINT_DRIFT",
+        path: manifestPath,
+        target: field,
+      });
+    }
+  }
+}
+
+
 function inspectManifest(packageRecord, rule, root, findings) {
   const declaredDependencies = new Set();
   const manifestPath = toPosixPath(path.relative(root, packageRecord.manifestPath));
+
+  inspectManifestLoadingSurface(packageRecord, manifestPath, findings);
 
   for (const section of OBJECT_DEPENDENCY_SECTIONS) {
     const expected = section === "dependencies" ? rule.dependencies : {};
@@ -554,33 +638,66 @@ async function inspectSourceFile(
     return;
   }
 
-  collectModuleReferences(sourceFile, ({ node, specifier }) => {
-    const location = lineAndColumn(sourceFile, node.getStart(sourceFile, false));
-    if (specifier === null) {
+  const authorizedGhExecFile = hasAuthorizedGhExecFileImport(
+    sourceFile,
+    packageRecord,
+    relativePath,
+  );
+
+  collectModuleReferences(
+    sourceFile,
+    ({ node, specifier }) => {
+      const location = lineAndColumn(sourceFile, node.getStart(sourceFile, false));
+      if (specifier === null) {
+        addFinding(findings, {
+          id: "ARCHCHK_IMPORT_UNINSPECTABLE",
+          path: relativePath,
+          line: location.line,
+          column: location.column,
+          target: "<computed>",
+        });
+        return;
+      }
+
+      if (
+        specifier === "node:child_process"
+        && !isAuthorizedChildProcessImport(node, packageRecord, relativePath)
+      ) {
+        addFinding(findings, {
+          id: "ARCHCHK_LOADER_BYPASS",
+          path: relativePath,
+          line: location.line,
+          column: location.column,
+          target: "subprocess-loader",
+        });
+      }
+
+      inspectSpecifier(
+        specifier,
+        sourcePath,
+        relativePath,
+        location,
+        packageRecord,
+        rule,
+        declaredDependencies,
+        findings,
+      );
+    },
+    ({ node, target }) => {
+      const location = lineAndColumn(sourceFile, node.getStart(sourceFile, false));
       addFinding(findings, {
-        id: "ARCHCHK_IMPORT_UNINSPECTABLE",
+        id: "ARCHCHK_LOADER_BYPASS",
         path: relativePath,
         line: location.line,
         column: location.column,
-        target: "<computed>",
+        target,
       });
-      return;
-    }
-
-    inspectSpecifier(
-      specifier,
-      sourcePath,
-      relativePath,
-      location,
-      packageRecord,
-      rule,
-      declaredDependencies,
-      findings,
-    );
-  });
+    },
+    authorizedGhExecFile,
+  );
 }
 
-function collectModuleReferences(sourceFile, onReference) {
+function collectModuleReferences(sourceFile, onReference, onBypass, authorizedGhExecFile) {
   const seen = new Set();
 
   function visit(node) {
@@ -588,6 +705,39 @@ function collectModuleReferences(sourceFile, onReference) {
       return;
     }
     seen.add(node);
+
+    const disguisedLoader = disguisedLoaderTarget(node);
+    if (disguisedLoader) {
+      onBypass({ node, target: disguisedLoader });
+    } else if (
+      ts.isElementAccessExpression(node)
+      && ts.isIdentifier(node.expression)
+      && node.expression.text === "require"
+    ) {
+      onBypass({ node, target: "require-computed-property" });
+    } else if (
+      ts.isNewExpression(node)
+      && ts.isIdentifier(node.expression)
+      && node.expression.text === "Function"
+    ) {
+      onBypass({ node, target: "Function" });
+    } else if (ts.isIdentifier(node)) {
+      if (node.text === "Function" && !isAllowedFunctionIdentifierUse(node)) {
+        onBypass({ node, target: "Function" });
+      } else if (node.text === "eval") {
+        onBypass({ node, target: "eval" });
+      } else if (node.text === "createRequire") {
+        onBypass({ node, target: "createRequire" });
+      } else if (node.text === "require" && !isAllowedRequireIdentifierUse(node)) {
+        onBypass({ node, target: "require-reference" });
+      } else if (
+        SUBPROCESS_LOADER_IDENTIFIERS.has(node.text)
+        && !isAllowedSubprocessIdentifierUse(node, authorizedGhExecFile)
+      ) {
+        onBypass({ node, target: "subprocess-loader" });
+      }
+    }
+
 
     if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
       if (node.moduleSpecifier) {
@@ -635,6 +785,145 @@ function collectModuleReferences(sourceFile, onReference) {
 
   visit(sourceFile);
 }
+
+function disguisedLoaderTarget(node) {
+  if (
+    ts.isCallExpression(node)
+    && ts.isIdentifier(node.expression)
+    && node.expression.text === "Function"
+  ) {
+    return "Function";
+  }
+  if (
+    !ts.isPropertyAccessExpression(node)
+    && !ts.isElementAccessExpression(node)
+  ) {
+    return null;
+  }
+  const receiver = unwrapParentheses(node.expression);
+  if (!ts.isIdentifier(receiver)) {
+    return null;
+  }
+
+  const propertyName = ts.isPropertyAccessExpression(node)
+    ? node.name.text
+    : staticString(node.argumentExpression);
+  if (receiver.text === "process" && propertyName === "getBuiltinModule") {
+    return "process.getBuiltinModule";
+  }
+  if (receiver.text === "globalThis" && propertyName === "Function") {
+    return "globalThis.Function";
+  }
+  if (receiver.text === "globalThis" && propertyName === "require") {
+    return "globalThis.require";
+  }
+  return null;
+}
+
+function unwrapParentheses(node) {
+  return ts.isParenthesizedExpression(node)
+    ? unwrapParentheses(node.expression)
+    : node;
+}
+
+function staticString(node) {
+  const literal = literalText(node);
+  if (literal !== null) {
+    return literal;
+  }
+  if (ts.isParenthesizedExpression(node)) {
+    return staticString(node.expression);
+  }
+  if (
+    ts.isBinaryExpression(node)
+    && node.operatorToken.kind === ts.SyntaxKind.PlusToken
+  ) {
+    const left = staticString(node.left);
+    const right = staticString(node.right);
+    return left === null || right === null ? null : left + right;
+  }
+  return null;
+}
+
+function isAllowedFunctionIdentifierUse(node) {
+  const parent = node.parent;
+  if (ts.isShorthandPropertyAssignment(parent)) {
+    return false;
+  }
+  if (ts.isDeclarationName(node)) {
+    return true;
+  }
+  if (
+    (ts.isCallExpression(parent) || ts.isNewExpression(parent))
+    && parent.expression === node
+  ) {
+    return true;
+  }
+  return ts.isPropertyAccessExpression(parent) && parent.name === node;
+}
+
+function isAllowedRequireIdentifierUse(node) {
+  const parent = node.parent;
+  if (ts.isCallExpression(parent) && parent.expression === node) {
+    return true;
+  }
+  if (
+    ts.isPropertyAccessExpression(parent)
+    && parent.expression === node
+    && parent.name.text === "resolve"
+    && ts.isCallExpression(parent.parent)
+    && parent.parent.expression === parent
+  ) {
+    return true;
+  }
+  return ts.isElementAccessExpression(parent) && parent.expression === node;
+}
+
+function isAllowedSubprocessIdentifierUse(node, authorizedGhExecFile) {
+  if (!authorizedGhExecFile) {
+    return false;
+  }
+  const parent = node.parent;
+  if (
+    node.text === "execFile"
+    && ts.isImportSpecifier(parent)
+    && parent.name === node
+    && !parent.propertyName
+    && !parent.isTypeOnly
+  ) {
+    return true;
+  }
+  return node.text === "execFile"
+    && ts.isCallExpression(parent)
+    && parent.expression === node
+    && literalText(parent.arguments[0]) === "gh";
+}
+
+function hasAuthorizedGhExecFileImport(sourceFile, packageRecord, relativePath) {
+  return sourceFile.statements.some(
+    (statement) => ts.isImportDeclaration(statement)
+      && literalText(statement.moduleSpecifier) === "node:child_process"
+      && isAuthorizedChildProcessImport(statement.moduleSpecifier, packageRecord, relativePath),
+  );
+}
+
+function isAuthorizedChildProcessImport(moduleSpecifier, packageRecord, relativePath) {
+  const declaration = moduleSpecifier.parent;
+  const importClause = declaration?.importClause;
+  const bindings = importClause?.namedBindings;
+  return packageRecord.name === "@proofrail/evidence-gate"
+    && relativePath === "packages/evidence-gate/src/github.js"
+    && ts.isImportDeclaration(declaration)
+    && Boolean(importClause)
+    && !importClause.isTypeOnly
+    && !importClause.name
+    && ts.isNamedImports(bindings)
+    && bindings.elements.length === 1
+    && bindings.elements[0].name.text === "execFile"
+    && !bindings.elements[0].propertyName
+    && !bindings.elements[0].isTypeOnly;
+}
+
 
 function inspectSpecifier(
   specifier,
@@ -754,6 +1043,28 @@ function compareFindings(left, right) {
 function compareStrings(left, right) {
   return left < right ? -1 : left > right ? 1 : 0;
 }
+
+function sameJsonValue(left, right) {
+  if (Object.is(left, right)) {
+    return true;
+  }
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return Array.isArray(left)
+      && Array.isArray(right)
+      && left.length === right.length
+      && left.every((value, index) => sameJsonValue(value, right[index]));
+  }
+  if (!isRecord(left) || !isRecord(right)) {
+    return false;
+  }
+  const leftKeys = Object.keys(left).sort(compareStrings);
+  const rightKeys = Object.keys(right).sort(compareStrings);
+  return leftKeys.length === rightKeys.length
+    && leftKeys.every(
+      (key, index) => key === rightKeys[index] && sameJsonValue(left[key], right[key]),
+    );
+}
+
 
 function isRecord(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);

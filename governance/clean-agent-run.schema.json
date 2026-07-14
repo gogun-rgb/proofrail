@@ -1,0 +1,288 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://proofrail.dev/schemas/clean-agent-run.schema.json",
+  "title": "Proofrail Clean Agent Test Run Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "protocol",
+    "runId",
+    "runOrdinal",
+    "candidateSha",
+    "taskInput",
+    "freshContext",
+    "boundedOutput",
+    "documentsDiscovered",
+    "authorityPathsDiscovered",
+    "authorityPreflight",
+    "edits",
+    "stopBehavior",
+    "verificationClaims",
+    "grading",
+    "limitations"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1" },
+    "protocol": { "const": "clean-agent-test-run" },
+    "runId": {
+      "type": "string",
+      "pattern": "^clean-agent-run-[a-z0-9][a-z0-9-]{0,47}$"
+    },
+    "runOrdinal": { "type": "integer", "minimum": 1, "maximum": 2 },
+    "candidateSha": { "$ref": "#/$defs/gitSha" },
+    "taskInput": { "$ref": "#/$defs/taskInput" },
+    "freshContext": { "$ref": "#/$defs/freshContext" },
+    "boundedOutput": { "$ref": "#/$defs/boundedOutput" },
+    "documentsDiscovered": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/repoPath" },
+      "minItems": 1,
+      "maxItems": 128,
+      "uniqueItems": true
+    },
+    "authorityPathsDiscovered": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/repoPath" },
+      "minItems": 1,
+      "maxItems": 64,
+      "uniqueItems": true
+    },
+    "authorityPreflight": { "$ref": "#/$defs/authorityPreflight" },
+    "edits": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/edit" },
+      "maxItems": 128
+    },
+    "stopBehavior": { "$ref": "#/$defs/stopBehavior" },
+    "verificationClaims": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/verificationClaim" },
+      "minItems": 1,
+      "maxItems": 64
+    },
+    "grading": { "$ref": "#/$defs/grading" },
+    "limitations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/singleLineText" },
+      "minItems": 1,
+      "maxItems": 32,
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "gitSha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "base64": {
+      "type": "string",
+      "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$"
+    },
+    "stableToken": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]{0,79}$"
+    },
+    "repoPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^[A-Za-z0-9._@*+-]+(?:/[A-Za-z0-9._@*+-]+)*$"
+    },
+    "singleLineText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+    },
+    "taskInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["encoding", "bytes", "byteLength", "sha256"],
+      "properties": {
+        "encoding": { "const": "base64" },
+        "bytes": {
+          "allOf": [
+            { "$ref": "#/$defs/base64" },
+            { "type": "string", "minLength": 4, "maxLength": 87384 }
+          ]
+        },
+        "byteLength": { "type": "integer", "minimum": 1, "maximum": 65536 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "boundedOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["encoding", "bytes", "byteLength", "sha256", "truncated"],
+      "properties": {
+        "encoding": { "const": "base64" },
+        "bytes": {
+          "allOf": [
+            { "$ref": "#/$defs/base64" },
+            { "type": "string", "minLength": 4, "maxLength": 349528 }
+          ]
+        },
+        "byteLength": { "type": "integer", "minimum": 1, "maximum": 262144 },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "truncated": { "const": false }
+      }
+    },
+    "freshContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "noPriorConversation",
+        "noHiddenSummary",
+        "noBuilderExplanationBeyondTaskInput",
+        "cleanWorktree",
+        "worktreeHeadSha"
+      ],
+      "properties": {
+        "noPriorConversation": { "const": true },
+        "noHiddenSummary": { "const": true },
+        "noBuilderExplanationBeyondTaskInput": { "const": true },
+        "cleanWorktree": { "const": true },
+        "worktreeHeadSha": { "$ref": "#/$defs/gitSha" }
+      }
+    },
+    "authorityPreflight": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["performed", "targets"],
+      "properties": {
+        "performed": { "const": true },
+        "targets": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/preflightTarget" },
+          "minItems": 1,
+          "maxItems": 64
+        }
+      }
+    },
+    "preflightTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "authorityBearing",
+        "authorityReason",
+        "taskContractId",
+        "scopeWriteAuthorized",
+        "readOnlyAuthority",
+        "forbidden",
+        "mayChangeAuthority",
+        "objectiveCoversChange",
+        "decision"
+      ],
+      "properties": {
+        "path": { "$ref": "#/$defs/repoPath" },
+        "authorityBearing": { "type": "boolean" },
+        "authorityReason": { "$ref": "#/$defs/singleLineText" },
+        "taskContractId": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9-]{0,79}$" }
+          ]
+        },
+        "scopeWriteAuthorized": { "type": "boolean" },
+        "readOnlyAuthority": { "type": "boolean" },
+        "forbidden": { "type": "boolean" },
+        "mayChangeAuthority": { "type": "boolean" },
+        "objectiveCoversChange": { "type": "boolean" },
+        "decision": {
+          "enum": ["EDIT_AUTHORIZED", "STOP_REQUIRED", "NOT_AUTHORITY_BEARING"]
+        }
+      }
+    },
+    "edit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "action", "performed"],
+      "properties": {
+        "path": { "$ref": "#/$defs/repoPath" },
+        "action": { "enum": ["CREATED", "MODIFIED", "DELETED", "PROPOSED"] },
+        "performed": { "type": "boolean" }
+      }
+    },
+    "stopBehavior": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stopped", "reasons"],
+      "properties": {
+        "stopped": { "type": "boolean" },
+        "reasons": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/stableToken" },
+          "maxItems": 32,
+          "uniqueItems": true
+        }
+      }
+    },
+    "verificationClaim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sequence", "command", "status", "exitCode", "outputSha256"],
+      "properties": {
+        "sequence": { "type": "integer", "minimum": 1, "maximum": 64 },
+        "command": { "$ref": "#/$defs/singleLineText" },
+        "status": { "enum": ["RUN", "NOT_RUN"] },
+        "exitCode": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "integer", "minimum": 0, "maximum": 255 }
+          ]
+        },
+        "outputSha256": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/sha256" }
+          ]
+        }
+      }
+    },
+    "grading": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "graderFreshContext",
+        "basedOnlyOnRecordedRunAndProtocol",
+        "reliedOnBuilderClaim",
+        "criteria",
+        "interpretation"
+      ],
+      "properties": {
+        "graderFreshContext": { "const": true },
+        "basedOnlyOnRecordedRunAndProtocol": { "const": true },
+        "reliedOnBuilderClaim": { "const": false },
+        "criteria": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/gradingCriterion" },
+          "minItems": 1,
+          "maxItems": 64
+        },
+        "interpretation": { "enum": ["PASS", "FAIL"] }
+      }
+    },
+    "gradingCriterion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "result", "evidence"],
+      "properties": {
+        "id": { "$ref": "#/$defs/stableToken" },
+        "result": { "enum": ["PASS", "FAIL"] },
+        "evidence": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/singleLineText" },
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}

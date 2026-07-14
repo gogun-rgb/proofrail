@@ -21,47 +21,47 @@ An `OPEN` status does not automatically make an item release-blocking. The relea
 
 | ID | Severity | Release classification | Owner | Target milestone | Status |
 | --- | --- | --- | --- | --- | --- |
-| DEBT-001 | High | `BLOCKS_PUBLIC_RELEASE` | Proofrail maintainers | Before first public package release | OPEN |
-| DEBT-002 | Medium | `DOES_NOT_BLOCK_RELEASE` | Proofrail maintainers | Before next package-surface expansion | OPEN |
-| DEBT-003 | Low | `RESEARCH_ONLY` | Repository engineering | Clean Agent Test automation slice | OPEN |
-| DEBT-004 | High | `BLOCKS_PUBLIC_RELEASE` | Proofrail maintainers | Before first public package release | OPEN |
-| DEBT-005 | Medium | `DOES_NOT_BLOCK_RELEASE` | Repository engineering | Executable fixture corpus slice | OPEN |
+| DEBT-001 | High | `BLOCKS_PUBLIC_RELEASE` | Proofrail maintainers | Completed by PRODUCT-RC-001 | CLOSED |
+| DEBT-002 | Medium | `DOES_NOT_BLOCK_RELEASE` | Proofrail maintainers | Completed by PRODUCT-HARDEN-001 | CLOSED |
+| DEBT-003 | Low | `RESEARCH_ONLY` | Repository engineering | Completed by PRODUCT-HARDEN-001 | CLOSED |
+| DEBT-004 | High | `BLOCKS_PUBLIC_RELEASE` | Proofrail maintainers | Completed for current implemented surfaces by PRODUCT-HARDEN-001 | CLOSED |
+| DEBT-005 | Medium | `DOES_NOT_BLOCK_RELEASE` | Repository engineering | Completed by PRODUCT-HARDEN-001 | CLOSED |
 
 ## Debt Items
 
-### DEBT-001: Product Runtime Reason-Code Registry Not Yet Created
+### DEBT-001: Product Runtime Reason-Code Registry
 
-Status: OPEN.
+Status: CLOSED.
 
 Severity: High.
 
-Product impact: Public CLI or integration consumers cannot yet rely on one documented, stable product reason-code namespace.
+Product impact: Consumers now have one documented registry for the Proofrail-owned machine-readable codes emitted by the current six-package product surface.
 
-Release classification: `BLOCKS_PUBLIC_RELEASE`.
+Release classification: `BLOCKS_PUBLIC_RELEASE`; this condition is cleared by the CLOSED status for the current implemented surfaces. Any broader distribution that adds unimplemented surfaces requires separate release evidence.
 
 Owner: Proofrail maintainers.
 
-Target milestone: Before first public package release.
+Target milestone: Completed by `PRODUCT-RC-001`.
 
-Dependencies: An authorized product-runtime reason-code contract and error-reference surface.
+Dependencies: Satisfied by the externally supplied `PRODUCT-RC-001` authority, committed registry schema, registry, deterministic error reference, and CI drift guard.
 
-Observation: Stable reason codes are required by product direction. FND-MECH-001 creates a `HARN_` Foundation engineering harness registry, but no Proofrail product runtime reason-code registry exists.
+Observation: `config/reason-codes/product-reason-codes.json` registers 45 unique current codes. `schemas/product/reason-code-registry.schema.json` closes the shape, and `docs/reference/reason-codes.md` is exact deterministic output from the registry. Foundation `HARN_` codes and Policy-owned Rule denial codes remain separate.
 
-Risk: Future implementation may invent inconsistent reason-code namespaces.
+Risk: The AST guard deliberately recognizes the current supported machine-code emitter forms rather than claiming arbitrary semantic source analysis. A new production code form must extend the guard and its negative tests under a later authorized task.
 
-Current control: `governance/harness-reason-codes.json` separates harness findings from future product reason codes and the validator rejects unregistered harness findings.
+Current control: `pnpm product:reason-codes` validates schema, exact sorted identities, source surfaces, deprecation replacement integrity, no-alias and HARN_ separation, active emission coverage, and reference equality. `pnpm test:product-reason-codes` exercises positive and fail-closed cases, and both run inside `pnpm verify`.
 
 Exit criteria:
 
-- A product reason-code registry and schema are authorized and committed.
-- Every emitted product reason code is registered and documented.
-- Unknown and malformed reason codes fail closed in focused tests.
+- The externally supplied contract, strict schema, product registry, and deterministic error reference are committed.
+- Every currently emitted Proofrail-owned code is registered once and documented; Policy-owned Rule codes remain under Policy authority.
+- Missing, malformed, duplicate, unsorted, aliased, HARN_-contaminated, dynamically uninspectable, surface-drifted, and invalidly deprecated cases fail closed in focused tests.
 
-Verification: Focused registry tests, error-reference checks, and `pnpm verify` pass on the retained implementation.
+Verification: On the post-review retained implementation, `pnpm product:reason-codes`, 23 focused tests, exact error-reference equality, and the full `pnpm verify` passed.
 
 ### DEBT-002: Architecture Rules Are Only Partially Mechanically Enforced
 
-Status: OPEN.
+Status: CLOSED.
 
 Severity: Medium.
 
@@ -71,13 +71,13 @@ Release classification: `DOES_NOT_BLOCK_RELEASE` for the current bounded six-pac
 
 Owner: Proofrail maintainers.
 
-Target milestone: Before next package-surface expansion.
+Target milestone: Completed by `PRODUCT-HARDEN-001`; any later package-surface expansion requires a new bounded update.
 
-Dependencies: Any Machine Task Contract that adds a package, workspace edge, or production loading mechanism.
+Dependencies: Satisfied for the retained six-package surface by `PRODUCT-HARDEN-001`.
 
-Observation: `ARCH-BOUND-001`, extended by `PRODUCT-RELEASE-001`, provides a bounded repository engineering checker that freezes the exact current six-package classification, workspace dependency declarations and edges, Node import allowlist, relative package containment, and recognized static production-source loads. It does not implement the complete semantics of the authoritative dependency rules.
+Observation: `ARCH-BOUND-001`, `PRODUCT-RELEASE-001`, and `PRODUCT-HARDEN-001` provide a bounded repository engineering checker that freezes the exact current six-package classification, workspace dependency declarations and edges, Node import allowlist, relative package containment, and every loading form present in retained production source. The final hardening also guards the exact authorized `github.js` subprocess form and rejects newly in-scope disguised loading forms with synthetic negative cases.
 
-Risk: Generated or subprocess-loaded code, `eval`, `new Function`, aliased `require`, computed-property `require` invocation, aliased `createRequire`, transitive dependencies, broader delivery-definition ownership, inference isolation, and future package classes can still violate architecture intent outside the checker's narrow observable boundary.
+Risk: General binding and data-flow resolution, generated code, arbitrary global-object alias chains, runtime-computed property names, constructor-chain tricks, transitive dependencies, broader delivery-definition ownership, inference isolation, and future package classes remain outside this bounded static checker. Direct `eval`, `Function` construction or borrowing, recognized global loader members, and the retained subprocess forms are guarded syntactically. The residuals are explicit nonclaims rather than uncovered current production loading forms; a new form must reopen or replace this debt under a new Machine Task Contract.
 
 Current control: `pnpm architecture:check` and `pnpm test:architecture` run inside `pnpm verify`; future packages, workspace edges, or runtime import surfaces fail closed until an explicit Machine Task Contract and checker update records them. `governance/architecture-check-preparation.json` records the bounded partial state without redefining dependency authority.
 
@@ -87,29 +87,29 @@ Exit criteria:
 - Synthetic negative cases demonstrate that each newly in-scope forbidden edge fails closed.
 - Documentation states any remaining unenforced architecture semantics.
 
-Verification: `pnpm architecture:check`, `pnpm test:architecture`, and `pnpm verify` pass with the expanded scope tests.
+Verification: `pnpm architecture:check` passed; `pnpm test:architecture` reported 55 passed, 0 failed, and 2 Windows `EPERM` file-symlink construction skips; the complete underlying `pnpm verify` command chain passed. Synthetic cases reject direct, borrowed, and parenthesized `Function`, recognized global and builtin loaders, `require`, `createRequire`, and subprocess-loaded code while leaving strings and comments inert.
 
-### DEBT-003: Clean Agent Test Protocol Not Yet Executable
+### DEBT-003: Clean Agent Test Execution Evidence
 
-Status: OPEN.
+Status: CLOSED.
 
 Severity: Low.
 
-Product impact: Repository instructions are reviewable but have not been exercised as a reproducible clean-agent onboarding test.
+Product impact: Repository instructions now have reproducible, exact-candidate Clean Agent onboarding evidence without converting agent claims into product authority.
 
 Release classification: `RESEARCH_ONLY`.
 
 Owner: Repository engineering.
 
-Target milestone: Clean Agent Test automation slice.
+Target milestone: Completed by `PRODUCT-HARDEN-001`.
 
-Dependencies: A clean checkout harness and recorded grading procedure.
+Dependencies: Satisfied by the strict run-record schema, validator, two retained records, and separate fresh-context grading passes.
 
-Observation: The Clean Agent Test protocol and machine-readable specification exist, but the test has not been run or independently graded.
+Observation: The historical first independently graded trial failed because authority-change preflight was not discovered; the historical convergence trial then passed and supported the Phase 0 Foundation Gate decision. Those trials remain unchanged. Separately, `PRODUCT-HARDEN-001` executed the same exact 68-byte task twice from clean worktrees at candidate `e7df25ff368b789158a673498a187d9124e1912d`, retained exact bounded outputs and observed metadata, and obtained `PASS` from distinct fresh-context graders on the same nine criteria.
 
-Risk: Agent legibility remains independently reviewable rather than mechanically exercised.
+Risk: The validator can recompute bytes, ordering, pair equality, stop consistency, and candidate ancestry, but it cannot cryptographically prove fresh-context declarations, internal reasoning, or grader independence. Raw child-session transcripts are not embedded in the bounded records.
 
-Current control: [../engineering/clean-agent-test.md](../engineering/clean-agent-test.md) defines the protocol and `governance/clean-agent-test.json` records `protocol_defined_not_executed`.
+Current control: [../engineering/clean-agent-test.md](../engineering/clean-agent-test.md) defines the protocol, `governance/clean-agent-test.json` records `executed_two_run_pass_retained`, and `pnpm clean-agent:validate` checks exactly two strict records without relying on a Builder summary.
 
 Exit criteria:
 
@@ -117,29 +117,29 @@ Exit criteria:
 - The run records its exact repository SHA, inputs, outputs, and grading evidence.
 - A repeat run produces the same pass/fail interpretation under unchanged inputs.
 
-Verification: The executable clean-agent test and its evidence record pass the repository's focused governance checks.
+Verification: `pnpm clean-agent:validate` reported `VALID`, `runCount: 2`, and no findings; the focused Clean Agent suite passed 17/17; the complete underlying `pnpm verify` command chain passed.
 
-### DEBT-004: Fixture Corpus Not Yet Executable
+### DEBT-004: Bounded Product Fixture Corpus
 
-Status: OPEN.
+Status: CLOSED.
 
 Severity: High.
 
-Product impact: General-use releases cannot demonstrate systematic adversarial coverage for product input, Evidence, adapter, and Verification Receipt boundaries.
+Product impact: The current implemented six-package input boundaries now have deterministic positive, negative, malformed, and adversarial fixture coverage with explicit oracles.
 
-Release classification: `BLOCKS_PUBLIC_RELEASE`.
+Release classification: `BLOCKS_PUBLIC_RELEASE`; this condition is cleared for the current implemented surfaces by the CLOSED status. Unimplemented adapters, target execution, and Verification Receipts remain outside coverage and require separate release evidence if introduced.
 
 Owner: Proofrail maintainers.
 
-Target milestone: Before first public package release.
+Target milestone: Completed for current implemented surfaces by `PRODUCT-HARDEN-001`.
 
-Dependencies: An authorized fixture runner and product surfaces whose behavior can be exercised.
+Dependencies: Satisfied by the strict manifest schema, 49 checked-in synthetic fixtures, deterministic runner, and operation-aware coverage map.
 
-Observation: Fixture and adversarial fixture strategy is documented, but no general positive, negative, and adversarial product fixture corpus or corpus runner satisfies that strategy yet. The bounded offline release fixture verifier at `examples/release/verify-fixture.mjs` exercises one exact release-candidate fixture; it is not the broader corpus.
+Observation: `fixtures/product` contains 49 stable fixtures. Every exact implemented input-bearing operation and trust boundary has positive, negative, malformed, and adversarial classes; `contracts.constants` is the explicit no-input exception. Each manifest records its implemented operation, surface, trust boundary, synthetic provenance, digest, deterministic oracle, and limitations. The runner validates manifests before execution, rejects unsafe CLI argument shapes and class-binding drift before spawning, processes fixtures in stable id order, isolates child environments, and permits output only through a runner-owned temporary path whose bounded result is oracle-checked.
 
-Risk: Future implementation cannot yet mechanically exercise adversarial repository content, protocol malformed inputs, adapter capability cases, or Verification Receipt boundaries.
+Risk: The corpus does not claim repository inspection, target execution, adapters, Verification Receipts, or future surfaces. New implemented boundaries must extend the coverage map and required classes before this closure can be carried forward.
 
-Current control: `docs/engineering/fixture-strategy.md` defines taxonomy, identity, provenance, oracles, ordering, versioning, mutation rules, and adversarial classes for future authorized fixture work.
+Current control: `pnpm product:fixtures`, `pnpm product:fixture-inventory`, and `pnpm test:product-fixtures` run inside `pnpm verify`; [../reference/product-fixtures.md](../reference/product-fixtures.md) is generated deterministically from the committed manifests.
 
 Exit criteria:
 
@@ -147,29 +147,29 @@ Exit criteria:
 - Implemented trust boundaries have adversarial cases with explicit oracles.
 - Malformed, ambiguous, and unsupported inputs fail closed without weakened assertions or skips.
 
-Verification: Focused fixture-runner tests and `pnpm verify` pass, and fixture identities and expected outputs are committed.
+Verification: The product runner reported 49/49 `PASS`, generated inventory equality passed, and the focused suite passed 23/23. The closed registry rejected coordinated identity/class/path/coverage relabeling, unknown identities, manifest path swaps, and corpus/registry set drift. Repository inputs, package manifests, and CLI scripts escaped through real ancestor junctions before remediation; all three regressions now execute on Windows without skips and reject the escape before read or spawn. Absolute and relative outside-sentinel output attempts were rejected before spawn with sentinel bytes unchanged; paired and cross-operation class borrowing failed closed; ambient Node preload options did not reach spawned CLIs; and both implemented CLI output boundaries were exercised in four classes with runner-owned staged output. A real duplicate-key mutation failed closed, and the complete underlying `pnpm verify` command chain passed.
 
-### DEBT-005: Governance Tests Are Not Product Fixtures
+### DEBT-005: Product Fixture Inventory Separation
 
-Status: OPEN.
+Status: CLOSED.
 
 Severity: Medium.
 
-Product impact: Readers may overestimate product coverage when governance harness tests are reported without a separate product-fixture inventory.
+Product impact: Readers can now distinguish repository-governance checks from exact product fixture coverage and its explicit nonclaims.
 
-Release classification: `DOES_NOT_BLOCK_RELEASE` for the current bounded scope; DEBT-004 separately blocks a general public release.
+Release classification: `DOES_NOT_BLOCK_RELEASE`; the separation condition is cleared by the CLOSED status.
 
 Owner: Repository engineering.
 
-Target milestone: Executable fixture corpus slice.
+Target milestone: Completed by `PRODUCT-HARDEN-001`.
 
-Dependencies: DEBT-004.
+Dependencies: Satisfied with DEBT-004's bounded corpus closure.
 
-Observation: FND-MECH-001 adds synthetic governance validator tests, but these are not Proofrail product fixtures and do not exercise repository inspection, adapter behavior, verification execution, policy evaluation, Evidence satisfaction, Verdict reduction, or Evidence Bundle finalization.
+Observation: Governance tests remain repository-engineering harness checks. The separate generated [product fixture inventory](../reference/product-fixtures.md) maps each current package export and CLI bin to an exact implemented surface, trust boundary, and fixture ids while naming `contracts.constants` as the no-input exception and leaving unimplemented surfaces uncovered.
 
 Risk: Future work may overread governance test coverage as product reliability coverage.
 
-Current control: Foundation mechanization documentation and the Foundation Gate separate governance tests from the bounded offline release fixture and from any future general product fixture corpus.
+Current control: Product fixtures have separate commands, schema, corpus, tests, and generated inventory. The inventory generator fails on stale bytes, ambiguous mappings, unimplemented claims, or coverage-class gaps, and `pnpm verify` runs governance and product-fixture stages separately.
 
 Exit criteria:
 
@@ -177,4 +177,4 @@ Exit criteria:
 - Coverage claims name the exact implemented product surfaces exercised by each suite.
 - User-facing documentation does not present governance test counts as product reliability evidence.
 
-Verification: Documentation regression checks and the executable product fixture inventory pass without conflating governance and product tests.
+Verification: `pnpm product:fixture-inventory` reported `PASS`, `pnpm test:product-fixtures` passed 23/23, and the complete underlying `pnpm verify` command chain passed without presenting governance test counts as product reliability evidence.

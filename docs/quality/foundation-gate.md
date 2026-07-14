@@ -51,6 +51,9 @@ Historical criteria remain below. This state update does not rewrite those crite
 - Foundation engineering harness reason-code registry exists under `governance/harness-reason-codes.json`.
 - Fixture strategy exists in [../engineering/fixture-strategy.md](../engineering/fixture-strategy.md).
 - Adversarial fixture strategy exists in [../engineering/fixture-strategy.md#adversarial-fixture-classes](../engineering/fixture-strategy.md#adversarial-fixture-classes).
+- The bounded six-package product fixture corpus and its separate generated inventory execute deterministically.
+- Exact-byte authority, golden, fixture, and generated-reference paths are checked out with LF and verified in a temporary `core.autocrlf=true` checkout.
+- The current six-package architecture loading boundary has an executable fail-closed checker and synthetic negative cases.
 
 ## Agent Legibility Gate
 
@@ -81,7 +84,9 @@ The clean agent should be able to:
 
 For the bounded lockfile Observation example, if adding the requested specification requires modifying authoritative protocol direction and no applicable authority-changing Machine Task Contract is supplied, the clean agent should stop before editing the protocol document.
 
-The Builder cannot grade this test. It requires an independent fresh-context agent or equivalent independent review process.
+The Builder summary cannot grade this test. Each retained run requires a distinct fresh-context grading pass based on recorded run evidence and protocol criteria rather than a completion claim. No separate human identity or GitHub account is required.
+
+`PRODUCT-HARDEN-001` retained two runs against candidate `e7df25ff368b789158a673498a187d9124e1912d`. Both used the same exact bounded task, stopped before an unauthorized authority edit, preserved clean worktrees, and received `PASS` on the same nine grading criteria. The standalone validator reports two valid records with no findings. This later executable evidence preserves rather than rewrites the historical failure and convergence trials that supported the Phase 0 Foundation Gate decision.
 
 ## Gate Classification
 
@@ -97,10 +102,15 @@ Mechanically verified gate:
 - committed JSON Machine Task Contract validation
 - HARN_ harness reason-code registry validation
 - validator emitted reason-code registration
+- product-owned reason-code registry schema, emitted-code, surface, deprecation, and generated-reference validation
 - repository identity hygiene checks
 - generated governance projection freshness
 - Documentation Authority Index structural checks
 - declared AGENTS.md authority-route checks
+- exact LF checkout and `core.autocrlf=true` byte-equality checks
+- bounded six-package architecture loading checks and synthetic negative cases
+- schema-validated deterministic product fixture execution and generated inventory equality
+- structural Clean Agent run-record, byte-digest, pair-equality, and candidate-ancestry validation
 
 Independently reviewable gate:
 
@@ -109,23 +119,21 @@ Independently reviewable gate:
 - hidden AI authority
 - architecture leakage risk
 - legibility for clean agents
-- Clean Agent Test grading
+- assumption-resistant Clean Agent Test grading
 - Foundation Gate acceptance
 
-Future executable gate:
+Not implemented as product gates:
 
-- architecture dependency checks
-- product runtime reason-code registry validation
-- fixture and adversarial fixture checks derived from the documented fixture strategy
-- protocol schema compatibility checks
-- Clean Agent Test protocol execution
+- target repository checkout, content inspection, or target command execution
+- adapter or Verification Receipt execution coverage
+- general product reliability, deployment readiness, or trusted-release determination
 
 ## Mechanization Boundary
 
 The current mechanization distinguishes:
 
-- Mechanically verified: deterministic repository governance checks run by `pnpm verify`.
-- Independently reviewable: conceptual and authority judgments that require a reviewer other than the Builder.
-- Future executable: checks that require future product layout, fixture corpus, protocol schemas, or independent Clean Agent Test execution.
+- Mechanically verified: deterministic repository governance, LF checkout, bounded architecture, product fixture, and Clean Agent record checks run by `pnpm verify`.
+- Evidence-based review: conceptual, authority, and grading judgments require a separate review pass that does not rely on Builder claims; a different human identity is not inherently required.
+- Not claimed: unimplemented target execution, adapters, Verification Receipts, broader product reliability, trusted release, or a Proofrail product Verdict.
 
-The validator must not claim hidden AI authority absence, conceptual coherence, architecture quality, Clean Agent Test success, Foundation Gate acceptance, or product fixture maturity.
+The validator can establish only its bounded structural and deterministic results. It cannot cryptographically prove hidden-context absence, conceptual coherence, complete architecture quality, general product-fixture maturity, Foundation Gate acceptance, trusted release, or a Proofrail product Verdict.

@@ -1,0 +1,1 @@
+{"documents":["config/evidence-contracts/proofrail-ai-pr-github-ci-v1.json","config/policies/proofrail-ai-pr-github-ci-v1.json","config/trusted/proofrail-release-v0.1.json"],"mutation":{"kind":"append-space","path":"config/policies/proofrail-ai-pr-github-ci-v1.json"},"trustedConfigurationPath":"config/trusted/proofrail-release-v0.1.json"}

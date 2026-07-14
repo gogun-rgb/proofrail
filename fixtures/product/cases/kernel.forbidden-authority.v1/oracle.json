@@ -1,0 +1,1 @@
+{"error":{"issueCategory":"FORBIDDEN_AUTHORITY_FIELD","message":"FORBIDDEN_AUTHORITY_FIELD at $.claims[0].modelConfidence: modelConfidence is not accepted by the kernel boundary","name":"KernelBoundaryError","path":"$.claims[0].modelConfidence"}}

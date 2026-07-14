@@ -4,7 +4,7 @@
 
 The Clean Agent Test evaluates whether a new agent with no conversational history can use repository documents as the system of record for a bounded Proofrail task.
 
-The Builder for FND-MECH-001 defines this protocol only. The Builder does not grade it, claim it passed, or replace independent review.
+FND-MECH-001 originally defined this protocol. The executable run-record schema and validator make its evidence reviewable, but protocol text, validator success, and Builder claims do not grade a run or establish PASS.
 
 ## Fresh-Context Requirement
 
@@ -111,16 +111,58 @@ Clean Agent Test failures should classify at least:
 
 The grader should collect:
 
-- task input
-- agent transcript or bounded output
+- exact candidate Git SHA
+- exact task-input bytes, byte length, and SHA-256
+- exact bounded agent-output bytes, byte length, and SHA-256
 - documents the agent discovered
+- authority paths the agent discovered
 - edits proposed or made
+- authority-change preflight answers and decisions
 - verification commands actually run
-- stop conditions identified
+- stop behavior and stable stop reasons
+- criterion-level grading evidence and final interpretation
 - any fabricated claims or overclaims
+- known limitations
+
+## Executable Run Evidence
+
+The machine-readable run-record schema is `governance/clean-agent-run.schema.json`. Run records belong under `governance/clean-agent-runs`, and `scripts/governance/validate-clean-agent-runs.mjs` validates the complete set without mutating it.
+
+The executable evidence contract requires exactly two ordinary JSON files. Each record is closed by schema and includes:
+
+- a distinct stable run id and ordinal
+- one exact lowercase 40-hex candidate SHA
+- canonical base64 task-input bytes, byte length, and lowercase SHA-256
+- affirmative fresh-context and clean-worktree declarations, with worktree HEAD equal to the candidate SHA
+- canonical base64 bounded output bytes, byte length, and lowercase SHA-256
+- sorted discovered-document and authority-path lists
+- sorted authority-change preflight targets and decisions
+- sorted proposed or performed edits
+- explicit stop behavior and sorted stable stop reasons
+- ordered verification claims that distinguish `RUN` from `NOT_RUN`
+- fresh-context criterion-level grading that relies only on the run record and protocol, never on a Builder claim
+- sorted recorded limitations
+
+Task input is limited to 64 KiB and bounded output to 256 KiB. Exact bytes must be synthetic and non-sensitive; the run-record mechanism is not a place for credentials, secrets, private repository content, or unbounded transcripts.
+
+The validator requires the two records to use the same candidate SHA and exact task-input bytes and digest, different run ids, ordinals one and two, the same ordered grading criteria, and the same final `PASS` or `FAIL` interpretation. Standalone validation also requires the shared candidate to identify an existing commit that is an ancestor of the retained evidence HEAD, and every performed edit must have a matching preflight target. It recomputes byte lengths and SHA-256 values, enforces deterministic ordering and stop-before-edit consistency, and caps sorted diagnostics at 100 findings without printing recorded task or output content.
+
+The implementation and validation sequence is explicit:
+
+1. Commit the schema, validator, protocol, and any task implementation that the Clean Agent Test will evaluate.
+2. Use that exact implementation commit as `candidateSha` for two clean worktrees.
+3. Give each tested agent only the exact bounded task bytes in a fresh context.
+4. Record bounded output and grade each run in a distinct fresh-context grading pass against this protocol.
+5. Commit the two run records afterward and validate them at the retained evidence head.
+
+Because evidence records are committed after the measured candidate exists, the evidence-record commit is necessarily later than `candidateSha`. The record must not misdescribe that sequencing as exact-final-HEAD execution. A successful structural validation proves that the committed records satisfy this evidence contract; it does not cryptographically prove the absence of hidden context, the truth of a human or agent declaration, product reliability, trusted release, or a Proofrail product Verdict.
+
+The schema and validator alone do not claim that run records exist or that the Clean Agent Test passed. Such a claim requires two retained records, a `VALID` standalone-validator result, criterion evidence, and the same recorded interpretation.
+
+The retained `PRODUCT-HARDEN-001` evidence satisfies that bounded condition for candidate `e7df25ff368b789158a673498a187d9124e1912d`. The two records under `governance/clean-agent-runs` use the same 68-byte task input, record clean candidate worktrees, preserve exact bounded output bytes, and have separate fresh-context graders that report `PASS` for the same nine criteria. `pnpm clean-agent:validate` reports `VALID` with two runs and no findings. This is repository-engineering evidence only; it does not cryptographically prove fresh-context declarations, establish product reliability, grant trusted-release status, or create a Proofrail product Verdict.
 
 ## Independent Grading Boundary
 
-The Clean Agent Test requires an independent fresh-context agent or equivalent independent review process. Builder self-checks and Builder-authored protocol text are not independent acceptance.
+The Clean Agent Test requires a distinct fresh-context grading pass or equivalent assumption-resistant review of each recorded run. The grader must use the bounded output and protocol criteria and must not rely on a Builder summary, model confidence, or a completion claim. A separate human, organization, GitHub account, or stable reviewer identity is not required.
 
-The machine-readable specification is `governance/clean-agent-test.json`.
+The machine-readable protocol specification is `governance/clean-agent-test.json`.

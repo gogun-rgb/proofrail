@@ -1,0 +1,1 @@
+{"result":{"exitCode":1,"output":{"exists":false},"stderr":{"bytes":43,"endsWithLf":true,"sha256":"CB73DC24793C7A4E22F2A0F99014686410331C800F9A0BA02E4ABECC83EBE31B","text":"static-evaluator: input is not valid UTF-8\n"},"stdout":{"bytes":0,"endsWithLf":false,"sha256":"E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855","text":""}}}

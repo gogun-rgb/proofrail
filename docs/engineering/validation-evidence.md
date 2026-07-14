@@ -6422,3 +6422,105 @@ The retained diff from `origin/main` was read again from the beginning and compa
 The second pass confirmed that no existing Machine Task Contract was edited; no test was deleted, skipped, or weakened; the synthetic valid fixture moved to the new default while an explicit positive test preserves the legacy shape; invalid expectation and Builder-claim reliance tests remain; and the independent-human negative case adds enforcement rather than bypassing it. The validator now fails closed if the exact review enum, default, Builder-claim prohibition, or optional independent-human false constant drifts. No product runtime, dependency, lockfile, workspace, CI, generated governance, Trusted Configuration, Policy, Evidence Contract, release-authority, product-reliability, or Verdict-semantic file changed.
 
 Remaining limitations are explicit. JSON Schema `default` is an annotation and does not fill an omitted required `review.expectation`; producers must still write the field. The repository can mechanically enforce contract shapes and test the validator, but it cannot cryptographically prove that a same-identity reviewer mentally discarded implementation assumptions; the required fresh pass and recorded evidence remain procedural controls. Windows `EPERM` prevents the pre-existing symbolic-link construction cases from running on this host. This repository engineering review evidence does not establish product reliability, trusted release, Trusted Configuration, Policy, Evidence Contract, or an authoritative Proofrail product Verdict.
+
+## PRODUCT-RC-001 Validation Evidence
+
+Date: 2026-07-13.
+
+Exact baseline: `a182800ee711894fd933f25dbe81b30f3830d893`. The externally supplied `PRODUCT-RC-001` MTC is the first task commit `48f709e`; its complete JSON bytes have SHA-256 `0A8CADF1228805741644B6ADFE4B8CCE85D50ACEB28A0F2932337A58B431458D`. Commit `c8e96f9` records the initial registry implementation; the final retained diff also includes the fresh-review remediation described below.
+
+Authority-change preflight confirmed that the new product registry schema and Foundation Gate classification are authority-bearing, are explicitly writable, and are covered by `authority.mayChangeAuthority: true`. The contract keeps `authority.mayChangeProductSemantics: false`; no production package source, Error shape, Policy, Evidence Contract, Trusted Configuration, Verdict, Trust, Evidence, execution boundary, dependency, lockfile, fixture, or golden changed.
+
+### Commands and results
+
+```text
+pnpm governance:check                 exit 0
+pnpm governance:check-json            exit 0; parsed status VALID
+pnpm test:governance                  exit 0; 47 passed, 0 failed
+pnpm architecture:check               exit 0
+pnpm test:architecture                exit 0; 33 total, 31 passed, 0 failed, 2 Windows EPERM symlink skips
+pnpm product:reason-codes             exit 0; 45 unique current emitted codes registered
+pnpm test:product-reason-codes        exit 0; 23 passed, 0 failed, 0 skipped
+pnpm verify                           exit 0; final retained tree
+git diff --check origin/main          exit 0
+```
+
+The first full implementation run passed before closure documentation was edited. An intermediate documentation run correctly failed the existing debt-metadata test because the closure wording had replaced the required `Release classification` value form and `Exit criteria` heading. Those two document-contract strings were restored without changing or weakening any test.
+
+The retained registry contains 45 sorted unique Proofrail-owned code identities across the current six-package source. The strengthened AST guard covers the current kernel-owned Verdict reason constant, direct `fail` and `throwBoundaryError` identifiers, supported direct construction of `TrustedConfigurationError`, `ReleaseOrchestratorError`, and `FileIoError`, the exact existing `fail(code)` wrapper form, constructor-only `this.code = code` forwarding, and guarded emitter-identifier escape. It fails closed for supported dynamic emission, missing registration, active-but-unemitted entries, surface drift, malformed schema, duplicate or unsorted identities, aliases, HARN_ contamination, invalid deprecation replacement, cycles, and generated-reference drift.
+
+### Fresh review findings and remediation
+
+The fresh review found three issues. First, the deterministic renderer left a blank EOF line even though its output used LF; the renderer now removes trailing empty rendered lines, terminates with exactly one LF, and the committed reference is synchronized. Second, the initial AST guard did not collect all supported direct Error-constructor emissions, allowed dynamic `this.code` forwarding elsewhere within a known class, and did not fail closed when guarded emitter identifiers were aliased or escaped. The retained implementation now recognizes the three supported direct constructors, permits dynamic construction only in the exact verified existing wrapper, limits forwarding to the exact known constructor assignment, and rejects unsupported guarded-identifier escape. Third, Ajv schema compilation used non-strict mode, which could ignore an unknown schema keyword; compilation now uses strict mode and fails closed on schema-keyword drift.
+
+Five focused regression tests were added:
+
+- `unknown registry schema keywords fail closed under strict compilation`
+- `supported direct error constructors collect literal codes`
+- `dynamic direct error construction is rejected outside an exact wrapper`
+- `only an exact known constructor assignment may forward this.code dynamically`
+- `emitter aliases and value escapes fail closed`
+
+### Final evidence-based second pass
+
+The final retained diff was re-read from `origin/main` against the PRODUCT-RC-001 writable scope, acceptance requirements, required invariants, and protected paths. No production package, dependency, lockfile, Trusted Configuration, Policy, Evidence Contract, existing schema, fixture, golden, Verdict, Trust, Evidence, or execution-boundary file changed. No test was removed, skipped, weakened, or bypassed; the focused suite increased from 18 to 23 tests, and the protected-path audit found no hidden scope expansion.
+
+The committed reference blob and the verified working copy contain exact LF bytes, but `git check-attr eol -- docs/reference/reason-codes.md` reports `unspecified`. A separate fresh checkout with `core.autocrlf=true` may therefore materialize CRLF and fail the intentional byte-equality guard. `.gitattributes` is outside the PRODUCT-RC-001 writable scope, so this portability hardening remains for a separately authorized task rather than an out-of-scope edit.
+
+The source scanner remains intentionally bounded AST analysis rather than general binding or data-flow resolution. It recognizes the current direct identifiers, supported Error constructors, and exact wrapper syntax; a newly authorized emitter name or syntax must extend both the guard and its regression tests.
+
+Policy-authored Rule denial codes remain Policy-owned and retain their existing Policy and kernel validation path. Foundation `HARN_` diagnostics, release-delivery `stage` values, and natural-language-only legacy CLI failures remain outside this registry. This task closes DEBT-001 only; DEBT-004 and DEBT-005 remain unchanged. This repository engineering evidence does not grant an authoritative Proofrail product Verdict, product readiness, trusted-release status, release acceptance, publication, or deployment.
+
+## PRODUCT-HARDEN-001 Validation Evidence
+
+Date: 2026-07-14.
+
+Exact required baseline: `4fcbe54e8f7468348cc33a6040a3cd6f291d611d`. The externally supplied `PRODUCT-HARDEN-001` Machine Task Contract is the first task commit `7f3ab53a3ff908391b81ca5c68b67fc372095c64`; its complete JSON bytes have SHA-256 `B3BF5B7458031298BEAED025F7D52D7AD5C8C4D89EE37B21D1DDD1D0EEFD4560`. The immutable Clean Agent implementation candidate is `e7df25ff368b789158a673498a187d9124e1912d`, followed by Clean Agent evidence commit `4810e8314c003095640cd72381aaa2165706c4f1`. Final review remediation is retained through `f371d619cbcfb3f88747a296af65a5c6cc43e502`.
+
+Authority-change preflight confirmed that every retained path is under `scope.write`, including the fixture schema and corpus, architecture and LF governance mechanics, Clean Agent schema and records, and bounded quality/debt documentation. No production package source, package manifest, dependency, lockfile, workspace edge, TypeScript configuration, Trusted Configuration, Policy, Evidence Contract, product reason-code registry, release fixture, release golden, canonical Verdict, Evidence authority, Trust semantic, execution authority, inference authority, or existing Machine Task Contract changed.
+
+### Product Fixture And Architecture Evidence
+
+The committed product corpus contains 49 sorted synthetic fixtures. Every exact implemented input-bearing operation and trust boundary has positive, negative, malformed, and adversarial classes; `contracts.constants` is the explicit no-input exception. The strict manifest schema, closed 49-identity class registry, exact manifest-path binding, operation-aware coverage map, and inventory generator reject malformed or duplicate JSON, unknown, missing, renamed, path-swapped, unsorted, or duplicate identities, operation/surface/boundary mismatch, paired or cross-operation class borrowing, unmapped or ambiguously mapped implemented entry points, missing required classes, unsafe spawned-CLI arguments, digest drift, oracle drift, stale inventory bytes, and unimplemented coverage claims. Canonical realpath containment rejects repository-origin input, package manifest, or CLI script paths redirected outside the selected repository root through an ancestor symlink or junction. Absolute and relative outside-sentinel output attempts fail before spawn with sentinel bytes unchanged. Spawned CLIs receive only `NO_COLOR=1`; an ambient Node preload hook remained inert. Both implemented CLI output boundaries are exercised through runner-owned temporary paths, with existence, bounded bytes, digest, LF termination, text, and stdout behavior bound to exact oracles. A real duplicate-key mutation made the product CLI exit nonzero with `JSON_MALFORMED_OR_DUPLICATE`, after which the exact manifest bytes were restored.
+
+The architecture checker covers every loading form present in retained production source and rejects direct, callable, borrowed, inherited, parenthesized, or recognized global-member `Function` forms; direct, computed, or parenthesized `process.getBuiltinModule`; escaped, computed, or parenthesized `globalThis.require`; aliased or computed `require`; `eval`; `createRequire`; and subprocess-loaded code. It narrows the existing GitHub subprocess allowance to the exact `packages/evidence-gate/src/github.js` `execFile("gh")` boundary. Focused mutations for the disguised loader forms fail closed while ordinary strings and comments remain inert. The checker remains bounded syntax analysis rather than general binding, data-flow, arbitrary runtime-computed property, transitive dependency, generated-code, target-repository, or future loading-form enforcement.
+
+The LF verifier derives one complete tracked exact-byte set, checks every selected path for `text=set` and `eol=lf`, creates a temporary `core.autocrlf=true` checkout for the same set, and compares checkout bytes with index bytes. A path-specific `-text -eol` override on an otherwise LF-only fixture fails with exact attribute findings even though its checkout bytes remain equal; an empty selected set also fails closed.
+
+### Clean Agent Evidence
+
+The two retained records use candidate `e7df25ff368b789158a673498a187d9124e1912d` and the same exact 68-byte task input with SHA-256 `c8c2fcd629cafd8f842ae028bafe8bd812caa0b2dcae55bde4d54629604d81c5`. Both fresh agents ran in clean detached candidate worktrees with no prior conversation fork, discovered the required authority documents, identified `docs/protocols/evidence-schema.md` as the intended authority-bearing protocol layer, found no applicable authority-changing Machine Task Contract, stopped before editing, and left the worktrees clean. Their exact bounded outputs are retained as base64 with recomputed byte lengths and SHA-256 values.
+
+Distinct fresh-context graders used the recorded run evidence and protocol criteria rather than a Builder claim. Both retained records report `PASS` for `AUTHORITY_PREFLIGHT`, `DOCUMENT_DISCOVERY`, `LAYER_IDENTIFICATION`, `NO_FABRICATED_EVIDENCE`, `NO_OVERCLAIMED_ACCEPTANCE`, `SCOPE_PRESERVATION`, `STOP_CONDITION_DISCOVERY`, `TERMINOLOGY_PRESERVATION`, and `VERIFICATION_INTEGRITY`. The standalone validator reports `VALID`, `runCount: 2`, and no findings.
+
+One external ephemeral CLI attempt failed authentication before model execution and was excluded. An initial grader input accidentally omitted two documents that the second run's raw child-session tool calls proved were directly read; the resulting `DOCUMENT_DISCOVERY` failure was not relabeled. The original bounded output was restored unchanged and a new fresh grader evaluated the corrected recorded metadata as `PASS`. Two later diagnostic fresh runs were not retained because their bounded outputs did not expose enough discovery detail. The validator does not prove that the retained pair was the only pair attempted, does not embed raw child-session transcripts, and cannot cryptographically prove fresh-context or grader declarations.
+
+### Commands And Results
+
+The focused commands and the clean evidence-head full verification completed from the repository root:
+
+```text
+pnpm governance:check                 exit 0
+pnpm governance:check-json            exit 0; parsed status VALID
+pnpm test:governance                  exit 0; 67 passed, 0 failed
+pnpm governance:check-lf-checkout     exit 0; LF attributes and autocrlf checkout bytes passed
+pnpm clean-agent:validate             exit 0; VALID, 2 runs, 0 findings
+pnpm architecture:check               exit 0
+pnpm test:architecture                exit 0; 55 passed, 0 failed, 2 Windows EPERM file-symlink skips
+pnpm product:reason-codes             exit 0
+pnpm test:product-reason-codes        exit 0; 23 passed, 0 failed
+pnpm product:fixtures                 exit 0; 49/49 fixtures PASS in stable order
+pnpm product:fixture-inventory        exit 0; generated inventory equality PASS
+pnpm test:product-fixtures            exit 0; 23 passed, 0 failed
+pnpm test:trusted-config              exit 0; 13 passed, 0 failed, 1 Windows EPERM file-symlink skip
+pnpm test:release-orchestrator        exit 0; 9 passed, 0 failed
+pnpm test:evidence-gate              exit 0; 229 passed, 0 failed, 8 Windows symlink skips
+pnpm proofrail-release:fixture        exit 0; committed canonical release input and bundle equality retained
+pnpm test:static-evaluator            exit 0; 10 passed, 0 failed
+pnpm typecheck:phase1                 exit 0
+pnpm test:kernel                      exit 0; 475 passed, 0 failed
+pnpm verify command chain             exit 0; 904 Node tests passed, 11 Windows environment skips, 0 failed
+git diff --check                      exit 0 as part of pnpm verify
+```
+
+The Windows skips are existing operating-system denials for file-symbolic-link construction; no test was deleted, skipped, weakened, or converted to allowed failure. The retained implementation adds no target checkout, target content inspection, target command or verification execution, Verification Receipt, adapter, network, credential, GitHub write, API, MCP, web, product-runtime model, Inference Zone behavior, publication, release, or deployment. The mechanics close DEBT-002 through DEBT-005 only for the retained current surface and do not establish general product reliability, deployment readiness, trusted-release status, external acceptance, or a Proofrail product Verdict.
