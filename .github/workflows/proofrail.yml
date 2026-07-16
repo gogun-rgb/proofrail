@@ -74,8 +74,8 @@ jobs:
         id: checkout-tool
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
-          repository: gogun-rgb/proofrail
-          ref: ${{ github.workflow_sha }}
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
           path: proofrail-tool
           fetch-depth: 1
           persist-credentials: false
