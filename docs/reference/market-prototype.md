@@ -75,6 +75,8 @@ pnpm verify
 
 The live GitHub collector requires the runner's read-only `GH_TOKEN` context. The local importer uses an already-authenticated `gh` CLI, while the reusable workflow handles collection inside GitHub Actions and does not require local tool installation.
 
+The reusable workflow names its job `Proofrail`, so GitHub displays the workflow result as its automatic job check. This is host-provided status; the current Proofrail authority still does not create a separate Check Run or any other GitHub write.
+
 ## Explicit exclusions
 
 The prototype does not implement a hosted service, GitHub App, Marketplace publication, Check Run writes, review or merge writes, API, MCP, SARIF export, language adapters, model providers, LLM judgment, complete sandbox or VM isolation, arbitrary repository inspection, patch analysis, secret storage, billing, long-term retention, or automatic deployment.

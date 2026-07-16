@@ -72,7 +72,8 @@ permissions:
 
 jobs:
   proofrail:
-    uses: gogun-rgb/proofrail/.github/workflows/proofrail.yml@005e33f80e7ec7064c757865f3d748cf092352f0
+    name: Proofrail
+    uses: gogun-rgb/proofrail/.github/workflows/proofrail.yml@9d8c29212769f925afe59e4b70331bd84da19568
     with:
       config-path: .proofrail/config.yml
       strict: true
@@ -94,7 +95,7 @@ Each run writes:
 
 `ADMISSIBLE` means the selected Policy and Evidence Contract were satisfied for the exact target, observations, and Proofrail Verification Receipts in that bundle. It is not a promise that the change is correct, secure, deployable, or approved for a trusted release. In strict mode every non-`ADMISSIBLE` result fails the workflow.
 
-The current authority is read-only for GitHub. The prototype publishes the Step Summary and artifact through the workflow, but it does not create or mutate a GitHub Check Run, review, label, merge, release, or deployment.
+The `Proofrail` job is shown by GitHub as the workflow's automatic job check. The current authority is read-only for GitHub: the prototype publishes the Step Summary and artifact through the workflow, but it does not create or mutate a separate GitHub Check Run, review, label, merge, release, or deployment.
 
 ## Troubleshooting and known limits
 

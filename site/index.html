@@ -155,7 +155,7 @@
               <li><span class="list-marker">02</span><span>Call the pinned workflow from the repository that owns the pull request.</span></li>
               <li><span class="list-marker">03</span><span>Read the summary and retain the Evidence Bundle for the exact evaluated head.</span></li>
             </ol>
-            <p class="install-note">The prototype runs on the caller's GitHub-hosted runner. It does not ask for API keys, paid services, or a secret-bearing target environment.</p>
+            <p class="install-note">The <code>Proofrail</code> job appears as GitHub's automatic workflow check. The prototype runs on the caller's GitHub-hosted runner and does not ask for API keys, paid services, or a secret-bearing target environment.</p>
           </div>
           <div class="code-frame">
             <div class="code-frame-head">
@@ -173,7 +173,8 @@ permissions:
   statuses: read
 jobs:
   proofrail:
-    uses: gogun-rgb/proofrail/.github/workflows/proofrail.yml@005e33f80e7ec7064c757865f3d748cf092352f0
+    name: Proofrail
+    uses: gogun-rgb/proofrail/.github/workflows/proofrail.yml@9d8c29212769f925afe59e4b70331bd84da19568
     with:
       config-path: .proofrail/config.yml
       strict: true
