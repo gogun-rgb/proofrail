@@ -10,7 +10,7 @@ import {
   projectInvariantBundle,
 } from "../../packages/evidence-gate/src/market-bundle.mjs";
 import { redactText } from "../../packages/evidence-gate/src/market-common.mjs";
-import { renderActionableSummary } from "../../packages/evidence-gate/src/market-report.mjs";
+import { renderActionableSummary, renderDeliveryFailureSummary } from "../../packages/evidence-gate/src/market-report.mjs";
 import { createLocalTelemetry } from "../../packages/evidence-gate/src/market-telemetry.mjs";
 
 const TARGET = {
@@ -194,6 +194,19 @@ test("summary is actionable, bounded, and redacted", () => {
   assert.match(summary, /VERIFICATION_COMMAND_FAILED/);
   assert.match(summary, /exact target, authority lineage, observations, and receipts/);
   assert.doesNotMatch(summary, /t9-secret-canary/);
+  assert.ok(Buffer.byteLength(summary, "utf8") <= 8192);
+});
+
+test("delivery failure summary gives bounded remediation without a product Verdict", () => {
+  const summary = renderDeliveryFailureSummary({
+    code: "PROOFRAIL_PROTOTYPE_DELIVERY_FAILED",
+    stage: "EXECUTION",
+    reason: "BLOCKED_EXECUTION_BOUNDARY",
+  });
+  assert.match(summary, /# Proofrail delivery blocked/);
+  assert.match(summary, /GITHUB_HOSTED_LINUX_SANDBOX_V1/);
+  assert.match(summary, /No Evidence Bundle was produced/);
+  assert.doesNotMatch(summary, /Verdict: \*\*BLOCKED\*\*/);
   assert.ok(Buffer.byteLength(summary, "utf8") <= 8192);
 });
 

@@ -59,7 +59,7 @@ export {
   createCanonicalEvidenceBundle,
   projectInvariantBundle,
 } from "./market-bundle.mjs";
-export { renderActionableSummary } from "./market-report.mjs";
+export { renderActionableSummary, renderDeliveryFailureSummary } from "./market-report.mjs";
 export {
   LocalTelemetryError,
   canonicalLocalTelemetryText,

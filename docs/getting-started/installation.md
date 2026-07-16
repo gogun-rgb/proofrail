@@ -90,6 +90,8 @@ The caller only needs GitHub Actions. The reusable workflow installs Node.js and
 
 Each run writes:
 
+If the runner fails closed before an Evidence Bundle can be evaluated, a fresh output directory retains failure.json and an actionable summary.md in the same artifact instead. That packet is delivery evidence only, not a product Verdict.
+
 - a Step Summary with the Verdict, exact head SHA, reason codes, and receipt status;
 - `proofrail-evidence/evidence-bundle.json`, `summary.md`, and `telemetry.json` in the `proofrail-evidence` artifact.
 

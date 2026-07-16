@@ -78,6 +78,7 @@ In the release-candidate workflow, this means the selected Policy and Evidence C
 - GitHub-reported checks remain Observations. They are separate from Proofrail-executed Verification Receipts.
 - The exact release-candidate workflow remains bound to its externally supplied Trusted Configuration and fixed target.
 - The market workflow publishes a Step Summary and artifact through GitHub Actions, but the current authority permits no GitHub Check Run, review, merge, release, deployment, API, MCP, web UI, adapter, model provider, or Inference Zone write.
+- If execution is blocked before evaluation and the caller output directory is fresh, the artifact retains a bounded failure packet with the reason and remediation; this is not an Evidence Bundle or product Verdict.
 - A missing `GITHUB_HOSTED_LINUX_SANDBOX_V1` isolation attestation produces `BLOCKED_EXECUTION_BOUNDARY`; the prototype never fabricates one.
 - Version `0.2.0-rc.1` is private workspace pre-release metadata. No npm package, binary, or general product release is published.
 
