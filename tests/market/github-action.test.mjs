@@ -16,6 +16,8 @@ import {
 const requireFromTrustedConfig = createRequire(new URL("../../packages/trusted-config/package.json", import.meta.url));
 const YAML = requireFromTrustedConfig("yaml");
 const WORKFLOW_PATH = new URL("../../.github/workflows/proofrail.yml", import.meta.url);
+const DEMO_WORKFLOW_PATH = new URL("../../examples/market-prototype/demo/.github/workflows/proofrail.yml", import.meta.url);
+const REVIEWED_WORKFLOW_SHA = "005e33f80e7ec7064c757865f3d748cf092352f0";
 
 async function load() {
   const source = await readFile(WORKFLOW_PATH, "utf8");
@@ -35,6 +37,13 @@ test("sole-source workflow parses and simulates every step exactly once", async 
   assert.equal(result.tokenIsolation.tokenCanaryInArtifacts, false);
 });
 
+test("demo consumer workflow is pinned and read-only", async () => {
+  const source = await readFile(DEMO_WORKFLOW_PATH, "utf8");
+  assert.match(source, new RegExp(`uses: gogun-rgb\\/proofrail\\/\\.github\\/workflows\\/proofrail\\.yml@${REVIEWED_WORKFLOW_SHA}`));
+  assert.match(source, /config-path: \.proofrail\/config\.yml/);
+  assert.doesNotMatch(source, /checks:\s*write|contents:\s*write|pull-requests:\s*write/);
+});
+
 test("closed workflow schema and input defaults are exact", async () => {
   const { workflow } = await load();
   assert.deepEqual(workflow.on, {
@@ -47,7 +56,8 @@ test("closed workflow schema and input defaults are exact", async () => {
   });
   assert.deepEqual(workflow.permissions, { contents: "read", "pull-requests": "read", checks: "read", statuses: "read" });
   assert.deepEqual(Object.keys(workflow.jobs), ["proofrail"]);
-  assert.deepEqual(Object.keys(workflow.jobs.proofrail), ["runs-on", "timeout-minutes", "steps"]);
+  assert.deepEqual(Object.keys(workflow.jobs.proofrail), ["name", "runs-on", "timeout-minutes", "steps"]);
+  assert.equal(workflow.jobs.proofrail.name, "Proofrail");
   assert.equal(workflow.jobs.proofrail["runs-on"], "ubuntu-latest");
   assert.ok(workflow.jobs.proofrail["timeout-minutes"] <= 60);
   assert.deepEqual(workflow.jobs.proofrail.steps.map(({ id }) => id), STEP_IDS);

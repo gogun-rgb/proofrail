@@ -57,7 +57,10 @@ test("prototype CLI writes a digest-bound deterministic ADMISSIBLE bundle", asyn
   assert.equal(first.bundle.verdict, "ADMISSIBLE");
   assert.match(first.stdout, /ADMISSIBLE 2222222222222222222222222222222222222222/);
   assert.equal(await readFile(path.join(first.output, "evidence-bundle.json"), "utf8"), await readFile(path.join(second.output, "evidence-bundle.json"), "utf8"));
-  assert.match(await readFile(path.join(first.output, "summary.md"), "utf8"), /exact target, authority lineage, observations, and receipts/);
+  const summary = await readFile(path.join(first.output, "summary.md"), "utf8");
+  assert.match(summary, /## Next actions/);
+  assert.match(summary, /No remediation is required/);
+  assert.match(summary, /exact target, authority lineage, observations, and receipts/);
 });
 
 test("prototype CLI consumes a live event and structured post-run head", async (t) => {

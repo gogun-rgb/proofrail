@@ -14,6 +14,7 @@ import { readCurrentPullRequestHead } from "./workflow-event-cli.mjs";
 import { runGhCommand } from "./workflow-event-gh.js";
 import { normalizeWorkflowEvent } from "./workflow-event.js";
 import { canonicalJson } from "./index.js";
+import { renderActionableSummary } from "./market-report.mjs";
 import {
   assertApprovedShell,
   assertNetworkBoundary,
@@ -194,7 +195,7 @@ export async function runPrototypeCli(args = process.argv.slice(2), operations =
   } catch (error) {
     throw deliveryError("EVALUATION", error);
   }
-  const summary = renderMarketSummary(bundle);
+  const summary = renderActionableSummary(bundle);
   const telemetry = { schemaVersion: "proofrail.telemetry.local.v1", enabled: parsed.marketConfiguration.telemetry.enabled, networkTransmission: false, events: parsed.marketConfiguration.telemetry.enabled ? [{ kind: "VERDICT", verdict: bundle.verdict, reasonCodes: bundle.reasonCodes, targetHeadSha: bundle.target.headSha }] : [] };
   try {
     await mkdir(paths.output.parentPath, { recursive: true });
@@ -212,11 +213,8 @@ export async function runPrototypeCli(args = process.argv.slice(2), operations =
 }
 
 export function renderMarketSummary(bundle) {
-  const failed = bundle.reasonCodes.length === 0 ? "None" : bundle.reasonCodes.map((code) => `\`${escapeText(code)}\``).join(", ");
-  const commands = bundle.verificationReceipts.length === 0 ? "- No verification commands started.\n" : bundle.verificationReceipts.map((receipt) => `- ${escapeText(receipt.command.name)}: **${escapeText(receipt.result.status)}**`).join("\n") + "\n";
-  return [`# Proofrail ${bundle.verdict}`, "", `Verified head: \`${escapeText(bundle.target.headSha)}\``, `Reason codes: ${failed}`, "", "## Verification Receipts", "", commands.trimEnd(), "", "This result applies only to the exact target, authority lineage, observations, and receipts in the attached Evidence Bundle. It is not a guarantee of correctness, security, or deployment safety.", ""].join("\n");
+  return renderActionableSummary(bundle);
 }
-
 async function readLiveHead(options, seams, clock) {
   const result = await (seams.readCurrentPullRequestHead ?? readCurrentPullRequestHead)({ repository: options.repositoryName, pullRequestNumber: options.pullRequestNumber, runGh: seams.runGh ?? runGhCommand, clock });
   if (!result || result.repository !== options.repositoryName || result.pullRequestNumber !== options.pullRequestNumber || typeof result.headSha !== "string" || !/^[0-9a-f]{40}$/i.test(result.headSha) || result.source !== "github-api") throw new PrototypeDeliveryError("COLLECTION", "CURRENT_HEAD_INVALID");
@@ -252,8 +250,6 @@ function deliveryError(stage, error) {
   const reason = typeof error?.code === "string" ? error.code : stage === "INPUT" ? "INPUT_INVALID" : stage === "OUTPUT" ? "OUTPUT_WRITE_FAILED" : "PROOFRAIL_PROTOTYPE_DELIVERY_FAILED";
   return new PrototypeDeliveryError(stage, reason);
 }
-
-function escapeText(value) { return String(value).replace(/[\r\n`]/g, " "); }
 
 function renderFailure(error) {
   const failure = error instanceof PrototypeDeliveryError ? error : new PrototypeDeliveryError("UNEXPECTED", "UNEXPECTED_FAILURE");
