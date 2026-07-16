@@ -12,9 +12,11 @@ AI can write the code. Proofrail determines whether the change is admissible.
 
 ## What Proofrail does
 
-Proofrail collects bounded pull request facts, keeps Claims separate from Observations, identifies missing Evidence and scope findings, and produces deterministic JSON or a human-readable review packet.
+Proofrail collects bounded pull request facts, keeps Claims separate from Observations, runs an explicitly authorized bounded verification plan for the market prototype, identifies missing Evidence and scope findings, and produces deterministic JSON or a human-readable review packet.
 
-The current Phase 2 implementation supports caller-supplied static inputs, sanitized read-only GitHub metadata collection, and one exact externally configured release-candidate workflow.
+The current Phase 2 implementation supports caller-supplied static inputs, sanitized read-only GitHub metadata collection, the exact externally configured release-candidate workflow, and the separately authorized `PRODUCT-MARKET-001` reusable GitHub Actions prototype.
+
+For the external installation path, see [Install the bounded market prototype](docs/getting-started/installation.md) and [the implementation reference](docs/reference/market-prototype.md). The prototype requires no local Node.js, pnpm, or `gh` installation in the caller repository.
 
 ## See the result
 
@@ -66,16 +68,17 @@ The fixed release-candidate workflow can produce the following canonical fields:
 }
 ```
 
-In the current workflow, this means the selected Policy and Evidence Contract were satisfied by the allowed GitHub metadata Observations for the exact configured target. Zero Verification Receipts means Proofrail did not checkout the target, inspect repository content, or rerun tests, lint, build, or security commands.
+In the release-candidate workflow, this means the selected Policy and Evidence Contract were satisfied by allowed GitHub metadata Observations for the exact configured target; the `Zero Verification Receipts` state means that path did not checkout the target or rerun target commands. In the market prototype, `ADMISSIBLE` additionally requires Proofrail-created Verification Receipts for the configured commands, plus the exact target, scope, review, check, and post-run head observations.
 
 `ADMISSIBLE` therefore does not by itself mean the code was independently executed, is safe, is deployment-ready, or has received a trusted release decision.
 
 ## Current boundaries
 
-- No target repository checkout, content inspection, patch analysis, or target command execution.
-- GitHub-reported checks are Observations, not Proofrail-executed Verification Receipts.
+- The release-candidate path does not perform target checkout, content inspection, patch analysis, or target command execution. The market prototype performs only the exact checkout and bounded commands authorized by its v2 Trusted Configuration.
+- GitHub-reported checks remain Observations. They are separate from Proofrail-executed Verification Receipts.
 - The exact release-candidate workflow remains bound to its externally supplied Trusted Configuration and fixed target.
-- No GitHub writes, Action, Check Run, API, MCP, web UI, adapter, model provider, or Inference Zone implementation.
+- The market workflow publishes a Step Summary and artifact through GitHub Actions, but the current authority permits no GitHub Check Run, review, merge, release, deployment, API, MCP, web UI, adapter, model provider, or Inference Zone write.
+- A missing `GITHUB_HOSTED_LINUX_SANDBOX_V1` isolation attestation produces `BLOCKED_EXECUTION_BOUNDARY`; the prototype never fabricates one.
 - Version `0.2.0-rc.1` is private workspace pre-release metadata. No npm package, binary, or general product release is published.
 
 See [versioning](docs/releasing/versioning.md), [compatibility](docs/releasing/compatibility.md), and [known debt](docs/plans/debt.md) for the maintained operational details.
@@ -98,11 +101,11 @@ The current product focus is Phase 2 AI PR Evidence Gate: a practical first prod
 
 `GATE-GH-001` adds a bounded v0.2 local GitHub PR importer. It uses an already-authenticated local `gh` CLI to freeze selected pull request facts into the existing deterministic packet workflow.
 
-Proofrail still does not have the complete product runtime. Any implementation beyond these bounded local workflows requires a later valid Machine Task Contract and the configured evidence-based repository engineering review.
+Proofrail still does not have a complete general product runtime. Any implementation beyond these bounded local workflows requires a later valid Machine Task Contract and the configured evidence-based repository engineering review.
 
 `PRODUCT-RELEASE-001` adds an exact release-candidate vertical slice. Separately supplied Trusted Configuration, Policy, and Evidence Contract bytes select `gogun-rgb/proofrail#27`; `@proofrail/trusted-config` validates and binds those bytes, `@proofrail/release-orchestrator` converts the sanitized collector snapshot into kernel input, and the unchanged kernel finalizes the Evidence Bundle. `PRODUCT-RELEASE-002` adds only `baseRefOid` to the existing bounded metadata query, validates it as `baseOid`, and supplies the previously missing `target.baseSha` Observation. The authorized live result and offline golden are byte-identical and `ADMISSIBLE`, with no Verification Receipt. This is not by itself a trusted release or external release decision.
 
-`PRODUCT-HARDEN-001` adds bounded repository-engineering hardening without changing production package behavior: complete-set exact LF checkout verification, stronger current-source architecture loading checks, a 49-case deterministic product fixture corpus with a separate generated inventory, and two retained fresh-context Clean Agent Test records with matching independently graded `PASS` interpretations. The fixture runner rejects unsafe spawned-CLI arguments before execution, isolates spawned CLIs from the ambient environment, stages output only at runner-owned temporary paths, and enforces class coverage per exact operation and trust boundary. These controls close the corresponding current-surface debt; they do not add target execution, adapters, Verification Receipts, a delivery surface, product reliability authority, or release authority.
+`PRODUCT-HARDEN-001` adds bounded repository-engineering hardening without changing production package behavior: complete-set exact LF checkout verification, stronger current-source architecture loading checks, a 49-case deterministic product fixture corpus with a separate generated inventory, and two retained fresh-context Clean Agent Test records with matching independently graded `PASS` interpretations. The fixture runner rejects unsafe spawned-CLI arguments before execution, isolates spawned CLIs from the ambient environment, stages output only at runner-owned temporary paths, and enforces class coverage per exact operation and trust boundary. These controls close the corresponding hardening-slice debt; the later `PRODUCT-MARKET-001` path separately adds bounded target execution and Verification Receipts. Neither slice adds product reliability authority or release authority.
 
 ## Static Phase 1 Kernel Evaluation
 
@@ -142,13 +145,13 @@ The verifier checks required files and artifacts, local documentation links and 
 
 The GitHub Actions Foundation governance workflow runs committed change-range whitespace validation as a separate step. Pull request events validate the explicit pull request base SHA and head SHA. Push events use deterministic push-specific ranges before `pnpm verify` runs.
 
-The architecture guard freezes the exact six-package surface and manifest names. `contracts` has no edge; `kernel` depends only on `contracts`; `trusted-config` has no workspace edge; `release-orchestrator` depends only on `kernel` and `trusted-config`; `evidence-gate` depends only on `release-orchestrator`; and `static-evaluator` depends only on `kernel`. It also freezes exact Node imports, rejects external bare production imports, checks recognized TypeScript-AST load forms under `packages/*/src`, rejects source symbolic links, and contains relative imports within their package. Run `pnpm architecture:check` and `pnpm test:architecture`.
+The architecture guard freezes the exact seven-package surface and manifest names. `contracts` has no edge; `kernel` depends only on `contracts`; `trusted-config` and `verification-runner` have no workspace edge; `release-orchestrator` depends only on `kernel` and `trusted-config`; `evidence-gate` depends on `release-orchestrator`, `trusted-config`, and `verification-runner`; and `static-evaluator` depends only on `kernel`. It also freezes exact Node imports, rejects external bare production imports, checks recognized TypeScript-AST load forms under `packages/*/src`, rejects source symbolic links, and contains relative imports within their package. Run `pnpm architecture:check` and `pnpm test:architecture`.
 
 This is a bounded repository engineering drift guard, not complete enforcement of [the dependency rules](docs/architecture/dependency-rules.md). It covers every loading form present in the retained production source, including the exact allowed `execFile("gh")` boundary in `packages/evidence-gate/src/github.js`, but it does not perform general module resolution, transitive dependency analysis, generated-code analysis, target-repository inspection, or general binding/data-flow detection of `eval`, `new Function`, arbitrary aliasing, or future subprocess forms. Future packages, loading forms, or allowed edges require an explicit task contract and checker update.
 
 ### Product reason codes
 
-The schema-validated product registry is [config/reason-codes/product-reason-codes.json](config/reason-codes/product-reason-codes.json), with its generated user reference at [docs/reference/reason-codes.md](docs/reference/reason-codes.md). It contains the 45 unique Proofrail-owned machine-readable codes currently emitted by the six production packages.
+The schema-validated product registry is [config/reason-codes/product-reason-codes.json](config/reason-codes/product-reason-codes.json), with its generated user reference at [docs/reference/reason-codes.md](docs/reference/reason-codes.md). It contains the unique Proofrail-owned machine-readable codes currently emitted by the retained production surface.
 
 ```bash
 pnpm product:reason-codes
@@ -159,7 +162,7 @@ The deterministic TypeScript-AST guard checks the current built-in Verdict reaso
 
 ### Product fixtures
 
-The checked-in product corpus contains 49 synthetic fixtures across the current six-package surface. Every exact implemented input-bearing operation and trust boundary has positive, negative, malformed, and adversarial classes; `contracts.constants` is the explicit no-input exception. A closed 49-identity registry binds every manifest path and class, while each manifest binds an exact implemented operation, surface, trust boundary, digest, and deterministic oracle. Repository-origin files, package manifests, and CLI scripts must resolve to real paths inside the selected repository root. Spawned CLI fixtures accept only fixed `--input {input}` or runner-controlled `--input {input} --output {output}` shapes. The output placeholder is resolved inside a temporary runner directory, its bounded bytes are compared with the oracle, and ambient Node execution options are not inherited.
+The checked-in product corpus contains 49 synthetic fixtures across the fixture-covered package surface. Every exact implemented input-bearing operation and trust boundary in that corpus has positive, negative, malformed, and adversarial classes; `contracts.constants` is the explicit no-input exception. A closed 49-identity registry binds every manifest path and class, while each manifest binds an exact implemented operation, surface, trust boundary, digest, and deterministic oracle. Repository-origin files, package manifests, and CLI scripts must resolve to real paths inside the selected repository root. Spawned CLI fixtures accept only fixed `--input {input}` or runner-controlled `--input {input} --output {output}` shapes. The output placeholder is resolved inside a temporary runner directory, its bounded bytes are compared with the oracle, and ambient Node execution options are not inherited. The market prototype's target execution and receipt boundaries are exercised by the dedicated `pnpm test:market` suite.
 
 ```bash
 pnpm product:fixtures
@@ -167,7 +170,7 @@ pnpm product:fixture-inventory
 pnpm test:product-fixtures
 ```
 
-The generated [product fixture inventory](docs/reference/product-fixtures.md) is separate from governance-test counts and fails validation if an implemented export or CLI bin is missing, ambiguously mapped, or represented only by an unimplemented claim. A negative fixture passes only when the product produces its explicit expected fail-closed result. The corpus does not claim target repository inspection, adapters, Verification Receipts, target command execution, or coverage of future surfaces.
+The generated [product fixture inventory](docs/reference/product-fixtures.md) is separate from governance-test counts and fails validation if an implemented export or CLI bin is missing, ambiguously mapped, or represented only by an unimplemented claim. A negative fixture passes only when the product produces its explicit expected fail-closed result. The corpus does not claim adapters, target coverage beyond its dedicated market tests, or coverage of future surfaces.
 
 For only the Foundation validator:
 

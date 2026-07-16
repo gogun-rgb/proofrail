@@ -155,21 +155,17 @@
               <li><span class="list-marker">02</span><span>Call the pinned workflow from the repository that owns the pull request.</span></li>
               <li><span class="list-marker">03</span><span>Read the summary and retain the Evidence Bundle for the exact evaluated head.</span></li>
             </ol>
-            <p class="install-note">The prototype is local and bounded. It does not ask for API keys, paid services, or a secret-bearing target environment.</p>
+            <p class="install-note">The prototype runs on the caller's GitHub-hosted runner. It does not ask for API keys, paid services, or a secret-bearing target environment.</p>
           </div>
           <div class="code-frame">
             <div class="code-frame-head">
               <span>workflow.yml + .proofrail/config.yml</span>
               <span>select to copy</span>
             </div>
-            <pre tabindex="0" aria-label="Proofrail workflow and base configuration example"><code>name: Proofrail
+            <pre tabindex="0" aria-label="Proofrail caller workflow and base configuration example"><code>name: Proofrail
 on:
-  workflow_call:
-    inputs:
-      config-path:
-        type: string
-        required: false
-        default: .proofrail/config.yml
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
 permissions:
   contents: read
   pull-requests: read
@@ -177,19 +173,30 @@ permissions:
   statuses: read
 jobs:
   proofrail:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
-        with:
-          node-version: 24
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: proofrail-evidence
+    uses: gogun-rgb/proofrail/.github/workflows/proofrail.yml@005e33f80e7ec7064c757865f3d748cf092352f0
+    with:
+      config-path: .proofrail/config.yml
+      strict: true
+    permissions:
+      contents: read
+      pull-requests: read
+      checks: read
+      statuses: read
 
 # Base branch file: .proofrail/config.yml
+version: 1
 preset: typescript-basic
-strict: true</code></pre>
+verification:
+  timeoutMinutes: 20
+  commands:
+    - name: test
+      run: pnpm test
+output:
+  uploadEvidenceBundle: true
+  includeCommandPreview: true
+  strict: true
+telemetry:
+  enabled: false</code></pre>
           </div>
         </div>
       </section>
