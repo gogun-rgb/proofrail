@@ -1,0 +1,23 @@
+name: Proofrail
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
+  statuses: read
+
+jobs:
+  proofrail:
+    uses: gogun-rgb/proofrail/.github/workflows/proofrail.yml@005e33f80e7ec7064c757865f3d748cf092352f0
+    with:
+      config-path: .proofrail/config.yml
+      strict: true
+    permissions:
+      contents: read
+      pull-requests: read
+      checks: read
+      statuses: read

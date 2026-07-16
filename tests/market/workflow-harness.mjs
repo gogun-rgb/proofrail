@@ -36,7 +36,7 @@ const TOP_LEVEL_KEYS = Object.freeze(["name", "on", "permissions", "jobs"]);
 const WORKFLOW_CALL_KEYS = Object.freeze(["inputs"]);
 const INPUT_KEYS = Object.freeze(["config-path", "strict"]);
 const PERMISSION_KEYS = Object.freeze(["contents", "pull-requests", "checks", "statuses"]);
-const JOB_KEYS = Object.freeze(["runs-on", "timeout-minutes", "steps"]);
+const JOB_KEYS = Object.freeze(["name", "runs-on", "timeout-minutes", "steps"]);
 const STEP_KEYS = Object.freeze(["name", "id", "if", "uses", "with", "env", "shell", "run"]);
 
 const ALLOWED_EXPRESSIONS = new Set([
@@ -172,6 +172,7 @@ export function parseWorkflow(value) {
   const job = value.jobs.proofrail;
   assertPlainObject(job, "WORKFLOW_SCHEMA_INVALID");
   assertExactKeys(job, JOB_KEYS, "WORKFLOW_SCHEMA_INVALID");
+  if (job.name !== "Proofrail") failSchema("job name");
   if (job["runs-on"] !== "ubuntu-latest"
       || !Number.isInteger(job["timeout-minutes"])
       || job["timeout-minutes"] < 1
