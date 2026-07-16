@@ -7,6 +7,8 @@ import test from 'node:test';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const DEFAULT_SITE_ROOT = join(ROOT, 'site');
+const INSTALL_GUIDE = join(ROOT, 'docs/getting-started/installation.md');
+const REVIEWED_WORKFLOW_SHA = '005e33f80e7ec7064c757865f3d748cf092352f0';
 const SITE_ROOT = process.env.PUBLIC_SITE_ROOT
   ? resolve(process.env.PUBLIC_SITE_ROOT)
   : DEFAULT_SITE_ROOT;
@@ -111,7 +113,12 @@ export function validateSite(siteRoot = SITE_ROOT) {
     assert.ok(existsSync(absolutePath), `broken local link or asset ${resource}`);
   }
   assert.match(html, /<section\b[^>]*\bid=["']install["'][\s\S]*?<pre[^>]*>\s*<code[\s\S]*?<\/code>\s*<\/pre>/i, 'install section needs a copyable code snippet');
-  assert.match(html, /actions\/checkout@/i, 'install snippet must show the pinned workflow surface');
+  assert.match(
+    html,
+    new RegExp(`gogun-rgb\\/proofrail\\/\\.github\\/workflows\\/proofrail\\.yml@${REVIEWED_WORKFLOW_SHA}`, 'i'),
+    'install snippet must show the reviewed reusable workflow commit',
+  );
+  assert.match(html, /pull_request:/i, 'install snippet must show the pull-request trigger');
   assert.match(html, /(?:config\.ya?ml|config-path)/i, 'install snippet must show configuration input');
   assert.match(html, /pricing\s+hypothesis/i, 'site must label pricing as a hypothesis');
   assert.match(html, /(?:early access|join the pilot)/i, 'site needs an early-access path');
@@ -145,6 +152,17 @@ export function validateSite(siteRoot = SITE_ROOT) {
 
 test('public site contains the complete prototype surface', () => {
   validateSite();
+});
+
+test('installation guide stays bound to the reviewed reusable workflow contract', () => {
+  const guide = readFileSync(INSTALL_GUIDE, 'utf8');
+  assert.match(
+    guide,
+    new RegExp(`uses: gogun-rgb\\/proofrail\\/\\.github\\/workflows\\/proofrail\\.yml@${REVIEWED_WORKFLOW_SHA}`, 'i'),
+  );
+  assert.match(guide, /config-path: \.proofrail\/config\.yml/);
+  assert.match(guide, /BLOCKED_EXECUTION_BOUNDARY/);
+  assert.doesNotMatch(guide, /uses: gogun-rgb\/proofrail-action@/i);
 });
 
 test('rejects a missing site', () => {
