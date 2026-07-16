@@ -252,8 +252,9 @@ test("prototype CLI rejects base checkout drift after verification before public
 });
 
 test("prototype CLI blocks an unenforceable production boundary before runner spawn", async (t) => {
-  const output = await mkdtemp(path.join(tmpdir(), "proofrail-market-boundary-"));
-  t.after(() => rm(output, { recursive: true, force: true }));
+  const directory = await mkdtemp(path.join(tmpdir(), "proofrail-market-boundary-"));
+  const output = path.join(directory, "output");
+  t.after(() => rm(directory, { recursive: true, force: true }));
   await assert.rejects(
     runPrototypeCli([
       "--event", path.join(ROOT, "fixtures/market-prototype/github/pr-success.json"),
@@ -268,6 +269,16 @@ test("prototype CLI blocks an unenforceable production boundary before runner sp
     }),
     (error) => error?.reason === "BLOCKED_EXECUTION_BOUNDARY",
   );
+  const failure = JSON.parse(await readFile(path.join(output, "failure.json"), "utf8"));
+  assert.deepEqual(failure, {
+    schemaVersion: "proofrail.delivery-failure.v1",
+    code: "PROOFRAIL_PROTOTYPE_DELIVERY_FAILED",
+    stage: "EXECUTION",
+    reason: "BLOCKED_EXECUTION_BOUNDARY",
+  });
+  const summary = await readFile(path.join(output, "summary.md"), "utf8");
+  assert.match(summary, /authority-approved GITHUB_HOSTED_LINUX_SANDBOX_V1 isolation attestation/);
+  assert.match(summary, /No Evidence Bundle was produced/);
 });
 
 test("prototype CLI rejects output alias before evaluation and publication", async (t) => {

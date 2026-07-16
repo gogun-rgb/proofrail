@@ -39,6 +39,8 @@ proofrail-output/
 └── telemetry.json
 ```
 
+When delivery is blocked before evaluation and the output directory did not already exist, the retained packet instead contains failure.json and summary.md. It explicitly states that no Evidence Bundle was produced and gives the next boundary-remediation step.
+
 The Evidence Bundle contains the exact repository, pull-request number, base SHA, head SHA, authority lineage, observations, receipts, scope result, policy conditions, reason codes, Verdict, and artifact digest. Raw stdout and stderr are never retained; the runner records stream digests and bounded redacted previews.
 
 ## Verdict semantics

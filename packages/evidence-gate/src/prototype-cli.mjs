@@ -14,7 +14,7 @@ import { readCurrentPullRequestHead } from "./workflow-event-cli.mjs";
 import { runGhCommand } from "./workflow-event-gh.js";
 import { normalizeWorkflowEvent } from "./workflow-event.js";
 import { canonicalJson } from "./index.js";
-import { renderActionableSummary } from "./market-report.mjs";
+import { renderActionableSummary, renderDeliveryFailureSummary } from "./market-report.mjs";
 import {
   assertApprovedShell,
   assertNetworkBoundary,
@@ -186,7 +186,9 @@ export async function runPrototypeCli(args = process.argv.slice(2), operations =
     if (!/^[0-9a-f]{40}$/i.test(currentHeadSha)) throw new PrototypeDeliveryError("COLLECTION", "CURRENT_HEAD_INVALID");
     runtimeState = { checkoutHeadSha: checkoutHeadSha.toLowerCase(), currentHeadSha: currentHeadSha.toLowerCase(), baseConfigurationUsed: true };
   } catch (error) {
-    throw deliveryError("EXECUTION", error);
+    const failure = deliveryError("EXECUTION", error);
+    await publishDeliveryFailure(paths, failure, write);
+    throw failure;
   }
 
   let bundle;
@@ -215,6 +217,25 @@ export async function runPrototypeCli(args = process.argv.slice(2), operations =
 export function renderMarketSummary(bundle) {
   return renderActionableSummary(bundle);
 }
+
+async function publishDeliveryFailure(paths, failure, write) {
+  if (!paths?.output || paths.output.kind !== "missing-directory") return;
+  try {
+    await mkdir(paths.output.parentPath, { recursive: true });
+    await publishPrototypeOutput(paths.output, [
+      ["failure.json", canonicalJson({
+        schemaVersion: "proofrail.delivery-failure.v1",
+        code: failure.code,
+        stage: failure.stage,
+        reason: failure.reason,
+      }) + "\n"],
+      ["summary.md", renderDeliveryFailureSummary(failure)],
+    ], write);
+  } catch {
+    // Preserve the original delivery error when the failure packet cannot publish.
+  }
+}
+
 async function readLiveHead(options, seams, clock) {
   const result = await (seams.readCurrentPullRequestHead ?? readCurrentPullRequestHead)({ repository: options.repositoryName, pullRequestNumber: options.pullRequestNumber, runGh: seams.runGh ?? runGhCommand, clock });
   if (!result || result.repository !== options.repositoryName || result.pullRequestNumber !== options.pullRequestNumber || typeof result.headSha !== "string" || !/^[0-9a-f]{40}$/i.test(result.headSha) || result.source !== "github-api") throw new PrototypeDeliveryError("COLLECTION", "CURRENT_HEAD_INVALID");
