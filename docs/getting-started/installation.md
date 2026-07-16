@@ -88,7 +88,7 @@ The caller only needs GitHub Actions. The reusable workflow installs Node.js and
 
 ## 3. Read the result
 
-Each run writes:
+Each successful evaluation writes:
 
 If the runner fails closed before an Evidence Bundle can be evaluated, a fresh output directory retains failure.json and an actionable summary.md in the same artifact instead. That packet is delivery evidence only, not a product Verdict.
 
