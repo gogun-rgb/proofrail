@@ -8,7 +8,7 @@ import test from 'node:test';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const DEFAULT_SITE_ROOT = join(ROOT, 'site');
 const INSTALL_GUIDE = join(ROOT, 'docs/getting-started/installation.md');
-const REVIEWED_WORKFLOW_SHA = '005e33f80e7ec7064c757865f3d748cf092352f0';
+const REVIEWED_WORKFLOW_SHA = '9d8c29212769f925afe59e4b70331bd84da19568';
 const SITE_ROOT = process.env.PUBLIC_SITE_ROOT
   ? resolve(process.env.PUBLIC_SITE_ROOT)
   : DEFAULT_SITE_ROOT;
@@ -161,6 +161,7 @@ test('installation guide stays bound to the reviewed reusable workflow contract'
     new RegExp(`uses: gogun-rgb\\/proofrail\\/\\.github\\/workflows\\/proofrail\\.yml@${REVIEWED_WORKFLOW_SHA}`, 'i'),
   );
   assert.match(guide, /config-path: \.proofrail\/config\.yml/);
+  assert.match(guide, /automatic job check/);
   assert.match(guide, /BLOCKED_EXECUTION_BOUNDARY/);
   assert.doesNotMatch(guide, /uses: gogun-rgb\/proofrail-action@/i);
 });
