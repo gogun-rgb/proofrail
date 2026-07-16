@@ -21,6 +21,8 @@
   },
   "sideEffects": false,
   "dependencies": {
-    "@proofrail/release-orchestrator": "workspace:*"
+    "@proofrail/release-orchestrator": "workspace:*",
+    "@proofrail/trusted-config": "workspace:*",
+    "@proofrail/verification-runner": "workspace:*"
   }
 }

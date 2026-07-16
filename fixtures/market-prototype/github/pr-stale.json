@@ -1,0 +1,24 @@
+{
+  "snapshot": {
+    "repository": "proofrail/demo",
+    "number": 8,
+    "title": "Document the prototype",
+    "state": "OPEN",
+    "isDraft": false,
+    "baseRefName": "main",
+    "baseOid": "1111111111111111111111111111111111111111",
+    "headRefName": "docs/prototype",
+    "headOid": "2222222222222222222222222222222222222222",
+    "changedFiles": 1,
+    "files": [{ "path": "docs/guide.md", "additions": 2, "deletions": 0 }],
+    "commits": [{ "oid": "2222222222222222222222222222222222222222" }],
+    "checks": [{ "kind": "check-run", "name": "ci", "status": "COMPLETED", "conclusion": "SUCCESS" }],
+    "reviews": [{ "authorLogin": "reviewer", "state": "APPROVED", "submittedAt": "2026-07-15T00:00:00Z", "commitOid": "2222222222222222222222222222222222222222" }]
+  },
+  "runtimeState": {
+    "checkoutHeadSha": "2222222222222222222222222222222222222222",
+    "currentHeadSha": "3333333333333333333333333333333333333333",
+    "baseConfigurationUsed": true
+  },
+  "clock": ["2026-07-15T00:00:00.000Z", "2026-07-15T00:00:00.250Z"]
+}

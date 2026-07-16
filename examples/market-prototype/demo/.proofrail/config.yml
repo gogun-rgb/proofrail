@@ -1,0 +1,11 @@
+version: 1
+preset: docs-only
+verification:
+  timeoutMinutes: 5
+  maximumOutputBytes: 262144
+  commands:
+    - name: diff-check
+      run: git diff --check
+      timeoutMinutes: 5
+telemetry:
+  enabled: false

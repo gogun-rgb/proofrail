@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "preset": "docs-only",
+  "scope": { "allowed": ["docs/**", "README.md", "CHANGELOG.md", "**/*.md"], "denied": ["src/**", "packages/**", ".github/**", "config/**", "**/*.pem", "**/*.key"] },
+  "verification": { "timeoutMinutes": 10, "maximumOutputBytes": 262144, "commands": [{ "name": "diff-check", "run": "git diff --check", "timeoutMinutes": 10 }] },
+  "reviews": { "minimumApprovals": 1, "requireExactHeadApproval": true, "blockChangesRequested": true },
+  "reportedChecks": { "requireSuccess": true, "minimumCount": 1 },
+  "output": { "uploadEvidenceBundle": true, "includeCommandPreview": true, "strict": true },
+  "telemetry": { "enabled": false }
+}

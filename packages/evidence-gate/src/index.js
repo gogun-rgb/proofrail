@@ -52,6 +52,21 @@ export function buildEvidencePacket(input) {
   });
 }
 
+export {
+  EvidenceBundleError,
+  buildEvidenceArtifact,
+  canonicalEvidenceBundleText,
+  createCanonicalEvidenceBundle,
+  projectInvariantBundle,
+} from "./market-bundle.mjs";
+export { renderActionableSummary } from "./market-report.mjs";
+export {
+  LocalTelemetryError,
+  canonicalLocalTelemetryText,
+  canonicalTelemetryJsonl,
+  createLocalTelemetry,
+} from "./market-telemetry.mjs";
+
 export function canonicalJson(value) {
   return JSON.stringify(canonicalize(value));
 }

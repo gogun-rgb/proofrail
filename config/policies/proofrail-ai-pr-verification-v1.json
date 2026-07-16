@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "proofrail.policy.v2",
+  "id": "policy.proofrail-ai-pr-verification",
+  "version": "1.0.0",
+  "authorizationEventId": "operator-event:product-market-001-runtime-authority-v1",
+  "targetScopeSelector": "CURRENT_GITHUB_PULL_REQUEST",
+  "evidenceContract": {
+    "id": "contract.proofrail-ai-pr-verification",
+    "version": "1.0.0"
+  },
+  "requiredCheckPolicy": {
+    "minimumReportedChecks": 1,
+    "requireAllReportedChecksSuccessful": true,
+    "acceptedCheckRunConclusions": ["NEUTRAL", "SKIPPED", "SUCCESS"],
+    "acceptedStatusContextStates": ["SUCCESS"]
+  },
+  "reviewPolicy": {
+    "minimumApprovals": 1,
+    "requireExactHeadApproval": true,
+    "blockChangesRequested": true
+  },
+  "scopePolicy": {
+    "allowedPatternsRequired": true,
+    "deniedPatternsTakePrecedence": true,
+    "protectBaseConfigurationPath": ".proofrail/config.yml"
+  },
+  "executionPolicy": {
+    "commandFailureMode": "STOP_ON_FIRST_FAILURE",
+    "requireReceiptForEveryStartedCommand": true,
+    "requirePostVerificationHeadMatch": true
+  },
+  "rules": [
+    {
+      "id": "rule.stale-target-blocks",
+      "condition": "STALE_TARGET",
+      "verdict": "BLOCKED",
+      "reasonCode": "PRF_STALE_TARGET"
+    },
+    {
+      "id": "rule.execution-impossible-blocks",
+      "condition": "EXECUTION_IMPOSSIBLE",
+      "verdict": "BLOCKED",
+      "reasonCode": "PRF_EXECUTION_IMPOSSIBLE"
+    },
+    {
+      "id": "rule.denied-scope-rejects",
+      "condition": "SCOPE_PATH_DENIED",
+      "verdict": "REJECTED",
+      "reasonCode": "PRF_SCOPE_PATH_NOT_ALLOWED"
+    },
+    {
+      "id": "rule.untrusted-policy-change-rejects",
+      "condition": "UNTRUSTED_POLICY_CHANGE",
+      "verdict": "REJECTED",
+      "reasonCode": "PRF_UNTRUSTED_POLICY_CHANGE"
+    },
+    {
+      "id": "rule.verification-failure-requires-revision",
+      "condition": "VERIFICATION_COMMAND_FAILED",
+      "verdict": "REVISION_REQUIRED",
+      "reasonCode": "PRF_VERIFICATION_COMMAND_FAILED"
+    },
+    {
+      "id": "rule.exact-head-approval-requires-revision",
+      "condition": "EXACT_HEAD_APPROVAL_MISSING",
+      "verdict": "REVISION_REQUIRED",
+      "reasonCode": "PRF_EXACT_HEAD_APPROVAL_MISSING"
+    },
+    {
+      "id": "rule.minimum-approvals-require-revision",
+      "condition": "MINIMUM_APPROVALS_MISSING",
+      "verdict": "REVISION_REQUIRED",
+      "reasonCode": "PRF_MINIMUM_APPROVALS_MISSING"
+    },
+    {
+      "id": "rule.changes-requested-requires-revision",
+      "condition": "CHANGES_REQUESTED_PRESENT",
+      "verdict": "REVISION_REQUIRED",
+      "reasonCode": "PRF_CHANGES_REQUESTED_PRESENT"
+    },
+    {
+      "id": "rule.reported-check-failure-requires-revision",
+      "condition": "REPORTED_CHECK_FAILED",
+      "verdict": "REVISION_REQUIRED",
+      "reasonCode": "PRF_REPORTED_CHECK_FAILED"
+    },
+    {
+      "id": "rule.missing-evidence-requires-revision",
+      "condition": "REQUIRED_EVIDENCE_MISSING",
+      "verdict": "REVISION_REQUIRED",
+      "reasonCode": "PRF_REQUIRED_EVIDENCE_MISSING"
+    }
+  ]
+}

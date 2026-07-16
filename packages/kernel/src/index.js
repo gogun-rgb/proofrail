@@ -1,6 +1,16 @@
 // @ts-check
 
 export { KernelBoundaryError } from "./boundary-validation.js";
+export { MarketKernelBoundaryError, evaluateMarketKernel } from "./market-kernel.js";
+export {
+  MARKET_LIFECYCLE_PHASES,
+  MarketLifecycleTransitionError,
+  applyMarketEvaluationEvent,
+  beginMarketEvaluation,
+  reevaluateMarketEvaluation,
+  startMarketEvaluation,
+  transitionMarketEvaluation,
+} from "./market-lifecycle.js";
 
 import { validateKernelEvaluationInput } from "./boundary-validation.js";
 import { normalizeKernelInput } from "./normalization.js";

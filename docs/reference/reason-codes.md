@@ -23,6 +23,8 @@ Policy-authored Rule denial codes remain Policy-owned and are not members of thi
 | Code | Kind | Category | Surfaces | Visibility | Severity | Retryable | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `ACCESSOR_FIELD` | BOUNDARY_ISSUE | INPUT | kernel | PUBLIC | ERROR | no | ACTIVE |
+| `AUTHORITY_LIMIT_EXCEEDED` | COMPONENT_ERROR | AUTHORITY | trusted-config | PUBLIC | ERROR | no | ACTIVE |
+| `CONFLICTING_CONFIGURATION` | COMPONENT_ERROR | INPUT | trusted-config | PUBLIC | ERROR | no | ACTIVE |
 | `CYCLIC_INPUT` | BOUNDARY_ISSUE | INPUT | kernel | PUBLIC | ERROR | no | ACTIVE |
 | `DUPLICATE_IDENTITY` | BOUNDARY_ISSUE | INPUT | kernel, trusted-config | PUBLIC | ERROR | no | ACTIVE |
 | `DUPLICATE_KEY` | COMPONENT_ERROR | INPUT | trusted-config | PUBLIC | ERROR | no | ACTIVE |
@@ -43,20 +45,26 @@ Policy-authored Rule denial codes remain Policy-owned and are not members of thi
 | `INVALID_UTF8` | COMPONENT_ERROR | INPUT | evidence-gate, trusted-config | PUBLIC | ERROR | no | ACTIVE |
 | `KERNEL_EVIDENCE_REQUIREMENT_MISSING` | VERDICT_REASON | EVIDENCE | kernel | PUBLIC | ERROR | no | ACTIVE |
 | `MALFORMED_JSON` | COMPONENT_ERROR | INPUT | trusted-config | PUBLIC | ERROR | no | ACTIVE |
+| `MALFORMED_YAML` | COMPONENT_ERROR | INPUT | trusted-config | PUBLIC | ERROR | no | ACTIVE |
+| `MARKET_CONFIG_INVALID` | COMPONENT_ERROR | INPUT | release-orchestrator | PUBLIC | ERROR | no | ACTIVE |
 | `MISSING_FIELD` | BOUNDARY_ISSUE | INPUT | kernel | PUBLIC | ERROR | no | ACTIVE |
 | `NON_ENUMERABLE_FIELD` | BOUNDARY_ISSUE | INPUT | kernel | PUBLIC | ERROR | no | ACTIVE |
 | `NON_JSON_VALUE` | BOUNDARY_ISSUE | INPUT | kernel | PUBLIC | ERROR | no | ACTIVE |
 | `NON_PLAIN_OBJECT` | BOUNDARY_ISSUE | INPUT | kernel | PUBLIC | ERROR | no | ACTIVE |
 | `NOT_REGULAR` | COMPONENT_ERROR | FILESYSTEM | evidence-gate, trusted-config | PUBLIC | ERROR | no | ACTIVE |
 | `PATH_INVALID` | COMPONENT_ERROR | FILESYSTEM | trusted-config | PUBLIC | ERROR | no | ACTIVE |
+| `PROOFRAIL_PROTOTYPE_DELIVERY_FAILED` | DELIVERY_ERROR | DELIVERY | evidence-gate | PUBLIC | ERROR | yes | ACTIVE |
 | `PROOFRAIL_RELEASE_DELIVERY_FAILED` | DELIVERY_ERROR | DELIVERY | evidence-gate | PUBLIC | ERROR | yes | ACTIVE |
+| `PROOFRAIL_WORKFLOW_EVENT_FAILED` | DELIVERY_ERROR | DELIVERY | evidence-gate | PUBLIC | ERROR | yes | ACTIVE |
 | `PROXY_INPUT` | BOUNDARY_ISSUE | INPUT | kernel | PUBLIC | ERROR | no | ACTIVE |
 | `READ_FAILED` | COMPONENT_ERROR | FILESYSTEM | evidence-gate, trusted-config | PUBLIC | ERROR | yes | ACTIVE |
+| `RECEIPTS_INVALID` | COMPONENT_ERROR | EVIDENCE | release-orchestrator | PUBLIC | ERROR | no | ACTIVE |
 | `REFERENCE_MISMATCH` | COMPONENT_ERROR | AUTHORITY | trusted-config | PUBLIC | ERROR | no | ACTIVE |
 | `RESERVED_KERNEL_REASON_CODE` | BOUNDARY_ISSUE | AUTHORITY | kernel | PUBLIC | ERROR | no | ACTIVE |
 | `RESERVED_REASON_CODE_NAMESPACE` | BOUNDARY_ISSUE | AUTHORITY | kernel | PUBLIC | ERROR | no | ACTIVE |
 | `ROOT_ALIAS` | COMPONENT_ERROR | FILESYSTEM | trusted-config | PUBLIC | ERROR | no | ACTIVE |
 | `ROOT_INVALID` | COMPONENT_ERROR | FILESYSTEM | trusted-config | PUBLIC | ERROR | no | ACTIVE |
+| `RUNTIME_STATE_INVALID` | COMPONENT_ERROR | TARGET | release-orchestrator | PUBLIC | ERROR | no | ACTIVE |
 | `SAME_FILE` | COMPONENT_ERROR | FILESYSTEM | evidence-gate | INTERNAL | ERROR | no | ACTIVE |
 | `SCHEMA_INVALID` | COMPONENT_ERROR | INPUT | trusted-config | PUBLIC | ERROR | no | ACTIVE |
 | `SNAPSHOT_INVALID` | COMPONENT_ERROR | INPUT | release-orchestrator | PUBLIC | ERROR | no | ACTIVE |
@@ -65,6 +73,7 @@ Policy-authored Rule denial codes remain Policy-owned and are not members of thi
 | `TARGET_SCOPE_MISMATCH` | BOUNDARY_ISSUE | TARGET | kernel | PUBLIC | ERROR | no | ACTIVE |
 | `TOO_LARGE` | COMPONENT_ERROR | INPUT | evidence-gate, trusted-config | PUBLIC | ERROR | no | ACTIVE |
 | `UNEXPECTED_FIELD` | BOUNDARY_ISSUE | INPUT | kernel | PUBLIC | ERROR | no | ACTIVE |
+| `UNSAFE_YAML` | COMPONENT_ERROR | INPUT | trusted-config | PUBLIC | ERROR | no | ACTIVE |
 | `UNVALIDATED_CONFIGURATION` | COMPONENT_ERROR | AUTHORITY | trusted-config | PUBLIC | ERROR | no | ACTIVE |
 | `WRITE_FAILED` | COMPONENT_ERROR | DELIVERY | evidence-gate | INTERNAL | ERROR | yes | ACTIVE |
 
@@ -74,6 +83,18 @@ Policy-authored Rule denial codes remain Policy-owned and are not members of thi
 
 - Description: An authoritative object exposes a getter or setter instead of a plain data field.
 - Remediation: Replace accessor-backed fields with ordinary enumerable data properties before evaluation.
+- Replacement: (none)
+
+### `AUTHORITY_LIMIT_EXCEEDED`
+
+- Description: A repository configuration requests authority beyond the maxima fixed by Trusted Configuration.
+- Remediation: Reduce the repository configuration to the authorized limits or issue new Trusted Configuration through the external authority path.
+- Replacement: (none)
+
+### `CONFLICTING_CONFIGURATION`
+
+- Description: Repository configuration contains mutually inconsistent settings that cannot form one deterministic effective configuration.
+- Remediation: Resolve the conflicting settings so the selected preset and repository overrides produce one unambiguous configuration.
 - Replacement: (none)
 
 ### `CYCLIC_INPUT`
@@ -196,6 +217,18 @@ Policy-authored Rule denial codes remain Policy-owned and are not members of thi
 - Remediation: Correct the JSON syntax and remove duplicate or trailing content before reauthorization.
 - Replacement: (none)
 
+### `MALFORMED_YAML`
+
+- Description: A repository configuration document is not valid strict single-document YAML.
+- Remediation: Correct the YAML syntax and retain one bounded document using only the supported core data model.
+- Replacement: (none)
+
+### `MARKET_CONFIG_INVALID`
+
+- Description: The supplied market-prototype configuration was not produced by the separately branded trusted loader or is internally inconsistent.
+- Remediation: Load the base-branch configuration through the market trusted-configuration boundary and pass the resulting validated object unchanged.
+- Replacement: (none)
+
 ### `MISSING_FIELD`
 
 - Description: An authoritative kernel record omits a required field.
@@ -232,10 +265,22 @@ Policy-authored Rule denial codes remain Policy-owned and are not members of thi
 - Remediation: Use a safe relative repository path contained by the trusted root.
 - Replacement: (none)
 
+### `PROOFRAIL_PROTOTYPE_DELIVERY_FAILED`
+
+- Description: The bounded public-prototype delivery workflow failed at the separately reported stage.
+- Remediation: Inspect the machine-readable stage, correct the configuration, execution, or delivery boundary, and retry without changing authority.
+- Replacement: (none)
+
 ### `PROOFRAIL_RELEASE_DELIVERY_FAILED`
 
 - Description: The bounded release delivery workflow failed at the separately reported stage.
 - Remediation: Inspect the machine-readable stage, correct that boundary condition, and retry without changing authority.
+- Replacement: (none)
+
+### `PROOFRAIL_WORKFLOW_EVENT_FAILED`
+
+- Description: The bounded GitHub workflow-event collection surface failed at the separately reported stage.
+- Remediation: Inspect the machine-readable collection stage and reason, correct the bounded input or source boundary, and retry without changing authority.
 - Replacement: (none)
 
 ### `PROXY_INPUT`
@@ -248,6 +293,12 @@ Policy-authored Rule denial codes remain Policy-owned and are not members of thi
 
 - Description: A required local file could not be opened, inspected, or read completely.
 - Remediation: Restore stable read access to the selected regular file and retry.
+- Replacement: (none)
+
+### `RECEIPTS_INVALID`
+
+- Description: Verification Receipts are missing, duplicated, malformed, stale, or not bound to the exact selected target and authority lineage.
+- Remediation: Run the authorized verification commands for the exact target and supply the resulting complete receipt set without alteration.
 - Replacement: (none)
 
 ### `REFERENCE_MISMATCH`
@@ -278,6 +329,12 @@ Policy-authored Rule denial codes remain Policy-owned and are not members of thi
 
 - Description: The supplied repository root is missing, unreadable, symbolic, or not a directory.
 - Remediation: Provide an accessible canonical directory as the trusted repository root.
+- Replacement: (none)
+
+### `RUNTIME_STATE_INVALID`
+
+- Description: Runtime target state is malformed or does not provide the exact checkout and current-head identities required for evaluation.
+- Remediation: Collect fresh runtime state after verification and bind both checkout and current head to the selected pull-request target.
 - Replacement: (none)
 
 ### `SAME_FILE`
@@ -326,6 +383,12 @@ Policy-authored Rule denial codes remain Policy-owned and are not members of thi
 
 - Description: An authoritative record contains a field outside its closed protocol shape.
 - Remediation: Remove the unknown field or use a separately authorized schema version that defines it.
+- Replacement: (none)
+
+### `UNSAFE_YAML`
+
+- Description: A repository configuration uses YAML aliases, custom tags, multiple documents, or another construct outside the safe closed subset.
+- Remediation: Replace unsafe YAML constructs with explicit core-schema scalars, arrays, and mappings in one document.
 - Replacement: (none)
 
 ### `UNVALIDATED_CONFIGURATION`

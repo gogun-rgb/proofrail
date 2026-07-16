@@ -2,8 +2,10 @@ import { createHash } from "node:crypto";
 import { lstat, open, realpath } from "node:fs/promises";
 import path from "node:path";
 import { TextDecoder } from "node:util";
+import { isAlias, parseAllDocuments, visit } from "yaml";
 
 const MAX_DOCUMENT_BYTES = 256 * 1024;
+const MAX_MARKET_SCOPE_PATTERNS = 256;
 const SHA256_PATTERN = /^[0-9A-F]{64}$/;
 const COMMIT_PATTERN = /^[0-9a-f]{40}$/;
 const REQUIRED_FACT_KEYS = Object.freeze([
@@ -19,6 +21,48 @@ const REQUIRED_FACT_KEYS = Object.freeze([
   "target.state",
 ]);
 const VALIDATED_CONFIGURATIONS = new WeakSet();
+const VALIDATED_MARKET_CONFIGURATIONS = new WeakSet();
+const MARKET_AUTHORITY_SHA256 = "7A76DCA50F3F76167EA92F5AF68D64ACFCE8539C03EAE20262876F5D6423A683";
+const MARKET_POLICY_SHA256 = "C4AFB49EE70B3701837DF8ACC65427A180CF0453ABA773265B9DFC159E11CC1F";
+const MARKET_EVIDENCE_SHA256 = "C195378ECDDDAE3FDE703EFC6A9A9C052A09683F68CF3490D2730A71F1B84C61";
+const MARKET_EVENT = "operator-event:product-market-001-runtime-authority-v1";
+const MARKET_PRESETS = Object.freeze(["ai-pr-strict", "dependency-update", "docs-only", "typescript-basic"]);
+const MARKET_ALLOWED_ENVIRONMENT_NAMES = Object.freeze(["CI", "HOME", "LANG", "PATH", "RUNNER_ARCH", "RUNNER_OS", "SHELL", "TEMP", "TMP", "TMPDIR"]);
+const MARKET_DENIED_ENVIRONMENT_NAMES = Object.freeze(["ACTIONS_ID_TOKEN_REQUEST_TOKEN", "ACTIONS_RUNTIME_TOKEN", "GH_TOKEN", "GITHUB_TOKEN", "NODE_AUTH_TOKEN", "NODE_OPTIONS", "NPM_CONFIG_USERCONFIG", "PNPM_HOME", "YARN_NPM_AUTH_TOKEN"]);
+const MARKET_PRESET_EXPECTATIONS = Object.freeze({
+  "typescript-basic": {
+    scope: { allowed: ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts", "tests/**/*.tsx", "package.json", "pnpm-lock.yaml", "tsconfig.json"], denied: [".github/**", "**/*.pem", "**/*.key"] },
+    verification: { timeoutMinutes: 30, maximumOutputBytes: 1048576, commands: [{ name: "typecheck", run: "pnpm typecheck", timeoutMinutes: 10 }, { name: "test", run: "pnpm test", timeoutMinutes: 20 }] },
+    reviews: { minimumApprovals: 1, requireExactHeadApproval: true, blockChangesRequested: true },
+    reportedChecks: { requireSuccess: true, minimumCount: 1 },
+    output: { uploadEvidenceBundle: true, includeCommandPreview: true, strict: true },
+    telemetry: { enabled: false },
+  },
+  "ai-pr-strict": {
+    scope: { allowed: ["src/**", "packages/**", "tests/**", "package.json", "pnpm-lock.yaml", "tsconfig.json"], denied: [".github/**", "config/trusted/**", "config/policies/**", "config/evidence-contracts/**", "**/*.pem", "**/*.key"] },
+    verification: { timeoutMinutes: 60, maximumOutputBytes: 1048576, commands: [{ name: "lint", run: "pnpm lint", timeoutMinutes: 10 }, { name: "typecheck", run: "pnpm typecheck", timeoutMinutes: 10 }, { name: "test", run: "pnpm test", timeoutMinutes: 30 }, { name: "build", run: "pnpm build", timeoutMinutes: 10 }] },
+    reviews: { minimumApprovals: 2, requireExactHeadApproval: true, blockChangesRequested: true },
+    reportedChecks: { requireSuccess: true, minimumCount: 1 },
+    output: { uploadEvidenceBundle: true, includeCommandPreview: true, strict: true },
+    telemetry: { enabled: false },
+  },
+  "docs-only": {
+    scope: { allowed: ["docs/**", "README.md", "CHANGELOG.md", "**/*.md"], denied: ["src/**", "packages/**", ".github/**", "config/**", "**/*.pem", "**/*.key"] },
+    verification: { timeoutMinutes: 10, maximumOutputBytes: 262144, commands: [{ name: "diff-check", run: "git diff --check", timeoutMinutes: 10 }] },
+    reviews: { minimumApprovals: 1, requireExactHeadApproval: true, blockChangesRequested: true },
+    reportedChecks: { requireSuccess: true, minimumCount: 1 },
+    output: { uploadEvidenceBundle: true, includeCommandPreview: true, strict: true },
+    telemetry: { enabled: false },
+  },
+  "dependency-update": {
+    scope: { allowed: ["package.json", "pnpm-lock.yaml", "npm-shrinkwrap.json", "package-lock.json", "yarn.lock"], denied: ["src/**", "packages/**", ".github/**", "config/**", "**/*.pem", "**/*.key"] },
+    verification: { timeoutMinutes: 40, maximumOutputBytes: 1048576, commands: [{ name: "frozen-install", run: "pnpm install --frozen-lockfile", timeoutMinutes: 20 }, { name: "test", run: "pnpm test", timeoutMinutes: 20 }] },
+    reviews: { minimumApprovals: 1, requireExactHeadApproval: true, blockChangesRequested: true },
+    reportedChecks: { requireSuccess: true, minimumCount: 1 },
+    output: { uploadEvidenceBundle: true, includeCommandPreview: true, strict: true },
+    telemetry: { enabled: false },
+  },
+});
 
 export class TrustedConfigurationError extends Error {
   constructor(code) {
@@ -448,6 +492,318 @@ function assertNoDuplicateObjectKeys(source) {
   value();
   skip();
   if (cursor !== source.length) fail("MALFORMED_JSON");
+}
+
+export async function loadTrustedMarketConfiguration({ trustedConfigurationPath, repositoryRoot }) {
+  if (typeof trustedConfigurationPath !== "string" || trustedConfigurationPath === "" || typeof repositoryRoot !== "string" || repositoryRoot === "") fail("INVALID_ARGUMENT");
+  const root = await resolveRoot(repositoryRoot);
+  const configurationDocument = await readDocument(root, trustedConfigurationPath);
+  if (digest(configurationDocument.bytes) !== MARKET_AUTHORITY_SHA256) fail("HASH_MISMATCH");
+  const trustedConfiguration = parseStrictJson(configurationDocument.text);
+  validateMarketAuthority(trustedConfiguration);
+  const policyDocument = await readDocument(root, trustedConfiguration.policy.path);
+  const evidenceContractDocument = await readDocument(root, trustedConfiguration.evidenceContract.path);
+  assertDistinctDocuments([configurationDocument, policyDocument, evidenceContractDocument]);
+  if (digest(policyDocument.bytes) !== MARKET_POLICY_SHA256 || digest(evidenceContractDocument.bytes) !== MARKET_EVIDENCE_SHA256 || trustedConfiguration.policy.sha256 !== MARKET_POLICY_SHA256 || trustedConfiguration.evidenceContract.sha256 !== MARKET_EVIDENCE_SHA256) fail("HASH_MISMATCH");
+  const policy = parseStrictJson(policyDocument.text);
+  const evidenceContract = parseStrictJson(evidenceContractDocument.text);
+  validateMarketReferences(trustedConfiguration, policy, evidenceContract);
+  const result = deepFreeze({ trustedConfiguration, policy, evidenceContract, identities: { trustedConfigurationSha256: digest(configurationDocument.bytes), policySha256: digest(policyDocument.bytes), evidenceContractSha256: digest(evidenceContractDocument.bytes) } });
+  VALIDATED_MARKET_CONFIGURATIONS.add(result);
+  return result;
+}
+
+export function assertValidatedMarketConfiguration(value) {
+  if (!value || typeof value !== "object" || !VALIDATED_MARKET_CONFIGURATIONS.has(value)) fail("UNVALIDATED_CONFIGURATION");
+  return value;
+}
+
+function assertExactMarketPreset(value, preset) {
+  const expected = MARKET_PRESET_EXPECTATIONS[preset];
+  if (!expected || !sameStructuredValue(value, { version: 1, preset, ...expected })) fail("SCHEMA_INVALID");
+}
+
+function mergeMarketConfiguration(preset, base, authority) {
+  const boundary = authority.trustedConfiguration.executionBoundary;
+  const result = structuredClone(preset);
+  if (base.scope !== undefined) result.scope = mergeScope(preset.scope, base.scope);
+  if (base.verification !== undefined) result.verification = mergeVerification(preset.verification, base.verification, boundary);
+  if (base.reviews !== undefined) result.reviews = mergeReviews(preset.reviews, base.reviews);
+  if (base.reportedChecks !== undefined) result.reportedChecks = mergeReportedChecks(preset.reportedChecks, base.reportedChecks);
+  if (base.output !== undefined) result.output = mergeOutput(preset.output, base.output);
+  if (base.telemetry !== undefined) result.telemetry = mergeTelemetry(preset.telemetry, base.telemetry);
+  return result;
+}
+
+function mergeScope(preset, candidate) {
+  const allowed = candidate.allowed === undefined
+    ? [...preset.allowed]
+    : intersectPatterns(preset.allowed, candidate.allowed);
+  const denied = candidate.denied === undefined
+    ? [...preset.denied]
+    : unionPatterns(preset.denied, candidate.denied);
+  if (candidate.allowed !== undefined && allowed.length !== candidate.allowed.length) fail("CONFLICTING_CONFIGURATION");
+  if (candidate.denied !== undefined && preset.denied.some((pattern) => !candidate.denied.includes(pattern))) fail("CONFLICTING_CONFIGURATION");
+  if (allowed.some((pattern) => denied.includes(pattern))) fail("CONFLICTING_CONFIGURATION");
+  return { allowed, denied };
+}
+
+function mergeVerification(preset, candidate, boundary) {
+  const timeoutMinutes = candidate.timeoutMinutes === undefined
+    ? preset.timeoutMinutes
+    : stricterNumber(preset.timeoutMinutes, candidate.timeoutMinutes, Math.floor(boundary.maximumTotalTimeoutSeconds / 60));
+  const maximumOutputBytes = candidate.maximumOutputBytes === undefined
+    ? preset.maximumOutputBytes
+    : stricterNumber(preset.maximumOutputBytes, candidate.maximumOutputBytes, boundary.maximumOutputBytesPerStream);
+  const commands = candidate.commands === undefined
+    ? structuredClone(preset.commands)
+    : mergeCommands(preset.commands, candidate.commands, boundary.maximumCommandCount, boundary.maximumCommandTimeoutSeconds);
+  if (timeoutMinutes * 60 > boundary.maximumTotalTimeoutSeconds || maximumOutputBytes > boundary.maximumOutputBytesPerStream) fail("AUTHORITY_LIMIT_EXCEEDED");
+  if (commands.length > boundary.maximumCommandCount) fail("AUTHORITY_LIMIT_EXCEEDED");
+  return { timeoutMinutes, maximumOutputBytes, commands };
+}
+
+function mergeCommands(preset, candidate, maximumCommandCount, maximumCommandTimeoutSeconds) {
+  if (candidate.length > Math.min(preset.length, maximumCommandCount)) fail("AUTHORITY_LIMIT_EXCEEDED");
+  const commands = [];
+  let selectedIndex = -1;
+  for (let index = 0; index < candidate.length; index += 1) {
+    const requested = candidate[index];
+    const nextIndex = preset.findIndex((command, candidateIndex) => candidateIndex > selectedIndex
+      && command.name === requested.name && command.run === requested.run);
+    if (nextIndex < 0) fail("CONFLICTING_CONFIGURATION");
+    const selected = preset[nextIndex];
+    const timeoutMinutes = requested.timeoutMinutes === undefined
+      ? selected.timeoutMinutes
+      : stricterNumber(selected.timeoutMinutes, requested.timeoutMinutes, Math.floor(maximumCommandTimeoutSeconds / 60));
+    commands.push({ name: selected.name, run: selected.run, timeoutMinutes });
+    selectedIndex = nextIndex;
+  }
+  return commands;
+}
+
+function mergeReviews(preset, candidate) {
+  if (candidate.minimumApprovals !== undefined && candidate.minimumApprovals < preset.minimumApprovals) fail("CONFLICTING_CONFIGURATION");
+  if (candidate.requireExactHeadApproval === false && preset.requireExactHeadApproval) fail("CONFLICTING_CONFIGURATION");
+  if (candidate.blockChangesRequested === false && preset.blockChangesRequested) fail("CONFLICTING_CONFIGURATION");
+  return {
+    minimumApprovals: Math.max(preset.minimumApprovals, candidate.minimumApprovals ?? preset.minimumApprovals),
+    requireExactHeadApproval: preset.requireExactHeadApproval || candidate.requireExactHeadApproval === true,
+    blockChangesRequested: preset.blockChangesRequested || candidate.blockChangesRequested === true,
+  };
+}
+
+function mergeReportedChecks(preset, candidate) {
+  if (candidate.requireSuccess === false && preset.requireSuccess) fail("CONFLICTING_CONFIGURATION");
+  if (candidate.minimumCount !== undefined && candidate.minimumCount < preset.minimumCount) fail("CONFLICTING_CONFIGURATION");
+  return {
+    requireSuccess: preset.requireSuccess || candidate.requireSuccess === true,
+    minimumCount: Math.max(preset.minimumCount, candidate.minimumCount ?? preset.minimumCount),
+  };
+}
+
+function mergeOutput(preset, candidate) {
+  if (candidate.uploadEvidenceBundle === false && preset.uploadEvidenceBundle) fail("CONFLICTING_CONFIGURATION");
+  if (candidate.includeCommandPreview === false && preset.includeCommandPreview) fail("CONFLICTING_CONFIGURATION");
+  if (candidate.strict === false && preset.strict) fail("CONFLICTING_CONFIGURATION");
+  return {
+    uploadEvidenceBundle: preset.uploadEvidenceBundle || candidate.uploadEvidenceBundle === true,
+    includeCommandPreview: preset.includeCommandPreview || candidate.includeCommandPreview === true,
+    strict: preset.strict || candidate.strict === true,
+  };
+}
+
+function mergeTelemetry(preset, candidate) {
+  if (candidate.enabled === true && !preset.enabled) fail("CONFLICTING_CONFIGURATION");
+  return { enabled: preset.enabled || candidate.enabled === true };
+}
+
+function stricterNumber(preset, candidate, authorityMaximum) {
+  if (candidate > preset || candidate > authorityMaximum) fail("AUTHORITY_LIMIT_EXCEEDED");
+  return Math.min(preset, candidate, authorityMaximum);
+}
+
+function intersectPatterns(preset, candidate) {
+  const candidateSet = new Set(candidate);
+  return preset.filter((pattern) => candidateSet.has(pattern));
+}
+
+function unionPatterns(preset, candidate) {
+  const extra = candidate.filter((pattern) => !preset.includes(pattern)).sort();
+  return [...preset, ...extra];
+}
+
+function sameStructuredValue(left, right) {
+  if (Object.is(left, right)) return true;
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return Array.isArray(left) && Array.isArray(right) && left.length === right.length
+      && left.every((value, index) => sameStructuredValue(value, right[index]));
+  }
+  if (!left || !right || typeof left !== "object" || typeof right !== "object") return false;
+  const leftKeys = Object.keys(left).sort();
+  const rightKeys = Object.keys(right).sort();
+  return sameSortedValues(leftKeys, rightKeys)
+    && leftKeys.every((key) => sameStructuredValue(left[key], right[key]));
+}
+
+export async function parseMarketConfiguration({ source, presetsDirectory, repositoryRoot, validatedAuthority }) {
+  const authority = assertValidatedMarketConfiguration(validatedAuthority);
+  if (typeof source !== "string" || typeof presetsDirectory !== "string" || presetsDirectory === "" || typeof repositoryRoot !== "string" || repositoryRoot === "") fail("INVALID_ARGUMENT");
+  if (Buffer.byteLength(source, "utf8") > MAX_DOCUMENT_BYTES) fail("TOO_LARGE");
+  let documents;
+  try { documents = parseAllDocuments(source, { schema: "core", strict: true, uniqueKeys: true, maxAliasCount: 0 }); } catch { fail("MALFORMED_YAML"); }
+  if (documents.length !== 1 || !documents[0] || documents[0].errors.length !== 0) fail("MALFORMED_YAML");
+  let unsafe = false;
+  visit(documents[0], (_key, node) => { if (isAlias(node) || node?.tag) unsafe = true; });
+  if (unsafe) fail("UNSAFE_YAML");
+  let base;
+  try { base = documents[0].toJS({ maxAliasCount: 0 }); } catch { fail("MALFORMED_YAML"); }
+  validateBaseMarketConfiguration(base, authority.trustedConfiguration.marketConfig.allowedPresets);
+  const root = await resolveRoot(repositoryRoot);
+  const presetRoot = await resolveRoot(presetsDirectory);
+  if (!isWithin(root, presetRoot)) fail("PATH_INVALID");
+  const selected = path.join(presetRoot, `${base.preset}.json`);
+  const relative = path.relative(root, selected).split(path.sep).join("/");
+  const presetDocument = await readDocument(root, relative);
+  const preset = parseStrictJson(presetDocument.text);
+  validateResolvedMarketConfiguration(preset, authority, base.preset);
+  assertExactMarketPreset(preset, base.preset);
+  const marketConfiguration = mergeMarketConfiguration(preset, base, authority);
+  validateResolvedMarketConfiguration(marketConfiguration, authority, base.preset);
+  return deepFreeze({ marketConfiguration, identity: { marketConfigSha256: digest(Buffer.from(source, "utf8")) } });
+}
+
+function validateMarketAuthority(value) {
+  exactObject(value, ["schemaVersion", "id", "version", "authorizationEventId", "issuerActorId", "targetSelector", "observer", "marketConfig", "policy", "evidenceContract", "executionBoundary", "kernel", "output"]);
+  constant(value.schemaVersion, "proofrail.trusted-configuration.v2");
+  constant(value.id, "config.proofrail-market-prototype");
+  constant(value.version, "1.0.0");
+  constant(value.authorizationEventId, MARKET_EVENT);
+  constant(value.issuerActorId, "github:gogun-rgb");
+  exactObject(value.targetSelector, ["kind", "repository", "pullRequest", "baseConfiguration", "requireExactBaseSha", "requireExactHeadSha", "requirePostVerificationHeadMatch"]);
+  constant(value.targetSelector.kind, "GITHUB_PULL_REQUEST_EVENT");
+  constant(value.targetSelector.repository, "CURRENT_CALLER_REPOSITORY");
+  constant(value.targetSelector.pullRequest, "CURRENT_EVENT");
+  exactObject(value.targetSelector.baseConfiguration, ["source", "path"]);
+  constant(value.targetSelector.baseConfiguration.source, "GIT_OBJECT_AT_EXACT_BASE_SHA");
+  constant(value.targetSelector.baseConfiguration.path, ".proofrail/config.yml");
+  constant(value.targetSelector.requireExactBaseSha, true);
+  constant(value.targetSelector.requireExactHeadSha, true);
+  constant(value.targetSelector.requirePostVerificationHeadMatch, true);
+  exactObject(value.observer, ["id", "version"]);
+  strings(value.observer, ["id", "version"]);
+  exactObject(value.marketConfig, ["schemaVersion", "source", "path", "allowedPresets"]);
+  constant(value.marketConfig.schemaVersion, "proofrail.market-config.v1");
+  constant(value.marketConfig.source, "TARGET_BASE_CONFIGURATION");
+  constant(value.marketConfig.path, ".proofrail/config.yml");
+  stringArray(value.marketConfig.allowedPresets, true);
+  if (!sameSortedValues([...value.marketConfig.allowedPresets].sort(), [...MARKET_PRESETS])) fail("SCHEMA_INVALID");
+  exactObject(value.policy, ["id", "version", "path", "sha256"]);
+  exactObject(value.evidenceContract, ["id", "version", "path", "sha256"]);
+  constant(value.policy.path, "config/policies/proofrail-ai-pr-verification-v1.json");
+  constant(value.evidenceContract.path, "config/evidence-contracts/proofrail-ai-pr-verification-v1.json");
+  if (!SHA256_PATTERN.test(value.policy.sha256) || !SHA256_PATTERN.test(value.evidenceContract.sha256)) fail("SCHEMA_INVALID");
+  exactObject(value.executionBoundary, ["id", "githubRead", "githubWrite", "networkPolicy", "credentialPolicy", "forkSecretPolicy", "checkoutCredentialPolicy", "targetCheckout", "targetRepositoryContentRead", "targetCommandExecution", "verificationCommandExecution", "modelExecution", "shellPolicy", "maximumCommandCount", "maximumCommandTimeoutSeconds", "maximumTotalTimeoutSeconds", "maximumOutputBytesPerStream", "maximumPreviewBytesPerStream", "terminateProcessTree", "allowedEnvironmentNames", "deniedEnvironmentNames", "filesystemPolicy"]);
+  constant(value.executionBoundary.id, "execution.github-actions-market-v1");
+  constant(value.executionBoundary.githubRead, true);
+  constant(value.executionBoundary.githubWrite, false);
+  constant(value.executionBoundary.networkPolicy, "CONTROL_PLANE_GITHUB_ONLY_TARGET_COMMANDS_RUNNER_NETWORK_NO_CREDENTIALS");
+  constant(value.executionBoundary.credentialPolicy, "NO_CONTROL_PLANE_CREDENTIALS_IN_TARGET_ENVIRONMENT");
+  constant(value.executionBoundary.forkSecretPolicy, "NO_SECRETS");
+  constant(value.executionBoundary.checkoutCredentialPolicy, "PERSIST_CREDENTIALS_FALSE");
+  constant(value.executionBoundary.targetCheckout, true);
+  constant(value.executionBoundary.targetRepositoryContentRead, true);
+  constant(value.executionBoundary.targetCommandExecution, true);
+  constant(value.executionBoundary.verificationCommandExecution, true);
+  constant(value.executionBoundary.modelExecution, false);
+  constant(value.executionBoundary.shellPolicy, "BASE_CONFIGURATION_BASH");
+  constant(value.executionBoundary.maximumCommandCount, 12);
+  constant(value.executionBoundary.maximumCommandTimeoutSeconds, 1800);
+  constant(value.executionBoundary.maximumTotalTimeoutSeconds, 3600);
+  constant(value.executionBoundary.maximumOutputBytesPerStream, 1048576);
+  constant(value.executionBoundary.maximumPreviewBytesPerStream, 8192);
+  constant(value.executionBoundary.terminateProcessTree, true);
+  stringArray(value.executionBoundary.allowedEnvironmentNames, true);
+  stringArray(value.executionBoundary.deniedEnvironmentNames, true);
+  if (!sameSortedValues([...value.executionBoundary.allowedEnvironmentNames].sort(), [...MARKET_ALLOWED_ENVIRONMENT_NAMES].sort())
+      || !sameSortedValues([...value.executionBoundary.deniedEnvironmentNames].sort(), [...MARKET_DENIED_ENVIRONMENT_NAMES].sort())) fail("SCHEMA_INVALID");
+  constant(value.executionBoundary.filesystemPolicy, "CHECKOUT_AND_RUNNER_TEMP_ONLY");
+  exactObject(value.kernel, ["inputSchemaVersion", "bundleSchemaVersion", "engineVersion", "maximumInvocationCount"]);
+  constant(value.kernel.inputSchemaVersion, "proofrail.kernel.input.v2");
+  constant(value.kernel.bundleSchemaVersion, "proofrail.evidence-bundle.v2");
+  constant(value.kernel.engineVersion, "0.3.0-market-prototype");
+  constant(value.kernel.maximumInvocationCount, 1);
+  exactObject(value.output, ["kind", "format", "publicationBoundary", "strict"]);
+  constant(value.output.kind, "FINALIZED_EVIDENCE_BUNDLE");
+  constant(value.output.format, "CANONICAL_JSON_LF");
+  constant(value.output.publicationBoundary, "GITHUB_ACTIONS_ARTIFACT_AND_STEP_SUMMARY");
+  constant(value.output.strict, true);
+}
+
+function validateMarketReferences(configuration, policy, evidenceContract) {
+  if (policy.schemaVersion !== "proofrail.policy.v2" || evidenceContract.schemaVersion !== "proofrail.evidence-contract.v2" || policy.authorizationEventId !== MARKET_EVENT || evidenceContract.authorizationEventId !== MARKET_EVENT || policy.id !== configuration.policy.id || policy.version !== configuration.policy.version || evidenceContract.id !== configuration.evidenceContract.id || evidenceContract.version !== configuration.evidenceContract.version || policy.evidenceContract.id !== evidenceContract.id || policy.evidenceContract.version !== evidenceContract.version || policy.targetScopeSelector !== "CURRENT_GITHUB_PULL_REQUEST" || evidenceContract.targetScopeSelector !== "CURRENT_GITHUB_PULL_REQUEST" || evidenceContract.selectionProvenance.source !== "TRUSTED_CONFIGURATION" || evidenceContract.selectionProvenance.configurationId !== configuration.id || evidenceContract.selectionProvenance.configurationVersion !== configuration.version) fail("REFERENCE_MISMATCH");
+  if (!Array.isArray(policy.rules) || !Array.isArray(evidenceContract.requirements) || !Array.isArray(evidenceContract.requirementTemplates)) fail("SCHEMA_INVALID");
+  if (new Set(policy.rules.map(({ id }) => id)).size !== policy.rules.length || new Set(evidenceContract.requirements.map(({ id }) => id)).size !== evidenceContract.requirements.length) fail("DUPLICATE_IDENTITY");
+}
+
+function validateBaseMarketConfiguration(value, allowedPresets) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) fail("SCHEMA_INVALID");
+  const allowed = ["version", "preset", "scope", "verification", "reviews", "reportedChecks", "output", "telemetry"];
+  if (Object.keys(value).some((key) => !allowed.includes(key))) fail("SCHEMA_INVALID");
+  constant(value.version, 1);
+  if (!allowedPresets.includes(value.preset)) fail("SCHEMA_INVALID");
+  validateConfigurationSections(value, true);
+}
+
+function validateResolvedMarketConfiguration(value, authority, preset) {
+  exactObject(value, ["version", "preset", "scope", "verification", "reviews", "reportedChecks", "output", "telemetry"]);
+  constant(value.version, 1);
+  constant(value.preset, preset);
+  validateConfigurationSections(value, false);
+  const boundary = authority.trustedConfiguration.executionBoundary;
+  if (value.verification.commands.length > boundary.maximumCommandCount || value.verification.maximumOutputBytes > boundary.maximumOutputBytesPerStream || value.verification.timeoutMinutes * 60 > boundary.maximumTotalTimeoutSeconds || value.verification.commands.some((command) => (command.timeoutMinutes ?? value.verification.timeoutMinutes) * 60 > boundary.maximumCommandTimeoutSeconds) || value.verification.commands.reduce((seconds, command) => seconds + (command.timeoutMinutes ?? value.verification.timeoutMinutes) * 60, 0) > boundary.maximumTotalTimeoutSeconds) fail("AUTHORITY_LIMIT_EXCEEDED");
+}
+
+function validateConfigurationSections(value, partial) {
+  if (value.scope !== undefined) validateScope(value.scope, partial);
+  if (value.verification !== undefined) validateVerification(value.verification, partial);
+  if (value.reviews !== undefined) validateShape(value.reviews, ["minimumApprovals", "requireExactHeadApproval", "blockChangesRequested"], partial);
+  if (value.reportedChecks !== undefined) validateShape(value.reportedChecks, ["requireSuccess", "minimumCount"], partial);
+  if (value.output !== undefined) validateShape(value.output, ["uploadEvidenceBundle", "includeCommandPreview", "strict"], partial);
+  if (value.telemetry !== undefined) validateShape(value.telemetry, ["enabled"], partial);
+}
+
+function validateScope(value, partial) {
+  validateShape(value, ["allowed", "denied"], partial);
+  for (const key of Object.keys(value)) {
+    stringArray(value[key], true);
+    if (value[key].length > MAX_MARKET_SCOPE_PATTERNS) fail("SCHEMA_INVALID");
+    if (value[key].some((entry) => !safeGlob(entry))) fail("SCHEMA_INVALID");
+  }
+  if (value.allowed && value.denied && value.allowed.some((entry) => value.denied.includes(entry))) fail("CONFLICTING_CONFIGURATION");
+}
+
+function validateVerification(value, partial) {
+  validateShape(value, ["timeoutMinutes", "maximumOutputBytes", "commands"], partial);
+  if ("timeoutMinutes" in value && (!Number.isSafeInteger(value.timeoutMinutes) || value.timeoutMinutes < 1 || value.timeoutMinutes > 60)) fail("SCHEMA_INVALID");
+  if ("maximumOutputBytes" in value && (!Number.isSafeInteger(value.maximumOutputBytes) || value.maximumOutputBytes < 1024)) fail("SCHEMA_INVALID");
+  if ("commands" in value) {
+    if (!Array.isArray(value.commands) || value.commands.length === 0) fail("SCHEMA_INVALID");
+    const names = new Set();
+    for (const command of value.commands) {
+      if (!command || typeof command !== "object" || Array.isArray(command) || Object.keys(command).some((key) => !["name", "run", "timeoutMinutes"].includes(key)) || !/^[a-z][a-z0-9-]{0,63}$/.test(command.name) || names.has(command.name) || typeof command.run !== "string" || command.run.trim() === "" || command.run !== command.run.trim() || command.run.length > 2048 || /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(command.run) || (command.timeoutMinutes !== undefined && (!Number.isSafeInteger(command.timeoutMinutes) || command.timeoutMinutes < 1 || command.timeoutMinutes > 30))) fail("SCHEMA_INVALID");
+      names.add(command.name);
+    }
+  }
+}
+
+function validateShape(value, keys, partial) {
+  if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).length === 0 || Object.keys(value).some((key) => !keys.includes(key)) || (!partial && keys.some((key) => !(key in value)))) fail("SCHEMA_INVALID");
+}
+
+function safeGlob(value) {
+  if (typeof value !== "string" || value === "" || value !== value.trim() || value.length > 512 || /[\\\u0000-\u001f\u007f]/.test(value) || value.startsWith("/") || value.startsWith("!") || /^[A-Za-z]:/.test(value)) return false;
+  return value.split("/").every((segment) => segment !== "" && segment !== "." && segment !== ".." && !segment.includes("***") && /^[A-Za-z0-9._*?@+-]+$/.test(segment));
 }
 
 function fail(code) {
