@@ -64,11 +64,11 @@ test("exact pinned actions and checkout boundaries are enforced", async () => {
   assert.deepEqual(checkouts.map((step) => step.with["persist-credentials"]), [false, false, false]);
   assert.equal(checkouts[0].with.repository, "${{ github.event.pull_request.base.repo.full_name }}");
   assert.equal(checkouts[1].with.repository, "${{ github.event.pull_request.head.repo.full_name }}");
-  assert.equal(checkouts[2].with.repository, "gogun-rgb/proofrail");
+  assert.equal(checkouts[2].with.repository, "${{ job.workflow_repository }}");
   assert.deepEqual(checkouts.map((step) => step.with.ref), [
     "${{ github.event.pull_request.base.sha }}",
     "${{ github.event.pull_request.head.sha }}",
-    "${{ github.workflow_sha }}",
+    "${{ job.workflow_sha }}",
   ]);
   assert.equal(steps.find((step) => step.id === "setup-node").uses, ACTIONS.setupNode);
   assert.equal(steps.find((step) => step.id === "artifact").uses, ACTIONS.uploadArtifact);

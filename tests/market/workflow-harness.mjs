@@ -46,7 +46,8 @@ const ALLOWED_EXPRESSIONS = new Set([
   "github.event.pull_request.base.repo.full_name",
   "github.event.pull_request.head.sha",
   "github.event.pull_request.head.repo.full_name",
-  "github.workflow_sha",
+  "job.workflow_repository",
+  "job.workflow_sha",
   "github.token",
   "inputs.config-path",
   "inputs.strict",
@@ -119,8 +120,8 @@ const CHECKOUT_WITH = Object.freeze({
     "persist-credentials": false,
   },
   "checkout-tool": {
-    repository: "gogun-rgb/proofrail",
-    ref: "${{ github.workflow_sha }}",
+    repository: "${{ job.workflow_repository }}",
+    ref: "${{ job.workflow_sha }}",
     path: "proofrail-tool",
     "fetch-depth": 1,
     "persist-credentials": false,
@@ -424,7 +425,7 @@ export async function simulateWorkflow(workflow, options = {}) {
         reasonCodes = ["CHECKOUT_HEAD_MISMATCH"];
       }
     } else if (step.id === "checkout-tool") {
-      checkouts.push({ path: "proofrail-tool", repository: "gogun-rgb/proofrail", ref: event.workflowSha, fetchDepth: 1, persistCredentials: false });
+      checkouts.push({ path: "proofrail-tool", repository: event.workflowRepository, ref: event.workflowSha, fetchDepth: 1, persistCredentials: false });
     } else if (step.id === "event") {
       const collectorEnvironment = { GH_TOKEN: tokenCanary ?? "[CONTROL_TOKEN_ONLY]" };
       tokenCanaryReceivedByCollector = tokenCanary !== null && collectorEnvironment.GH_TOKEN === tokenCanary;
@@ -528,6 +529,7 @@ function makeEvent(caseName, options) {
     headSha,
     currentHeadSha: caseName === "stale-head" ? "3".repeat(40) : headSha,
     workflowSha: "4".repeat(40),
+    workflowRepository: options.workflowRepository ?? "gogun-rgb/proofrail",
   };
 }
 
