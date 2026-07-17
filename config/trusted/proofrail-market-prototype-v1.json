@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "proofrail.trusted-configuration.v2",
+  "id": "config.proofrail-market-prototype",
+  "version": "1.0.0",
+  "authorizationEventId": "operator-event:product-market-001-runtime-authority-v1",
+  "issuerActorId": "github:gogun-rgb",
+  "targetSelector": {
+    "kind": "GITHUB_PULL_REQUEST_EVENT",
+    "repository": "CURRENT_CALLER_REPOSITORY",
+    "pullRequest": "CURRENT_EVENT",
+    "baseConfiguration": {
+      "source": "GIT_OBJECT_AT_EXACT_BASE_SHA",
+      "path": ".proofrail/config.yml"
+    },
+    "requireExactBaseSha": true,
+    "requireExactHeadSha": true,
+    "requirePostVerificationHeadMatch": true
+  },
+  "observer": {
+    "id": "observer.github-pr-market-collector",
+    "version": "1.0.0"
+  },
+  "marketConfig": {
+    "schemaVersion": "proofrail.market-config.v1",
+    "source": "TARGET_BASE_CONFIGURATION",
+    "path": ".proofrail/config.yml",
+    "allowedPresets": ["ai-pr-strict", "dependency-update", "docs-only", "typescript-basic"]
+  },
+  "policy": {
+    "id": "policy.proofrail-ai-pr-verification",
+    "version": "1.0.0",
+    "path": "config/policies/proofrail-ai-pr-verification-v1.json",
+    "sha256": "C4AFB49EE70B3701837DF8ACC65427A180CF0453ABA773265B9DFC159E11CC1F"
+  },
+  "evidenceContract": {
+    "id": "contract.proofrail-ai-pr-verification",
+    "version": "1.0.0",
+    "path": "config/evidence-contracts/proofrail-ai-pr-verification-v1.json",
+    "sha256": "C195378ECDDDAE3FDE703EFC6A9A9C052A09683F68CF3490D2730A71F1B84C61"
+  },
+  "executionBoundary": {
+    "id": "execution.github-actions-market-v1",
+    "githubRead": true,
+    "githubWrite": false,
+    "networkPolicy": "CONTROL_PLANE_GITHUB_ONLY_TARGET_COMMANDS_RUNNER_NETWORK_NO_CREDENTIALS",
+    "credentialPolicy": "NO_CONTROL_PLANE_CREDENTIALS_IN_TARGET_ENVIRONMENT",
+    "forkSecretPolicy": "NO_SECRETS",
+    "checkoutCredentialPolicy": "PERSIST_CREDENTIALS_FALSE",
+    "targetCheckout": true,
+    "targetRepositoryContentRead": true,
+    "targetCommandExecution": true,
+    "verificationCommandExecution": true,
+    "modelExecution": false,
+    "shellPolicy": "BASE_CONFIGURATION_BASH",
+    "maximumCommandCount": 12,
+    "maximumCommandTimeoutSeconds": 1800,
+    "maximumTotalTimeoutSeconds": 3600,
+    "maximumOutputBytesPerStream": 1048576,
+    "maximumPreviewBytesPerStream": 8192,
+    "terminateProcessTree": true,
+    "allowedEnvironmentNames": ["CI", "HOME", "LANG", "PATH", "RUNNER_ARCH", "RUNNER_OS", "SHELL", "TEMP", "TMP", "TMPDIR"],
+    "deniedEnvironmentNames": ["ACTIONS_ID_TOKEN_REQUEST_TOKEN", "ACTIONS_RUNTIME_TOKEN", "GH_TOKEN", "GITHUB_TOKEN", "NODE_AUTH_TOKEN", "NODE_OPTIONS", "NPM_CONFIG_USERCONFIG", "PNPM_HOME", "YARN_NPM_AUTH_TOKEN"],
+    "filesystemPolicy": "CHECKOUT_AND_RUNNER_TEMP_ONLY"
+  },
+  "kernel": {
+    "inputSchemaVersion": "proofrail.kernel.input.v2",
+    "bundleSchemaVersion": "proofrail.evidence-bundle.v2",
+    "engineVersion": "0.3.0-market-prototype",
+    "maximumInvocationCount": 1
+  },
+  "output": {
+    "kind": "FINALIZED_EVIDENCE_BUNDLE",
+    "format": "CANONICAL_JSON_LF",
+    "publicationBoundary": "GITHUB_ACTIONS_ARTIFACT_AND_STEP_SUMMARY",
+    "strict": true
+  }
+}

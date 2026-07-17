@@ -1,0 +1,128 @@
+{
+  "schemaVersion": "proofrail.evidence-contract.v2",
+  "id": "contract.proofrail-ai-pr-verification",
+  "version": "1.0.0",
+  "authorizationEventId": "operator-event:product-market-001-runtime-authority-v1",
+  "targetScopeSelector": "CURRENT_GITHUB_PULL_REQUEST",
+  "selectionProvenance": {
+    "source": "TRUSTED_CONFIGURATION",
+    "configurationId": "config.proofrail-market-prototype",
+    "configurationVersion": "1.0.0"
+  },
+  "requirements": [
+    {
+      "id": "req.target.repository",
+      "inputKind": "OBSERVATION",
+      "requiredProducer": { "id": "observer.github-pr-market-collector", "version": "1.0.0" },
+      "factKey": "target.repository",
+      "expectation": { "kind": "TARGET_BINDING_EQUALS", "targetField": "repository" }
+    },
+    {
+      "id": "req.target.pull-request-number",
+      "inputKind": "OBSERVATION",
+      "requiredProducer": { "id": "observer.github-pr-market-collector", "version": "1.0.0" },
+      "factKey": "target.pullRequestNumber",
+      "expectation": { "kind": "TARGET_BINDING_EQUALS", "targetField": "pullRequestNumber" }
+    },
+    {
+      "id": "req.target.base-sha",
+      "inputKind": "OBSERVATION",
+      "requiredProducer": { "id": "observer.github-pr-market-collector", "version": "1.0.0" },
+      "factKey": "target.baseSha",
+      "expectation": { "kind": "TARGET_BINDING_EQUALS", "targetField": "baseSha" }
+    },
+    {
+      "id": "req.target.head-sha",
+      "inputKind": "OBSERVATION",
+      "requiredProducer": { "id": "observer.github-pr-market-collector", "version": "1.0.0" },
+      "factKey": "target.headSha",
+      "expectation": { "kind": "TARGET_BINDING_EQUALS", "targetField": "headSha" }
+    },
+    {
+      "id": "req.checkout.exact-head",
+      "inputKind": "OBSERVATION",
+      "requiredProducer": { "id": "observer.github-pr-market-collector", "version": "1.0.0" },
+      "factKey": "checkout.headMatchesTarget",
+      "expectation": { "kind": "CONSTANT_EQUALS", "value": true }
+    },
+    {
+      "id": "req.target.current-head-after-verification",
+      "inputKind": "OBSERVATION",
+      "requiredProducer": { "id": "observer.github-pr-market-collector", "version": "1.0.0" },
+      "factKey": "target.headStillCurrent",
+      "expectation": { "kind": "CONSTANT_EQUALS", "value": true }
+    },
+    {
+      "id": "req.configuration.base-version-used",
+      "inputKind": "OBSERVATION",
+      "requiredProducer": { "id": "observer.github-pr-market-collector", "version": "1.0.0" },
+      "factKey": "configuration.baseVersionUsed",
+      "expectation": { "kind": "CONSTANT_EQUALS", "value": true }
+    },
+    {
+      "id": "req.scope.changed-paths-allowed",
+      "inputKind": "OBSERVATION",
+      "requiredProducer": { "id": "observer.github-pr-market-collector", "version": "1.0.0" },
+      "factKey": "scope.changedPathsWithinAllowedScope",
+      "expectation": { "kind": "CONSTANT_EQUALS", "value": true }
+    },
+    {
+      "id": "req.scope.no-denied-paths",
+      "inputKind": "OBSERVATION",
+      "requiredProducer": { "id": "observer.github-pr-market-collector", "version": "1.0.0" },
+      "factKey": "scope.deniedPathsAbsent",
+      "expectation": { "kind": "CONSTANT_EQUALS", "value": true }
+    },
+    {
+      "id": "req.reviews.minimum-approvals",
+      "inputKind": "OBSERVATION",
+      "requiredProducer": { "id": "observer.github-pr-market-collector", "version": "1.0.0" },
+      "factKey": "reviews.minimumApprovalsSatisfied",
+      "expectation": { "kind": "CONSTANT_EQUALS", "value": true }
+    },
+    {
+      "id": "req.reviews.exact-head-approval",
+      "inputKind": "OBSERVATION",
+      "requiredProducer": { "id": "observer.github-pr-market-collector", "version": "1.0.0" },
+      "factKey": "reviews.exactHeadApprovalPresent",
+      "expectation": { "kind": "CONSTANT_EQUALS", "value": true }
+    },
+    {
+      "id": "req.reviews.no-changes-requested",
+      "inputKind": "OBSERVATION",
+      "requiredProducer": { "id": "observer.github-pr-market-collector", "version": "1.0.0" },
+      "factKey": "reviews.changesRequestedAbsent",
+      "expectation": { "kind": "CONSTANT_EQUALS", "value": true }
+    },
+    {
+      "id": "req.checks.minimum-count",
+      "inputKind": "OBSERVATION",
+      "requiredProducer": { "id": "observer.github-pr-market-collector", "version": "1.0.0" },
+      "factKey": "checks.minimumCountSatisfied",
+      "expectation": { "kind": "CONSTANT_EQUALS", "value": true }
+    },
+    {
+      "id": "req.checks.all-reported-successful",
+      "inputKind": "OBSERVATION",
+      "requiredProducer": { "id": "observer.github-pr-market-collector", "version": "1.0.0" },
+      "factKey": "checks.allReportedSuccessful",
+      "expectation": { "kind": "CONSTANT_EQUALS", "value": true }
+    },
+    {
+      "id": "req.collection.changed-files-complete",
+      "inputKind": "OBSERVATION",
+      "requiredProducer": { "id": "observer.github-pr-market-collector", "version": "1.0.0" },
+      "factKey": "collection.changedFilesComplete",
+      "expectation": { "kind": "CONSTANT_EQUALS", "value": true }
+    }
+  ],
+  "requirementTemplates": [
+    {
+      "idPrefix": "req.verification.command",
+      "source": "CONFIGURED_VERIFICATION_COMMANDS",
+      "inputKind": "VERIFICATION_RECEIPT",
+      "requiredProducer": { "id": "runner.proofrail-verification", "version": "1.0.0" },
+      "expectedReceiptStatus": "PASS"
+    }
+  ]
+}
