@@ -8,7 +8,7 @@ import test from 'node:test';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const DEFAULT_SITE_ROOT = join(ROOT, 'site');
 const INSTALL_GUIDE = join(ROOT, 'docs/getting-started/installation.md');
-const REVIEWED_WORKFLOW_SHA = '462e2296ea5e495db8a1a6271f9710b02e582beb';
+const REVIEWED_WORKFLOW_SHA = '332969ce635a0a818072a6c45ecaf8288c76f0f0';
 const SITE_ROOT = process.env.PUBLIC_SITE_ROOT
   ? resolve(process.env.PUBLIC_SITE_ROOT)
   : DEFAULT_SITE_ROOT;
