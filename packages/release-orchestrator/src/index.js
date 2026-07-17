@@ -14,7 +14,7 @@ import {
   loadTrustedReleaseConfiguration,
 } from "@proofrail/trusted-config";
 export { ReleaseOrchestratorError } from "./errors.js";
-export { assembleMarketKernelInput, evaluateMarketCandidate } from "./market-orchestrator.js";
+export { assembleMarketKernelInput, buildMarketArtifactProjection, evaluateMarketCandidate } from "./market-orchestrator.js";
 import { fail } from "./errors.js";
 import { compare, deepFreeze, exactObject, isSuccessfulCheck, matchesScope, normalizeSnapshot } from "./snapshot.js";
 

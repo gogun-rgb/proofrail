@@ -54,6 +54,7 @@ export async function runVerificationPlan(options) {
   const receipts = [];
   const deadline = Date.now() + options.executionBoundary.maximumTotalTimeoutSeconds * 1000;
   const limits = terminationLimits(options.executionBoundary);
+  await options.assertWorkingTreeStable?.();
   for (const [index, command] of options.commands.entries()) {
     await binding.assertCurrent();
     const remaining = deadline - Date.now();
@@ -71,6 +72,7 @@ export async function runVerificationPlan(options) {
       assertCurrent: binding.assertCurrent,
       ...limits,
     });
+    await options.assertWorkingTreeStable?.();
     const stdout = redact(execution.stdout.preview);
     const stderr = redact(execution.stderr.preview);
     const matchCount = stdout.matchCount + stderr.matchCount;

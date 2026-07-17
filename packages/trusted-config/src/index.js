@@ -32,19 +32,19 @@ const MARKET_DENIED_ENVIRONMENT_NAMES = Object.freeze(["ACTIONS_ID_TOKEN_REQUEST
 const MARKET_PRESET_EXPECTATIONS = Object.freeze({
   "typescript-basic": {
     scope: { allowed: ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts", "tests/**/*.tsx", "package.json", "pnpm-lock.yaml", "tsconfig.json"], denied: [".github/**", "**/*.pem", "**/*.key"] },
-    verification: { timeoutMinutes: 30, maximumOutputBytes: 1048576, commands: [{ name: "typecheck", run: "pnpm typecheck", timeoutMinutes: 10 }, { name: "test", run: "pnpm test", timeoutMinutes: 20 }] },
+    verification: { timeoutMinutes: 30, maximumOutputBytes: 1048576, commands: [{ name: "frozen-install", run: "pnpm install --frozen-lockfile", timeoutMinutes: 10 }, { name: "typecheck", run: "pnpm typecheck", timeoutMinutes: 10 }, { name: "test", run: "pnpm test", timeoutMinutes: 10 }] },
     reviews: { minimumApprovals: 1, requireExactHeadApproval: true, blockChangesRequested: true },
     reportedChecks: { requireSuccess: true, minimumCount: 1 },
     output: { uploadEvidenceBundle: true, includeCommandPreview: true, strict: true },
-    telemetry: { enabled: false },
+    telemetry: { enabled: true },
   },
   "ai-pr-strict": {
     scope: { allowed: ["src/**", "packages/**", "tests/**", "package.json", "pnpm-lock.yaml", "tsconfig.json"], denied: [".github/**", "config/trusted/**", "config/policies/**", "config/evidence-contracts/**", "**/*.pem", "**/*.key"] },
-    verification: { timeoutMinutes: 60, maximumOutputBytes: 1048576, commands: [{ name: "lint", run: "pnpm lint", timeoutMinutes: 10 }, { name: "typecheck", run: "pnpm typecheck", timeoutMinutes: 10 }, { name: "test", run: "pnpm test", timeoutMinutes: 30 }, { name: "build", run: "pnpm build", timeoutMinutes: 10 }] },
+    verification: { timeoutMinutes: 60, maximumOutputBytes: 1048576, commands: [{ name: "frozen-install", run: "pnpm install --frozen-lockfile", timeoutMinutes: 10 }, { name: "lint", run: "pnpm lint", timeoutMinutes: 10 }, { name: "typecheck", run: "pnpm typecheck", timeoutMinutes: 10 }, { name: "test", run: "pnpm test", timeoutMinutes: 20 }, { name: "build", run: "pnpm build", timeoutMinutes: 10 }] },
     reviews: { minimumApprovals: 2, requireExactHeadApproval: true, blockChangesRequested: true },
     reportedChecks: { requireSuccess: true, minimumCount: 1 },
     output: { uploadEvidenceBundle: true, includeCommandPreview: true, strict: true },
-    telemetry: { enabled: false },
+    telemetry: { enabled: true },
   },
   "docs-only": {
     scope: { allowed: ["docs/**", "README.md", "CHANGELOG.md", "**/*.md"], denied: ["src/**", "packages/**", ".github/**", "config/**", "**/*.pem", "**/*.key"] },
@@ -52,7 +52,7 @@ const MARKET_PRESET_EXPECTATIONS = Object.freeze({
     reviews: { minimumApprovals: 1, requireExactHeadApproval: true, blockChangesRequested: true },
     reportedChecks: { requireSuccess: true, minimumCount: 1 },
     output: { uploadEvidenceBundle: true, includeCommandPreview: true, strict: true },
-    telemetry: { enabled: false },
+    telemetry: { enabled: true },
   },
   "dependency-update": {
     scope: { allowed: ["package.json", "pnpm-lock.yaml", "npm-shrinkwrap.json", "package-lock.json", "yarn.lock"], denied: ["src/**", "packages/**", ".github/**", "config/**", "**/*.pem", "**/*.key"] },
@@ -60,7 +60,7 @@ const MARKET_PRESET_EXPECTATIONS = Object.freeze({
     reviews: { minimumApprovals: 1, requireExactHeadApproval: true, blockChangesRequested: true },
     reportedChecks: { requireSuccess: true, minimumCount: 1 },
     output: { uploadEvidenceBundle: true, includeCommandPreview: true, strict: true },
-    telemetry: { enabled: false },
+    telemetry: { enabled: true },
   },
 });
 
@@ -615,7 +615,7 @@ function mergeOutput(preset, candidate) {
 
 function mergeTelemetry(preset, candidate) {
   if (candidate.enabled === true && !preset.enabled) fail("CONFLICTING_CONFIGURATION");
-  return { enabled: preset.enabled || candidate.enabled === true };
+  return { enabled: candidate.enabled !== false && preset.enabled };
 }
 
 function stricterNumber(preset, candidate, authorityMaximum) {

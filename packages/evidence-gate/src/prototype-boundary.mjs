@@ -58,11 +58,18 @@ export async function captureWorktreeSnapshot(repositoryPath) {
 }
 
 export async function assertWorktreeSnapshotStable(before) {
-  const after = await captureWorktreeSnapshot(before.root);
-  if (!sameWorktreeSnapshot(before, after)) {
-    throw new PrototypeBoundaryError("PRF_STALE_TARGET", "target worktree changed during verification");
+  if (!before || typeof before.root !== "string" || !before.rootEntry || !Array.isArray(before.entries)) {
+    throw new PrototypeBoundaryError("PRF_STALE_TARGET", "target worktree baseline is unavailable");
   }
-  return after;
+  for (const entry of [before.rootEntry, ...before.entries]) {
+    const currentPath = entry.relative === "" ? before.root : path.join(before.root, ...entry.relative.split("/"));
+    const current = await captureWorktreeEntry(currentPath, entry.relative);
+    if (!sameBaselineWorktreeEntry(entry, current)) {
+      throw new PrototypeBoundaryError("PRF_STALE_TARGET", "target worktree changed during verification");
+    }
+  }
+  await assertNoGitMetadataAdditions(before);
+  return before;
 }
 
 export function rejectUnsafeArgumentPath(value, field) {
@@ -76,12 +83,17 @@ export function rejectUnsafeArgumentPath(value, field) {
   return path.resolve(value);
 }
 
-export async function capturePrototypePaths(options) {
+export async function capturePrototypeOutputPath(value) {
+  return captureOutputPath(value);
+}
+
+export async function capturePrototypePaths(options, capturedOutput = undefined) {
   const event = await capturePath(options.event, "event", "file");
   const repository = await capturePath(options.repository, "repository", "directory");
   const config = await capturePath(options.config, "config", "file");
   const shell = await capturePath(options.shell, "shell", "file");
   const output = await captureOutputPath(options.output);
+  if (capturedOutput !== undefined) assertSameIdentity(capturedOutput, output, "OUTPUT_CHANGED");
   assertDistinct(event, repository, "event", "repository");
   assertDistinct(event, config, "event", "config");
   assertDistinct(event, shell, "event", "shell");
@@ -258,15 +270,14 @@ async function captureWorktreeEntry(value, relative) {
   });
 }
 
-function sameWorktreeSnapshot(left, right) {
-  if (!sameWorktreeEntry(left.rootEntry, right.rootEntry) || left.entries.length !== right.entries.length) return false;
-  for (let index = 0; index < left.entries.length; index += 1) {
-    if (!sameWorktreeEntry(left.entries[index], right.entries[index])) return false;
+function sameBaselineWorktreeEntry(left, right) {
+  if (left.kind === "directory") {
+    return left.relative === right.relative
+      && left.kind === right.kind
+      && left.dev === right.dev
+      && left.ino === right.ino
+      && left.mode === right.mode;
   }
-  return true;
-}
-
-function sameWorktreeEntry(left, right) {
   return left.relative === right.relative
     && left.kind === right.kind
     && left.dev === right.dev
@@ -274,9 +285,44 @@ function sameWorktreeEntry(left, right) {
     && left.mode === right.mode
     && left.size === right.size
     && left.mtimeNs === right.mtimeNs
-    && left.ctimeNs === right.ctimeNs
     && left.digest === right.digest
     && left.linkTarget === right.linkTarget;
+}
+
+async function assertNoGitMetadataAdditions(before) {
+  const gitEntry = before.entries.find((entry) => entry.relative === ".git");
+  const gitPath = path.join(before.root, ".git");
+  let details;
+  try {
+    details = await lstat(gitPath, { bigint: true });
+  } catch (error) {
+    if (error?.code === "ENOENT") return;
+    throw new PrototypeBoundaryError("PRF_STALE_TARGET", "git metadata cannot be inspected");
+  }
+  if (!gitEntry) {
+    throw new PrototypeBoundaryError("PRF_STALE_TARGET", "git metadata changed during verification");
+  }
+  if (gitEntry.kind !== "directory") return;
+  if (!details.isDirectory()) throw new PrototypeBoundaryError("PRF_STALE_TARGET", "git metadata changed during verification");
+  const baselinePaths = new Set(before.entries.map((entry) => entry.relative));
+  await assertNoNewGitMetadataEntry(before.root, ".git", baselinePaths);
+}
+
+async function assertNoNewGitMetadataEntry(root, relative, baselinePaths) {
+  const directory = path.join(root, ...relative.split("/"));
+  let children;
+  try {
+    children = await readdir(directory, { withFileTypes: true });
+  } catch {
+    throw new PrototypeBoundaryError("PRF_STALE_TARGET", "git metadata cannot be inspected");
+  }
+  for (const child of children) {
+    const childRelative = `${relative}/${child.name}`;
+    if (!baselinePaths.has(childRelative)) {
+      throw new PrototypeBoundaryError("PRF_STALE_TARGET", "git metadata changed during verification");
+    }
+    if (child.isDirectory()) await assertNoNewGitMetadataEntry(root, childRelative, baselinePaths);
+  }
 }
 
 async function boundedDigest(file, size) {

@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   collectWorkflowEvent,
+  normalizeWorkflowEvent,
   readCurrentPullRequestHead,
 } from "../../packages/evidence-gate/src/workflow-event-cli.mjs";
 
@@ -28,7 +29,7 @@ const SNAPSHOT = Object.freeze({
   ],
   commits: [{ oid: HEAD_SHA }],
   checks: [{ kind: "check-run", name: "ci", status: "COMPLETED", conclusion: "SUCCESS" }],
-  reviews: [],
+  reviews: [{ authorLogin: "maintainer", authorCanPushToRepository: true, state: "APPROVED", submittedAt: "2026-07-15T00:00:00Z", commitOid: HEAD_SHA }],
 });
 
 function parseGraphql(args) {
@@ -104,6 +105,7 @@ function fakeGh(snapshot, calls, { currentHead = CURRENT_HEAD_SHA } = {}) {
           state: value.state,
           submittedAt: value.submittedAt,
           author: value.authorLogin === null ? null : { login: value.authorLogin },
+          authorCanPushToRepository: value.authorCanPushToRepository,
           commit: value.commitOid === null ? null : { oid: value.commitOid },
         })),
       } } } });
@@ -136,6 +138,7 @@ test("collects a bounded paginated snapshot and re-reads head", async () => {
 
   assert.equal(event.origin, "live");
   assert.equal(event.snapshot.headOid, HEAD_SHA);
+  assert.equal(event.snapshot.reviews[0].authorCanPushToRepository, true);
   assert.equal(event.source.baseRepository, REPOSITORY);
   assert.equal(event.source.headRepository, REPOSITORY);
   assert.equal(calls.length, 7);
@@ -155,6 +158,29 @@ test("collects a bounded paginated snapshot and re-reads head", async () => {
     source: "github-api",
   });
   assert.equal(calls.length, 8);
+});
+
+test("workflow events reject market reviews with missing write eligibility", () => {
+  const snapshot = structuredClone(SNAPSHOT);
+  delete snapshot.reviews[0].authorCanPushToRepository;
+  assert.throws(
+    () => normalizeWorkflowEvent({
+      schemaVersion: "proofrail.workflow-event.v1",
+      origin: "live",
+      snapshot,
+      source: {
+        collector: "github-pr-bounded-collector.v1",
+        repository: REPOSITORY,
+        pullRequestNumber: 8,
+        baseRepository: REPOSITORY,
+        headRepository: REPOSITORY,
+        baseSha: BASE_SHA,
+        headSha: HEAD_SHA,
+        collectedAt: "2026-07-15T00:00:00.000Z",
+      },
+    }),
+    (error) => error?.code === "PROOFRAIL_WORKFLOW_EVENT_FAILED" && error.stage === "INPUT" && error.reason === "SNAPSHOT_INVALID",
+  );
 });
 
 test("rejects a head identity mismatch without exposing gh output", async () => {

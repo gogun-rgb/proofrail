@@ -151,6 +151,7 @@ export function validateOptions(options) {
   for (const field of ["trustedConfigurationSha256", "policySha256", "evidenceContractSha256"]) digestValue(options.authorityLineage[field], field);
   digestValue(options.marketConfigSha256, "marketConfigSha256");
   if (options.clock !== undefined && (options.clock === null || typeof options.clock.now !== "function")) invalid("clock.now must be a function");
+  if (options.assertWorkingTreeStable !== undefined && typeof options.assertWorkingTreeStable !== "function") invalid("assertWorkingTreeStable must be a function");
   if (options.controlEnvironment !== undefined && (options.controlEnvironment === null || typeof options.controlEnvironment !== "object" || Array.isArray(options.controlEnvironment) || Object.values(options.controlEnvironment).some((value) => value !== undefined && typeof value !== "string"))) invalid("controlEnvironment is invalid");
   if (options.runnerIdentity !== undefined) {
     if (options.runnerIdentity === null || typeof options.runnerIdentity !== "object" || Array.isArray(options.runnerIdentity)) invalid("runnerIdentity is invalid");

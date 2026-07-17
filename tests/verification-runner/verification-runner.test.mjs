@@ -77,6 +77,52 @@ test("records FAIL and stops before following commands", { skip: WINDOWS_EXECUTI
   await assert.rejects(access(marker), (error) => error?.code === "ENOENT");
 });
 
+test("runs an optional worktree assertion before verification and after every command", { skip: WINDOWS_EXECUTION_SKIP }, async () => {
+  const base = await fixture();
+  let calls = 0;
+  const receipts = await runVerificationPlan({
+    ...base,
+    commands: [{ name: "first", run: "printf first" }, { name: "second", run: "printf second" }],
+    assertWorkingTreeStable: async () => { calls += 1; },
+  });
+
+  assert.equal(receipts.length, 2);
+  assert.equal(calls, 3);
+});
+
+test("rejects a changed worktree before retaining a receipt or starting the next command", { skip: WINDOWS_EXECUTION_SKIP }, async () => {
+  const base = await fixture();
+  const firstMarker = join(base.workingDirectory, "first-ran");
+  const secondMarker = join(base.workingDirectory, "second-ran");
+  let calls = 0;
+
+  await assert.rejects(
+    runVerificationPlan({
+      ...base,
+      commands: [
+        { name: "first", run: `printf first > '${firstMarker}'` },
+        { name: "second", run: `printf second > '${secondMarker}'` },
+      ],
+      assertWorkingTreeStable: async () => {
+        calls += 1;
+        if (calls === 2) throw new VerificationRunnerError("BLOCKED_EXECUTION_BOUNDARY", "working tree changed");
+      },
+    }),
+    (error) => error instanceof VerificationRunnerError && error.code === "BLOCKED_EXECUTION_BOUNDARY",
+  );
+  assert.equal(calls, 2);
+  await access(firstMarker);
+  await assert.rejects(access(secondMarker), (error) => error?.code === "ENOENT");
+});
+
+test("rejects a non-function worktree assertion", async () => {
+  const base = await fixture();
+  await assert.rejects(
+    runVerificationPlan({ ...base, assertWorkingTreeStable: true }),
+    (error) => error instanceof VerificationRunnerError && error.code === "INVALID_OPTIONS",
+  );
+});
+
 test("fails closed when no worker isolation attestation is supplied", async () => {
   const base = await fixture();
   const marker = join(base.workingDirectory, "unattested-command-ran");
@@ -184,6 +230,31 @@ test("redaction helper covers required labels and token families", () => {
   assert.deepEqual(redact(ordinary), { text: ordinary, matchCount: 0 });
 });
 
+test("redaction helper redacts raw credential families and complete private-key blocks", () => {
+  const canaries = [
+    `AKIA${"A".repeat(16)}`,
+    ["xox", "b-123456789012-123456789012-abcdefghijklmnop"].join(""),
+    `npm_${"n".repeat(36)}`,
+    "-----BEGIN PRIVATE KEY-----\ncHJvb2ZyYWlsLXN5bnRoZXRpYy1wZW0tY2FuYXJ5\n-----END PRIVATE KEY-----",
+  ];
+  const redacted = redact(canaries.join("\n"));
+
+  assert.equal(redacted.matchCount, canaries.length);
+  for (const canary of canaries) assert.doesNotMatch(redacted.text, new RegExp(canary.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.equal(redacted.text.match(/\[REDACTED\]/g)?.length, canaries.length);
+});
+
+test("redaction helper preserves incomplete raw credential lookalikes", () => {
+  const text = [
+    `AKIA${"A".repeat(15)}`,
+    "xoxb-too-short",
+    `npm_${"n".repeat(35)}`,
+    "-----BEGIN PRIVATE KEY-----\ncHJvb2ZyYWlsLXN5bnRoZXRpYy1wZW0tY2FuYXJ5",
+  ].join("\n");
+
+  assert.deepEqual(redact(text), { text, matchCount: 0 });
+});
+
 test("redaction helper removes quoted and JSON assignment values", () => {
   const canaries = [
     ['PASSWORD="runner-quoted-assignment-canary"', "runner-quoted-assignment-canary"],
@@ -262,6 +333,27 @@ test("redacts previews and retained command text", { skip: WINDOWS_EXECUTION_SKI
   assert.equal(receipt.redaction.applied, true);
   assert.doesNotMatch(JSON.stringify(receipt), /supersecretvalue/);
   assert.equal(receipt.result.stdoutDigest, `sha256:${createHash("sha256").update(raw).digest("hex").toUpperCase()}`);
+});
+
+test("redacts raw credential families and complete private-key blocks from retained receipts", { skip: WINDOWS_EXECUTION_SKIP }, async () => {
+  const base = await fixture();
+  const canaries = [
+    `AKIA${"A".repeat(16)}`,
+    ["xox", "b-123456789012-123456789012-abcdefghijklmnop"].join(""),
+    `npm_${"n".repeat(36)}`,
+    "-----BEGIN PRIVATE KEY-----\ncHJvb2ZyYWlsLXN5bnRoZXRpYy1wZW0tY2FuYXJ5\n-----END PRIVATE KEY-----",
+  ];
+  const raw = canaries.join("\n");
+  const [receipt] = await runVerificationPlan({
+    ...base,
+    commands: [{ name: "raw-credentials", run: `printf '%s' ${shellQuote(raw)}` }],
+    executionBoundary: { ...base.executionBoundary, maximumPreviewBytesPerStream: 1024 },
+  });
+
+  assert.equal(receipt.redaction.applied, true);
+  assert.ok(receipt.redaction.matchCount >= canaries.length);
+  for (const canary of canaries) assert.doesNotMatch(JSON.stringify(receipt), new RegExp(canary.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.equal(receipt.result.stdoutPreview.match(/\[REDACTED\]/g)?.length, canaries.length);
 });
 
 test("fails closed when output exceeds its boundary", { skip: process.platform === "win32" }, async () => {

@@ -4,12 +4,15 @@ const NONE = "(none)";
 const MAX_SUMMARY_BYTES = 8192;
 const ACTIONS = Object.freeze({
   PRF_STALE_TARGET: "Re-collect the pull request and verify the exact head before rerunning.",
-  VERIFICATION_COMMAND_FAILED: "Fix the failing configured command, then request a new evaluation.",
-  EXECUTION_IMPOSSIBLE: "Resolve the execution boundary or prerequisite failure, then rerun.",
-  REQUIRED_EVIDENCE_MISSING: "Collect the missing authorized Evidence and request a new evaluation.",
-  REPORTED_CHECK_FAILED: "Resolve the reported check failure on the exact head, then rerun.",
-  SCOPE_PATH_DENIED: "Change only paths permitted by the base configuration, then rerun.",
-  ARTIFACT_PUBLICATION_FAILED: "Repair the caller-controlled artifact destination and rerun locally.",
+  PRF_EXECUTION_IMPOSSIBLE: "Resolve the execution boundary or prerequisite failure, then rerun.",
+  PRF_SCOPE_PATH_NOT_ALLOWED: "Change only paths permitted by the base configuration, then rerun.",
+  PRF_UNTRUSTED_POLICY_CHANGE: "Use the unchanged base-branch configuration and request a new evaluation.",
+  PRF_VERIFICATION_COMMAND_FAILED: "Fix the failing configured command, then request a new evaluation.",
+  PRF_EXACT_HEAD_APPROVAL_MISSING: "Obtain an approval bound to the exact pull-request head, then rerun.",
+  PRF_MINIMUM_APPROVALS_MISSING: "Obtain the required number of exact-head approvals, then rerun.",
+  PRF_CHANGES_REQUESTED_PRESENT: "Resolve the requested changes and obtain a new exact-head approval.",
+  PRF_REPORTED_CHECK_FAILED: "Resolve the reported check failure on the exact head, then rerun.",
+  PRF_REQUIRED_EVIDENCE_MISSING: "Collect the missing authorized Evidence and request a new evaluation.",
 });
 const DELIVERY_ACTIONS = Object.freeze({
   BLOCKED_EXECUTION_BOUNDARY: "Provide the authority-approved GITHUB_HOSTED_LINUX_SANDBOX_V1 isolation attestation, then rerun. Proofrail will not fabricate one.",
@@ -30,6 +33,7 @@ export function renderActionableSummary(bundle) {
   const target = isPlainRecord(bundle.target) ? bundle.target : {};
   const reasons = asStrings(bundle.reasonCodes);
   const receipts = Array.isArray(bundle.verificationReceipts) ? bundle.verificationReceipts : [];
+  const unsatisfiedRequirements = findUnsatisfiedRequirements(bundle);
   const lines = [
     `# Proofrail ${verdict}`,
     "",
@@ -42,6 +46,7 @@ export function renderActionableSummary(bundle) {
     "",
     `Verdict: **${verdict}**`,
     `Reason codes: ${renderList(reasons)}`,
+    `Unsatisfied evidence requirements: ${renderList(unsatisfiedRequirements)}`,
     "",
     "## Next actions",
     "",
@@ -53,16 +58,42 @@ export function renderActionableSummary(bundle) {
     "",
     "## Scope and review signals",
     "",
+    `Allowed patterns: ${renderNestedList(bundle.scope, "allowedPatterns")}`,
+    `Denied patterns: ${renderNestedList(bundle.scope, "deniedPatterns")}`,
     `Changed paths: ${renderNestedList(bundle.scope, "changedPaths")}`,
     `Outside declared scope: ${renderNestedList(bundle.scope, "outsideDeclaredScope")}`,
     `Review needs: ${renderValueList(bundle.reviewNeeds)}`,
-    `Reported checks: ${renderValueList(bundle.reportedChecks)}`,
+    "",
+    "## Review history",
+    "",
+    ...renderReviews(bundle.reviews),
+    "",
+    "## Reported checks",
+    "",
+    ...renderReportedChecks(bundle.reportedChecks),
+    "",
+    "## Evidence Bundle",
+    "",
+    "Artifact: `evidence-bundle.json`",
     "",
     "This result applies only to the exact target, authority lineage, observations, and receipts in the attached Evidence Bundle.",
     "It is not a guarantee of correctness, security, deployment safety, trusted release status, or external acceptance.",
     "",
   ];
   return boundedSummary(lines.join("\n"));
+}
+
+function findUnsatisfiedRequirements(bundle) {
+  const requirements = Array.isArray(bundle.evidenceRequirements) ? bundle.evidenceRequirements : [];
+  const satisfied = new Set(
+    (Array.isArray(bundle.evidence) ? bundle.evidence : [])
+      .filter((evidence) => isPlainRecord(evidence) && typeof evidence.requirementId === "string")
+      .map((evidence) => evidence.requirementId),
+  );
+  return requirements
+    .filter((requirement) => isPlainRecord(requirement) && typeof requirement.id === "string" && !satisfied.has(requirement.id))
+    .map((requirement) => requirement.id)
+    .sort();
 }
 
 /** @param {{ code?: unknown, stage?: unknown, reason?: unknown }} failure */
@@ -99,6 +130,28 @@ function renderReceipts(receipts) {
     const command = isPlainRecord(receipt?.command) ? receipt.command : {};
     const result = isPlainRecord(receipt?.result) ? receipt.result : {};
     return `- \`${field(command.name)}\`: **${field(result.status)}**${result.timedOut === true ? " (timed out)" : ""}`;
+  });
+}
+
+function renderReviews(value) {
+  const reviews = Array.isArray(value) ? value : [];
+  if (reviews.length === 0) return ["- No reviews were collected."];
+  return reviews.map((review) => {
+    const current = isPlainRecord(review) ? review : {};
+    const identity = field(current.authorLogin);
+    const state = field(current.state);
+    const head = field(current.commitOid);
+    const eligible = current.authorCanPushToRepository === true ? "eligible" : "ineligible";
+    return `- \`${identity}\`: **${state}**; commit \`${head}\`; ${eligible} reviewer.`;
+  });
+}
+
+function renderReportedChecks(value) {
+  const checks = Array.isArray(value) ? value : [];
+  if (checks.length === 0) return ["- No reported checks were collected."];
+  return checks.map((check) => {
+    const current = isPlainRecord(check) ? check : {};
+    return `- \`${field(current.name)}\` (${field(current.kind)}): **${field(current.status)}** / ${field(current.conclusion)}`;
   });
 }
 

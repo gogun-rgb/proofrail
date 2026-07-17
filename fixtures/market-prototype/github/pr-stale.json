@@ -13,7 +13,7 @@
     "files": [{ "path": "docs/guide.md", "additions": 2, "deletions": 0 }],
     "commits": [{ "oid": "2222222222222222222222222222222222222222" }],
     "checks": [{ "kind": "check-run", "name": "ci", "status": "COMPLETED", "conclusion": "SUCCESS" }],
-    "reviews": [{ "authorLogin": "reviewer", "state": "APPROVED", "submittedAt": "2026-07-15T00:00:00Z", "commitOid": "2222222222222222222222222222222222222222" }]
+    "reviews": [{ "authorLogin": "reviewer", "authorCanPushToRepository": true, "state": "APPROVED", "submittedAt": "2026-07-15T00:00:00Z", "commitOid": "2222222222222222222222222222222222222222" }]
   },
   "runtimeState": {
     "checkoutHeadSha": "2222222222222222222222222222222222222222",

@@ -1,6 +1,6 @@
 import {
-  collectGitHubPullRequest,
-  normalizeGitHubSnapshot,
+  collectMarketGitHubPullRequest,
+  normalizeMarketGitHubSnapshot,
 } from "./github.js";
 import {
   CURRENT_HEAD_QUERY,
@@ -34,7 +34,7 @@ export async function collectWorkflowEvent(options) {
 
   let snapshot;
   try {
-    snapshot = await collectGitHubPullRequest({
+    snapshot = await collectMarketGitHubPullRequest({
       repository: normalized.repository,
       pullRequestNumber: normalized.pullRequestNumber,
       runGh: normalized.runGh,
@@ -109,7 +109,7 @@ export function normalizeWorkflowEvent(value) {
   let snapshot;
   try {
     assertSnapshotShape(value.snapshot);
-    snapshot = normalizeGitHubSnapshot(value.snapshot);
+    snapshot = normalizeMarketGitHubSnapshot(value.snapshot);
   } catch {
     throw new WorkflowEventError("INPUT", "SNAPSHOT_INVALID");
   }
@@ -139,7 +139,7 @@ function assertSnapshotShape(value) {
     files: ["path", "additions", "deletions"],
     commits: ["oid"],
     checks: ["kind", "name", "status", "conclusion"],
-    reviews: ["authorLogin", "state", "submittedAt", "commitOid"],
+    reviews: ["authorLogin", "authorCanPushToRepository", "state", "submittedAt", "commitOid"],
   };
   for (const [field, keys] of Object.entries(expected)) {
     if (!Array.isArray(value[field])

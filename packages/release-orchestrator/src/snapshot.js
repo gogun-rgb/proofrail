@@ -1,6 +1,6 @@
 import { fail } from "./errors.js";
 
-export function normalizeSnapshot(value) {
+export function normalizeSnapshot(value, { requireReviewEligibility = false } = {}) {
   exactObject(value, ["repository", "number", "title", "state", "isDraft", "baseRefName", "baseOid", "headRefName", "headOid", "changedFiles", "files", "commits", "checks", "reviews"]);
   if (typeof value.repository !== "string" || !Number.isSafeInteger(value.number) || value.number < 1
       || typeof value.title !== "string" || value.title.length === 0 || value.title.length > 500
@@ -43,11 +43,14 @@ export function normalizeSnapshot(value) {
   unique(checks.map(({ kind, name }) => `${kind}\u0000${name}`));
 
   for (const review of value.reviews) {
-    exactObject(review, ["authorLogin", "state", "submittedAt", "commitOid"]);
+    exactObject(review, requireReviewEligibility
+      ? ["authorLogin", "authorCanPushToRepository", "state", "submittedAt", "commitOid"]
+      : ["authorLogin", "state", "submittedAt", "commitOid"]);
     if ((review.authorLogin !== null && !safeText(review.authorLogin, 100))
         || !safeText(review.state, 64)
         || (review.submittedAt !== null && !safeText(review.submittedAt, 64))
-        || (review.commitOid !== null && !/^[0-9a-f]{40}$/i.test(review.commitOid))) fail("SNAPSHOT_INVALID");
+        || (review.commitOid !== null && !/^[0-9a-f]{40}$/i.test(review.commitOid))
+        || (requireReviewEligibility && typeof review.authorCanPushToRepository !== "boolean")) fail("SNAPSHOT_INVALID");
   }
 
   return deepFreeze({
@@ -64,7 +67,9 @@ export function normalizeSnapshot(value) {
     files,
     commits,
     checks,
-    reviews: value.reviews.map((review) => ({ ...review })),
+    reviews: value.reviews.map((review) => requireReviewEligibility
+      ? { ...review, authorCanPushToRepository: review.authorCanPushToRepository }
+      : { ...review }),
   });
 }
 

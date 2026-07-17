@@ -31,7 +31,7 @@ test("all four presets resolve deterministically from base YAML", async () => {
     "typescript-basic": {
       allowed: ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts", "tests/**/*.tsx", "package.json", "pnpm-lock.yaml", "tsconfig.json"],
       denied: [".github/**", "**/*.pem", "**/*.key"],
-      commands: [{ name: "typecheck", run: "pnpm typecheck", timeoutMinutes: 10 }, { name: "test", run: "pnpm test", timeoutMinutes: 20 }],
+      commands: [{ name: "frozen-install", run: "pnpm install --frozen-lockfile", timeoutMinutes: 10 }, { name: "typecheck", run: "pnpm typecheck", timeoutMinutes: 10 }, { name: "test", run: "pnpm test", timeoutMinutes: 10 }],
       timeoutMinutes: 30,
       maximumOutputBytes: 1048576,
       reviews: { minimumApprovals: 1, requireExactHeadApproval: true, blockChangesRequested: true },
@@ -39,7 +39,7 @@ test("all four presets resolve deterministically from base YAML", async () => {
     "ai-pr-strict": {
       allowed: ["src/**", "packages/**", "tests/**", "package.json", "pnpm-lock.yaml", "tsconfig.json"],
       denied: [".github/**", "config/trusted/**", "config/policies/**", "config/evidence-contracts/**", "**/*.pem", "**/*.key"],
-      commands: [{ name: "lint", run: "pnpm lint", timeoutMinutes: 10 }, { name: "typecheck", run: "pnpm typecheck", timeoutMinutes: 10 }, { name: "test", run: "pnpm test", timeoutMinutes: 30 }, { name: "build", run: "pnpm build", timeoutMinutes: 10 }],
+      commands: [{ name: "frozen-install", run: "pnpm install --frozen-lockfile", timeoutMinutes: 10 }, { name: "lint", run: "pnpm lint", timeoutMinutes: 10 }, { name: "typecheck", run: "pnpm typecheck", timeoutMinutes: 10 }, { name: "test", run: "pnpm test", timeoutMinutes: 20 }, { name: "build", run: "pnpm build", timeoutMinutes: 10 }],
       timeoutMinutes: 60,
       maximumOutputBytes: 1048576,
       reviews: { minimumApprovals: 2, requireExactHeadApproval: true, blockChangesRequested: true },
@@ -75,7 +75,7 @@ test("all four presets resolve deterministically from base YAML", async () => {
     assert.deepEqual(first.marketConfiguration.reviews, expected[preset].reviews);
     assert.deepEqual(first.marketConfiguration.reportedChecks, { requireSuccess: true, minimumCount: 1 });
     assert.deepEqual(first.marketConfiguration.output, { uploadEvidenceBundle: true, includeCommandPreview: true, strict: true });
-    assert.deepEqual(first.marketConfiguration.telemetry, { enabled: false });
+    assert.deepEqual(first.marketConfiguration.telemetry, { enabled: true });
     assert.equal(first.identity.marketConfigSha256, createHash("sha256").update(source).digest("hex").toUpperCase());
     assert.equal(Object.isFrozen(first.marketConfiguration.verification.commands), true);
   }
@@ -101,6 +101,19 @@ test("uses the stricter effective boundary", async () => {
   });
   assert.equal(parsed.marketConfiguration.output.includeCommandPreview, true);
   assert.equal(authority.trustedConfiguration.executionBoundary.maximumPreviewBytesPerStream, 8192);
+});
+
+test("enables artifact-local telemetry by default and permits an explicit opt-out", async () => {
+  // Given: a trusted authority and a telemetry-enabled preset.
+  const authority = await loadTrustedMarketConfiguration({ trustedConfigurationPath: MARKET_CONFIG, repositoryRoot: ROOT });
+
+  // When: the base configuration omits telemetry or explicitly disables it.
+  const defaultConfiguration = await parseMarketConfiguration({ source: "version: 1\npreset: docs-only\n", presetsDirectory: PRESETS, repositoryRoot: ROOT, validatedAuthority: authority });
+  const optOutConfiguration = await parseMarketConfiguration({ source: "version: 1\npreset: docs-only\ntelemetry:\n  enabled: false\n", presetsDirectory: PRESETS, repositoryRoot: ROOT, validatedAuthority: authority });
+
+  // Then: the preset default is retained unless the base configuration opts out.
+  assert.deepEqual(defaultConfiguration.marketConfiguration.telemetry, { enabled: true });
+  assert.deepEqual(optOutConfiguration.marketConfiguration.telemetry, { enabled: false });
 });
 
 test("freezes every effective configuration branch", async () => {

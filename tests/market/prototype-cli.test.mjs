@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-import { parsePrototypeArguments, runPrototypeCli } from "../../packages/evidence-gate/src/prototype-cli.mjs";
+import { parsePrototypeArguments, renderMarketSummary, runPrototypeCli } from "../../packages/evidence-gate/src/prototype-cli.mjs";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 
@@ -36,7 +36,7 @@ async function runFixture(t, name) {
       environment: {},
       executionBoundaryId: "execution.github-actions-market-v1",
       timing: {},
-      result: { status: "PASS", exitCode: 0, stdoutDigest: `sha256:${"A".repeat(64)}`, stderrDigest: `sha256:${"B".repeat(64)}` },
+      result: { status: "PASS", exitCode: 0, stdoutDigest: `sha256:${"A".repeat(64)}`, stderrDigest: `sha256:${"B".repeat(64)}`, stdoutBytes: 0, stderrBytes: 0, stdoutPreview: "", stderrPreview: "", stdoutTruncated: false, stderrTruncated: false, timedOut: false },
       dependencyLockfile: {},
       redaction: {},
       lineage: {
@@ -51,16 +51,140 @@ async function runFixture(t, name) {
   return { ...result, output, stdout };
 }
 
+async function prepareTelemetryEnabledPrototype(t) {
+  const directory = await mkdtemp(path.join(tmpdir(), "proofrail-market-delivery-telemetry-"));
+  const repository = path.join(directory, "checkout");
+  const output = path.join(directory, "output");
+  const config = path.join(repository, ".proofrail", "config.yml");
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  await cp(path.join(ROOT, "examples/market-prototype/demo"), repository, { recursive: true });
+  const source = await readFile(config, "utf8");
+  await writeFile(config, source.replace("enabled: false", "enabled: true"), "utf8");
+  return { config, output, repository };
+}
+
 test("prototype CLI writes a digest-bound deterministic ADMISSIBLE bundle", async (t) => {
   const first = await runFixture(t, "success");
   const second = await runFixture(t, "success");
   assert.equal(first.bundle.verdict, "ADMISSIBLE");
   assert.match(first.stdout, /ADMISSIBLE 2222222222222222222222222222222222222222/);
   assert.equal(await readFile(path.join(first.output, "evidence-bundle.json"), "utf8"), await readFile(path.join(second.output, "evidence-bundle.json"), "utf8"));
+  const artifact = JSON.parse(await readFile(path.join(first.output, "evidence-bundle.json"), "utf8"));
+  assert.equal(artifact.finalizedAt, "2026-07-15T00:00:00.000Z");
+  assert.equal(artifact.artifactDigest, first.bundle.artifactDigest);
   const summary = await readFile(path.join(first.output, "summary.md"), "utf8");
+  assert.equal(artifact.summary, summary);
+  assert.deepEqual(artifact.scope.changedPaths, ["docs/guide.md"]);
+  assert.equal(artifact.reviews[0].authorCanPushToRepository, true);
   assert.match(summary, /## Next actions/);
   assert.match(summary, /No remediation is required/);
   assert.match(summary, /exact target, authority lineage, observations, and receipts/);
+  const telemetry = JSON.parse(await readFile(path.join(first.output, "telemetry.json"), "utf8"));
+  assert.deepEqual(telemetry.events, []);
+  assert.equal(telemetry.networkTransmission, false);
+});
+
+test("prototype CLI summary uses the policy-owned PRF reason vocabulary", () => {
+  const summary = renderMarketSummary({
+    verdict: "REVISION_REQUIRED",
+    target: { repository: "proofrail/demo", pullRequestNumber: 8, baseSha: "1".repeat(40), headSha: "2".repeat(40) },
+    reasonCodes: ["PRF_VERIFICATION_COMMAND_FAILED"],
+    verificationReceipts: [],
+  });
+
+  assert.match(summary, /PRF_VERIFICATION_COMMAND_FAILED/);
+  assert.match(summary, /Fix the failing configured command/);
+});
+
+test("prototype CLI retains an INPUT failure packet after validating a fresh output boundary", async (t) => {
+  const directory = await mkdtemp(path.join(tmpdir(), "proofrail-market-input-failure-"));
+  const eventPath = path.join(directory, "event.json");
+  const output = path.join(directory, "output");
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  await writeFile(eventPath, "[]", "utf8");
+
+  await assert.rejects(
+    runPrototypeCli([
+      "--event", eventPath,
+      "--repo", path.join(ROOT, "examples/market-prototype/demo"),
+      "--config", path.join(ROOT, "examples/market-prototype/demo/.proofrail/config.yml"),
+      "--output", output,
+      "--shell", await bashPath(),
+    ], { __proofrailTestOnly: true }),
+    (error) => error?.stage === "INPUT" && error?.reason === "EVENT_ENVELOPE_INVALID",
+  );
+
+  assert.deepEqual(JSON.parse(await readFile(path.join(output, "failure.json"), "utf8")), {
+    schemaVersion: "proofrail.delivery-failure.v1",
+    code: "PROOFRAIL_PROTOTYPE_DELIVERY_FAILED",
+    stage: "INPUT",
+    reason: "EVENT_ENVELOPE_INVALID",
+  });
+  assert.equal(await lstat(path.join(output, "evidence-bundle.json")).catch(() => null), null);
+  assert.deepEqual(
+    JSON.parse(await readFile(path.join(output, "telemetry.json"), "utf8")).events.map(({ kind }) => kind),
+    ["INSTALLATION", "DELIVERY_FAILURE", "RERUN_INTENT"],
+  );
+});
+
+test("prototype CLI rejects offline market reviews without eligibility metadata", async (t) => {
+  const directory = await mkdtemp(path.join(tmpdir(), "proofrail-market-review-eligibility-"));
+  const eventPath = path.join(directory, "event.json");
+  const output = path.join(directory, "output");
+  const event = JSON.parse(await readFile(path.join(ROOT, "fixtures/market-prototype/github/pr-success.json"), "utf8"));
+  const { authorCanPushToRepository: _missingEligibility, ...review } = event.snapshot.reviews[0];
+  event.snapshot.reviews = [review];
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  await writeFile(eventPath, JSON.stringify(event), "utf8");
+
+  await assert.rejects(
+    runPrototypeCli([
+      "--event", eventPath,
+      "--repo", path.join(ROOT, "examples/market-prototype/demo"),
+      "--config", path.join(ROOT, "examples/market-prototype/demo/.proofrail/config.yml"),
+      "--output", output,
+      "--shell", await bashPath(),
+    ], { __proofrailTestOnly: true }),
+    (error) => error?.stage === "INPUT" && error?.reason === "SNAPSHOT_INVALID",
+  );
+  assert.equal(JSON.parse(await readFile(path.join(output, "failure.json"), "utf8")).reason, "SNAPSHOT_INVALID");
+});
+
+test("prototype CLI retains an EVALUATION failure packet without fabricating a verdict", async (t) => {
+  const directory = await mkdtemp(path.join(tmpdir(), "proofrail-market-evaluation-failure-"));
+  const output = path.join(directory, "output");
+  const event = JSON.parse(await readFile(path.join(ROOT, "fixtures/market-prototype/github/pr-success.json"), "utf8"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+
+  await assert.rejects(
+    runPrototypeCli([
+      "--event", path.join(ROOT, "fixtures/market-prototype/github/pr-success.json"),
+      "--repo", path.join(ROOT, "examples/market-prototype/demo"),
+      "--config", path.join(ROOT, "examples/market-prototype/demo/.proofrail/config.yml"),
+      "--output", output,
+      "--shell", await bashPath(),
+    ], {
+      __proofrailTestOnly: true,
+      executionAttestation: { enforcesNetwork: true },
+      readCheckoutHead: async () => event.snapshot.headOid,
+      readBaseCheckoutHead: async () => event.snapshot.baseOid,
+      runVerificationPlan: async () => [],
+      evaluateMarketCandidate: () => { throw Object.assign(new Error("evaluation failed"), { code: "MARKET_CONFIG_INVALID" }); },
+    }),
+    (error) => error?.stage === "EVALUATION" && error?.reason === "MARKET_CONFIG_INVALID",
+  );
+
+  assert.deepEqual(JSON.parse(await readFile(path.join(output, "failure.json"), "utf8")), {
+    schemaVersion: "proofrail.delivery-failure.v1",
+    code: "PROOFRAIL_PROTOTYPE_DELIVERY_FAILED",
+    stage: "EVALUATION",
+    reason: "MARKET_CONFIG_INVALID",
+  });
+  assert.equal(await lstat(path.join(output, "evidence-bundle.json")).catch(() => null), null);
+  assert.deepEqual(
+    JSON.parse(await readFile(path.join(output, "telemetry.json"), "utf8")).events.map(({ kind }) => kind),
+    [],
+  );
 });
 
 test("prototype CLI consumes a live event and structured post-run head", async (t) => {
@@ -98,7 +222,7 @@ test("prototype CLI consumes a live event and structured post-run head", async (
     readBaseCheckoutHead: async () => snapshot.baseOid,
     readCurrentPullRequestHead: async () => ({ repository: snapshot.repository, pullRequestNumber: snapshot.number, headSha: snapshot.headOid, observedAt: "2026-07-15T00:00:00.250Z", source: "github-api" }),
     runVerificationPlan: async ({ target, commands, authorityLineage, marketConfigSha256 }) => [{
-      schemaVersion: "proofrail.verification-receipt.v1", id: "receipt:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", type: "COMMAND_EXECUTION", producer: { id: "runner.proofrail-verification", version: "1.0.0" }, target, command: { name: commands[0].name, run: commands[0].run, orderingKey: "001" }, environment: {}, executionBoundaryId: "execution.github-actions-market-v1", timing: {}, result: { status: "PASS", exitCode: 0, stdoutDigest: `sha256:${"A".repeat(64)}`, stderrDigest: `sha256:${"B".repeat(64)}` }, dependencyLockfile: {}, redaction: {}, lineage: { trustedConfigurationSha256: `sha256:${authorityLineage.trustedConfigurationSha256}`, policySha256: `sha256:${authorityLineage.policySha256}`, evidenceContractSha256: `sha256:${authorityLineage.evidenceContractSha256}`, marketConfigSha256: `sha256:${marketConfigSha256}` },
+      schemaVersion: "proofrail.verification-receipt.v1", id: "receipt:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", type: "COMMAND_EXECUTION", producer: { id: "runner.proofrail-verification", version: "1.0.0" }, target, command: { name: commands[0].name, run: commands[0].run, orderingKey: "001" }, environment: {}, executionBoundaryId: "execution.github-actions-market-v1", timing: {}, result: { status: "PASS", exitCode: 0, stdoutDigest: `sha256:${"A".repeat(64)}`, stderrDigest: `sha256:${"B".repeat(64)}`, stdoutBytes: 0, stderrBytes: 0, stdoutPreview: "", stderrPreview: "", stdoutTruncated: false, stderrTruncated: false, timedOut: false }, dependencyLockfile: {}, redaction: {}, lineage: { trustedConfigurationSha256: `sha256:${authorityLineage.trustedConfigurationSha256}`, policySha256: `sha256:${authorityLineage.policySha256}`, evidenceContractSha256: `sha256:${authorityLineage.evidenceContractSha256}`, marketConfigSha256: `sha256:${marketConfigSha256}` },
     }],
   });
   assert.equal(result.bundle.verdict, "ADMISSIBLE");
@@ -172,7 +296,7 @@ test("prototype CLI publishes a blocked bundle when live post-head is stale", as
       readBaseCheckoutHead: async () => snapshot.baseOid,
       readCurrentPullRequestHead: async () => ({ repository: snapshot.repository, pullRequestNumber: snapshot.number, headSha: "3".repeat(40), observedAt: "2026-07-15T00:00:00.250Z", source: "github-api" }),
       runVerificationPlan: async ({ target, commands, authorityLineage, marketConfigSha256 }) => [{
-        schemaVersion: "proofrail.verification-receipt.v1", id: "receipt:cccccccccccccccccccccccccccccccc", type: "COMMAND_EXECUTION", producer: { id: "runner.proofrail-verification", version: "1.0.0" }, target, command: { name: commands[0].name, run: commands[0].run, orderingKey: "001" }, environment: {}, executionBoundaryId: "execution.github-actions-market-v1", timing: {}, result: { status: "PASS", exitCode: 0, stdoutDigest: `sha256:${"A".repeat(64)}`, stderrDigest: `sha256:${"B".repeat(64)}` }, dependencyLockfile: {}, redaction: {}, lineage: { trustedConfigurationSha256: `sha256:${authorityLineage.trustedConfigurationSha256}`, policySha256: `sha256:${authorityLineage.policySha256}`, evidenceContractSha256: `sha256:${authorityLineage.evidenceContractSha256}`, marketConfigSha256: `sha256:${marketConfigSha256}` },
+        schemaVersion: "proofrail.verification-receipt.v1", id: "receipt:cccccccccccccccccccccccccccccccc", type: "COMMAND_EXECUTION", producer: { id: "runner.proofrail-verification", version: "1.0.0" }, target, command: { name: commands[0].name, run: commands[0].run, orderingKey: "001" }, environment: {}, executionBoundaryId: "execution.github-actions-market-v1", timing: {}, result: { status: "PASS", exitCode: 0, stdoutDigest: `sha256:${"A".repeat(64)}`, stderrDigest: `sha256:${"B".repeat(64)}`, stdoutBytes: 0, stderrBytes: 0, stdoutPreview: "", stderrPreview: "", stdoutTruncated: false, stderrTruncated: false, timedOut: false }, dependencyLockfile: {}, redaction: {}, lineage: { trustedConfigurationSha256: `sha256:${authorityLineage.trustedConfigurationSha256}`, policySha256: `sha256:${authorityLineage.policySha256}`, evidenceContractSha256: `sha256:${authorityLineage.evidenceContractSha256}`, marketConfigSha256: `sha256:${marketConfigSha256}` },
       }],
     });
     assert.equal(result.bundle.verdict, "BLOCKED");
@@ -215,7 +339,7 @@ test("prototype CLI rejects a nested base config before runner spawn", async (t)
     (error) => error?.reason === "CONFIG_PATH_UNAUTHORIZED",
   );
   assert.equal(runnerCalled, false);
-  assert.equal(await lstat(output).catch(() => null), null);
+  assert.equal(JSON.parse(await readFile(path.join(output, "failure.json"), "utf8")).reason, "CONFIG_PATH_UNAUTHORIZED");
 });
 
 test("prototype CLI rejects base checkout drift after verification before publication", async (t) => {
@@ -279,6 +403,99 @@ test("prototype CLI blocks an unenforceable production boundary before runner sp
   const summary = await readFile(path.join(output, "summary.md"), "utf8");
   assert.match(summary, /authority-approved GITHUB_HOSTED_LINUX_SANDBOX_V1 isolation attestation/);
   assert.match(summary, /No Evidence Bundle was produced/);
+  assert.deepEqual(
+    JSON.parse(await readFile(path.join(output, "telemetry.json"), "utf8")).events.map(({ kind }) => kind),
+    [],
+  );
+});
+
+test("prototype CLI records a stale execution failure without a product Verdict", async (t) => {
+  const { config, output, repository } = await prepareTelemetryEnabledPrototype(t);
+  const event = JSON.parse(await readFile(path.join(ROOT, "fixtures/market-prototype/github/pr-success.json"), "utf8"));
+  const heads = [event.snapshot.headOid, event.snapshot.headOid, "3".repeat(40)];
+
+  await assert.rejects(
+    runPrototypeCli([
+      "--event", path.join(ROOT, "fixtures/market-prototype/github/pr-success.json"),
+      "--repo", repository,
+      "--config", config,
+      "--output", output,
+      "--shell", await bashPath(),
+    ], {
+      __proofrailTestOnly: true,
+      executionAttestation: { enforcesNetwork: true },
+      readCheckoutHead: async () => heads.shift() ?? event.snapshot.headOid,
+      readBaseCheckoutHead: async () => event.snapshot.baseOid,
+      runVerificationPlan: async () => [],
+    }),
+    (error) => error?.stage === "EXECUTION" && error?.reason === "PRF_STALE_TARGET",
+  );
+
+  assert.equal(await lstat(path.join(output, "evidence-bundle.json")).catch(() => null), null);
+  assert.deepEqual(
+    JSON.parse(await readFile(path.join(output, "telemetry.json"), "utf8")).events.map(({ kind }) => kind),
+    ["INSTALLATION", "CONFIGURATION_PARSED", "VERIFICATION_STARTED", "DELIVERY_FAILURE", "STALE_TARGET", "RERUN_INTENT"],
+  );
+});
+
+test("prototype CLI retains an OUTPUT failure packet when its first publication fails", async (t) => {
+  const { config, output, repository } = await prepareTelemetryEnabledPrototype(t);
+  const event = JSON.parse(await readFile(path.join(ROOT, "fixtures/market-prototype/github/pr-success.json"), "utf8"));
+  const heads = [event.snapshot.headOid, event.snapshot.headOid, event.snapshot.headOid, event.snapshot.headOid];
+  await assert.rejects(
+    runPrototypeCli([
+      "--event", path.join(ROOT, "fixtures/market-prototype/github/pr-success.json"),
+      "--repo", repository,
+      "--config", config,
+      "--output", output,
+      "--shell", await bashPath(),
+    ], {
+      __proofrailTestOnly: true,
+      executionAttestation: { enforcesNetwork: true },
+      readCheckoutHead: async () => heads.shift() ?? event.snapshot.headOid,
+      readBaseCheckoutHead: async () => event.snapshot.baseOid,
+      runVerificationPlan: async ({ target, commands, authorityLineage, marketConfigSha256 }) => [{
+        schemaVersion: "proofrail.verification-receipt.v1", id: "receipt:dddddddddddddddddddddddddddddddd", type: "COMMAND_EXECUTION", producer: { id: "runner.proofrail-verification", version: "1.0.0" }, target, command: { name: commands[0].name, run: commands[0].run, orderingKey: "001" }, environment: {}, executionBoundaryId: "execution.github-actions-market-v1", timing: {}, result: { status: "PASS", exitCode: 0, stdoutDigest: `sha256:${"A".repeat(64)}`, stderrDigest: `sha256:${"B".repeat(64)}`, stdoutBytes: 0, stderrBytes: 0, stdoutPreview: "", stderrPreview: "", stdoutTruncated: false, stderrTruncated: false, timedOut: false }, dependencyLockfile: {}, redaction: {}, lineage: { trustedConfigurationSha256: `sha256:${authorityLineage.trustedConfigurationSha256}`, policySha256: `sha256:${authorityLineage.policySha256}`, evidenceContractSha256: `sha256:${authorityLineage.evidenceContractSha256}`, marketConfigSha256: `sha256:${marketConfigSha256}` },
+      }],
+      write: async (file, content) => {
+        if (file.endsWith("evidence-bundle.json")) throw new Error("injected primary publication failure");
+        await writeFile(file, content, "utf8");
+      },
+    }),
+    (error) => error?.stage === "OUTPUT" && error?.reason === "OUTPUT_WRITE_FAILED",
+  );
+
+  assert.equal(await lstat(path.join(output, "evidence-bundle.json")).catch(() => null), null);
+  assert.equal(JSON.parse(await readFile(path.join(output, "failure.json"), "utf8")).stage, "OUTPUT");
+  assert.match(await readFile(path.join(output, "summary.md"), "utf8"), /No Evidence Bundle was produced/);
+  assert.deepEqual(
+    JSON.parse(await readFile(path.join(output, "telemetry.json"), "utf8")).events.map(({ kind }) => kind),
+    ["INSTALLATION", "CONFIGURATION_PARSED", "VERIFICATION_STARTED", "COMMAND_DURATION", "EVALUATION_COMPLETED", "DELIVERY_FAILURE", "ARTIFACT_FAILURE", "RERUN_INTENT"],
+  );
+});
+
+test("prototype CLI preserves an OUTPUT failure when failure-packet publication also fails", async (t) => {
+  const { config, output, repository } = await prepareTelemetryEnabledPrototype(t);
+  const event = JSON.parse(await readFile(path.join(ROOT, "fixtures/market-prototype/github/pr-success.json"), "utf8"));
+  const heads = [event.snapshot.headOid, event.snapshot.headOid, event.snapshot.headOid, event.snapshot.headOid];
+  await assert.rejects(
+    runPrototypeCli([
+      "--event", path.join(ROOT, "fixtures/market-prototype/github/pr-success.json"),
+      "--repo", repository,
+      "--config", config,
+      "--output", output,
+      "--shell", await bashPath(),
+    ], {
+      __proofrailTestOnly: true,
+      executionAttestation: { enforcesNetwork: true },
+      readCheckoutHead: async () => heads.shift() ?? event.snapshot.headOid,
+      readBaseCheckoutHead: async () => event.snapshot.baseOid,
+      runVerificationPlan: async () => [],
+      write: async () => { throw new Error("injected publication failure"); },
+    }),
+    (error) => error?.stage === "OUTPUT" && error?.reason === "OUTPUT_WRITE_FAILED",
+  );
+  assert.equal(await lstat(output).catch(() => null), null);
 });
 
 test("prototype CLI rejects output alias before evaluation and publication", async (t) => {
@@ -316,7 +533,7 @@ test("prototype CLI leaves the existing output untouched when staged publication
       readCheckoutHead: async () => heads.shift() ?? event.snapshot.headOid,
       readBaseCheckoutHead: async () => event.snapshot.baseOid,
       runVerificationPlan: async ({ target, commands, authorityLineage, marketConfigSha256 }) => [{
-        schemaVersion: "proofrail.verification-receipt.v1", id: "receipt:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", type: "COMMAND_EXECUTION", producer: { id: "runner.proofrail-verification", version: "1.0.0" }, target, command: { name: commands[0].name, run: commands[0].run, orderingKey: "001" }, environment: {}, executionBoundaryId: "execution.github-actions-market-v1", timing: {}, result: { status: "PASS", exitCode: 0, stdoutDigest: `sha256:${"A".repeat(64)}`, stderrDigest: `sha256:${"B".repeat(64)}` }, dependencyLockfile: {}, redaction: {}, lineage: { trustedConfigurationSha256: `sha256:${authorityLineage.trustedConfigurationSha256}`, policySha256: `sha256:${authorityLineage.policySha256}`, evidenceContractSha256: `sha256:${authorityLineage.evidenceContractSha256}`, marketConfigSha256: `sha256:${marketConfigSha256}` },
+        schemaVersion: "proofrail.verification-receipt.v1", id: "receipt:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", type: "COMMAND_EXECUTION", producer: { id: "runner.proofrail-verification", version: "1.0.0" }, target, command: { name: commands[0].name, run: commands[0].run, orderingKey: "001" }, environment: {}, executionBoundaryId: "execution.github-actions-market-v1", timing: {}, result: { status: "PASS", exitCode: 0, stdoutDigest: `sha256:${"A".repeat(64)}`, stderrDigest: `sha256:${"B".repeat(64)}`, stdoutBytes: 0, stderrBytes: 0, stdoutPreview: "", stderrPreview: "", stdoutTruncated: false, stderrTruncated: false, timedOut: false }, dependencyLockfile: {}, redaction: {}, lineage: { trustedConfigurationSha256: `sha256:${authorityLineage.trustedConfigurationSha256}`, policySha256: `sha256:${authorityLineage.policySha256}`, evidenceContractSha256: `sha256:${authorityLineage.evidenceContractSha256}`, marketConfigSha256: `sha256:${marketConfigSha256}` },
       }],
       write: async () => { throw new Error("injected write failure"); },
     }),
@@ -470,7 +687,7 @@ test("prototype CLI rejects traversal in an offline changed path before runner",
     (error) => error?.reason === "PRF_SCOPE_PATH_NOT_ALLOWED",
   );
   assert.equal(runnerCalled, false);
-  assert.equal(await lstat(output).catch(() => null), null);
+  assert.equal(JSON.parse(await readFile(path.join(output, "failure.json"), "utf8")).reason, "PRF_SCOPE_PATH_NOT_ALLOWED");
 });
 
 test("prototype CLI accepts the exact live argument extension", () => {

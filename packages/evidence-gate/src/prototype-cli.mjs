@@ -4,23 +4,26 @@ import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { evaluateMarketCandidate, loadMarketConfiguration } from "@proofrail/release-orchestrator";
+import { buildMarketArtifactProjection, evaluateMarketCandidate, loadMarketConfiguration } from "@proofrail/release-orchestrator";
 import { parseMarketConfiguration, parseStrictJson } from "@proofrail/trusted-config";
 import { runVerificationPlan } from "@proofrail/verification-runner";
 
 import { readBoundedUtf8File, writeStagedUtf8File } from "./file-io.js";
-import { normalizeGitHubSnapshot } from "./github.js";
+import { normalizeMarketGitHubSnapshot } from "./github.js";
 import { readCurrentPullRequestHead } from "./workflow-event-cli.mjs";
 import { runGhCommand } from "./workflow-event-gh.js";
 import { normalizeWorkflowEvent } from "./workflow-event.js";
 import { canonicalJson } from "./index.js";
+import { buildEvidenceArtifact } from "./market-bundle.mjs";
 import { renderActionableSummary, renderDeliveryFailureSummary } from "./market-report.mjs";
+import { canonicalLocalTelemetryText, createLocalDeliveryFailureTelemetry, createLocalTelemetry } from "./market-telemetry.mjs";
 import {
   assertApprovedShell,
   assertNetworkBoundary,
   assertRepositoryChangedPaths,
   assertPrototypePathsStable,
   assertWorktreeSnapshotStable,
+  capturePrototypeOutputPath,
   capturePrototypePaths,
   captureWorktreeSnapshot,
   PrototypeBoundaryError,
@@ -122,11 +125,14 @@ export async function runPrototypeCli(args = process.argv.slice(2), operations =
   const read = operations.read ?? readBoundedUtf8File;
   const write = operations.write ?? writeStagedUtf8File;
   let paths;
+  let output;
   let authority;
   let event;
   let parsed;
+  const failureTelemetry = { enabled: true, configurationParsed: false, verificationStarted: false, receipts: [], evaluationCompleted: false };
   try {
-    paths = await capturePrototypePaths(options);
+    output = await capturePrototypeOutputPath(options.output);
+    paths = await capturePrototypePaths(options, output);
     authority = await loadMarketConfiguration({ trustedConfigurationPath: AUTHORITY_PATH, repositoryRoot: PROOFRAIL_ROOT });
     assertExactBaseConfigPath(paths.config.realPath, authority, paths.repository.realPath);
     const eventDocument = await readStableInput(paths.event, read, MAX_INPUT_BYTES);
@@ -134,13 +140,18 @@ export async function runPrototypeCli(args = process.argv.slice(2), operations =
     await assertRepositoryChangedPaths(event.snapshot, paths.repository.realPath);
     const configDocument = await readStableInput(paths.config, read, MAX_INPUT_BYTES);
     parsed = await parseMarketConfiguration({ source: configDocument.source, presetsDirectory: path.join(PROOFRAIL_ROOT, "config/presets"), repositoryRoot: PROOFRAIL_ROOT, validatedAuthority: authority });
+    failureTelemetry.enabled = parsed.marketConfiguration.telemetry.enabled;
+    failureTelemetry.configurationParsed = true;
     await assertPrototypePathsStable(paths);
   } catch (error) {
-    throw deliveryError("INPUT", error);
+    const failure = deliveryError("INPUT", error);
+    await publishDeliveryFailure(paths?.output ?? output, failure, write, failureTelemetry);
+    throw failure;
   }
 
   let runtimeState;
   let receipts;
+  let clock;
   const seams = testOnly ? operations : {};
   const readCheckoutHead = seams.readCheckoutHead ?? readRepositoryHead;
   let worktreeBeforeRun;
@@ -157,9 +168,11 @@ export async function runPrototypeCli(args = process.argv.slice(2), operations =
     const preSpawnHeadSha = await readCheckoutHead(paths.repository.realPath);
     if (!/^[0-9a-f]{40}$/i.test(preSpawnHeadSha) || preSpawnHeadSha.toLowerCase() !== event.snapshot.headOid) throw new PrototypeBoundaryError("CHECKOUT_HEAD_MISMATCH", "checkout HEAD changed before spawn");
     await assertWorktreeSnapshotStable(worktreeBeforeRun);
-    const clock = event.clock ? createFixedClock(event.clock) : seams.clock;
+    clock = event.clock ? createFixedClock(event.clock) : seams.clock;
+    failureTelemetry.clock = clock;
     const run = seams.runVerificationPlan ?? runVerificationPlan;
     await assertWorktreeSnapshotStable(worktreeBeforeRun);
+    failureTelemetry.verificationStarted = true;
     receipts = await run({
       target: targetFor(event.snapshot),
       commands: parsed.marketConfiguration.verification.commands,
@@ -169,9 +182,11 @@ export async function runPrototypeCli(args = process.argv.slice(2), operations =
       isolationAttestation: seams.executionAttestation,
       authorityLineage: authority.identities,
       marketConfigSha256: parsed.identity.marketConfigSha256,
+      assertWorkingTreeStable: async () => assertWorktreeSnapshotStable(worktreeBeforeRun),
       clock,
     });
     if (!Array.isArray(receipts)) throw new PrototypeDeliveryError("EXECUTION", "RECEIPTS_INVALID");
+    failureTelemetry.receipts = receipts;
     await assertWorktreeSnapshotStable(worktreeBeforeRun);
     await assertPrototypePathsStable(paths);
     const postCheckoutHeadSha = await readCheckoutHead(paths.repository.realPath);
@@ -187,27 +202,40 @@ export async function runPrototypeCli(args = process.argv.slice(2), operations =
     runtimeState = { checkoutHeadSha: checkoutHeadSha.toLowerCase(), currentHeadSha: currentHeadSha.toLowerCase(), baseConfigurationUsed: true };
   } catch (error) {
     const failure = deliveryError("EXECUTION", error);
-    await publishDeliveryFailure(paths, failure, write);
+    await publishDeliveryFailure(paths.output, failure, write, failureTelemetry);
     throw failure;
   }
 
+  let artifact;
   let bundle;
+  let summary;
   try {
-    bundle = evaluateMarketCandidate(authority, parsed, event.snapshot, receipts, runtimeState);
+    const evaluate = seams.evaluateMarketCandidate ?? evaluateMarketCandidate;
+    const kernelBundle = evaluate(authority, parsed, event.snapshot, receipts, runtimeState);
+    const project = seams.buildMarketArtifactProjection ?? buildMarketArtifactProjection;
+    const projection = project(parsed, event.snapshot, kernelBundle);
+    summary = renderActionableSummary({ ...kernelBundle, ...projection });
+    artifact = buildEvidenceArtifact(kernelBundle, { projection: { ...projection, summary }, clock });
+    bundle = artifact.bundle;
+    if (bundle.summary !== summary) throw new PrototypeDeliveryError("EVALUATION", "SUMMARY_FINALIZATION_INVALID");
+    failureTelemetry.evaluationCompleted = true;
   } catch (error) {
-    throw deliveryError("EVALUATION", error);
+    const failure = deliveryError("EVALUATION", error);
+    await publishDeliveryFailure(paths.output, failure, write, failureTelemetry);
+    throw failure;
   }
-  const summary = renderActionableSummary(bundle);
-  const telemetry = { schemaVersion: "proofrail.telemetry.local.v1", enabled: parsed.marketConfiguration.telemetry.enabled, networkTransmission: false, events: parsed.marketConfiguration.telemetry.enabled ? [{ kind: "VERDICT", verdict: bundle.verdict, reasonCodes: bundle.reasonCodes, targetHeadSha: bundle.target.headSha }] : [] };
+  const telemetry = createLocalTelemetry({ bundle, clock, enabled: parsed.marketConfiguration.telemetry.enabled });
   try {
     await mkdir(paths.output.parentPath, { recursive: true });
     await publishPrototypeOutput(paths.output, [
-      ["evidence-bundle.json", `${canonicalJson(bundle)}\n`],
+      ["evidence-bundle.json", artifact.text],
       ["summary.md", summary],
-      ["telemetry.json", `${canonicalJson(telemetry)}\n`],
+      ["telemetry.json", canonicalLocalTelemetryText(telemetry)],
     ], write);
   } catch (error) {
-    throw deliveryError("OUTPUT", error);
+    const failure = deliveryError("OUTPUT", error);
+    await publishDeliveryFailure(paths.output, failure, write, failureTelemetry);
+    throw failure;
   }
   stdout(`${bundle.verdict} ${bundle.target.headSha}\nEvidence Bundle: ${path.join(paths.output.path, "evidence-bundle.json")}\n`);
   if ((options.strict === true || parsed.marketConfiguration.output.strict) && bundle.verdict !== "ADMISSIBLE") process.exitCode = 1;
@@ -218,11 +246,12 @@ export function renderMarketSummary(bundle) {
   return renderActionableSummary(bundle);
 }
 
-async function publishDeliveryFailure(paths, failure, write) {
-  if (!paths?.output || paths.output.kind !== "missing-directory") return;
+async function publishDeliveryFailure(output, failure, write, telemetryState) {
+  if (!output || output.kind !== "missing-directory") return;
   try {
-    await mkdir(paths.output.parentPath, { recursive: true });
-    await publishPrototypeOutput(paths.output, [
+    const telemetry = createLocalDeliveryFailureTelemetry({ failure: { stage: failure.stage, reason: failure.reason }, ...telemetryState });
+    await mkdir(output.parentPath, { recursive: true });
+    await publishPrototypeOutput(output, [
       ["failure.json", canonicalJson({
         schemaVersion: "proofrail.delivery-failure.v1",
         code: failure.code,
@@ -230,6 +259,7 @@ async function publishDeliveryFailure(paths, failure, write) {
         reason: failure.reason,
       }) + "\n"],
       ["summary.md", renderDeliveryFailureSummary(failure)],
+      ["telemetry.json", canonicalLocalTelemetryText(telemetry)],
     ], write);
   } catch {
     // Preserve the original delivery error when the failure packet cannot publish.
@@ -251,8 +281,18 @@ function parsePrototypeEvent(value, options) {
   if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).some((key) => !["snapshot", "runtimeState", "clock"].includes(key)) || !Object.hasOwn(value, "snapshot")) throw new PrototypeDeliveryError("INPUT", "EVENT_ENVELOPE_INVALID");
   const snapshotKeys = ["repository", "number", "title", "state", "isDraft", "baseRefName", "baseOid", "headRefName", "headOid", "changedFiles", "files", "commits", "checks", "reviews"];
   if (Object.keys(value.snapshot ?? {}).sort().join("\u0000") !== snapshotKeys.sort().join("\u0000")) throw new PrototypeDeliveryError("INPUT", "SNAPSHOT_INVALID");
-  const snapshot = normalizeGitHubSnapshot(value.snapshot);
+  assertOfflineReviewShape(value.snapshot.reviews);
+  const snapshot = normalizeMarketGitHubSnapshot(value.snapshot);
   return Object.freeze({ snapshot, clock: value.clock });
+}
+
+function assertOfflineReviewShape(reviews) {
+  const expected = ["authorLogin", "state", "submittedAt", "commitOid", "authorCanPushToRepository"].sort().join("\u0000");
+  if (!Array.isArray(reviews) || reviews.some((review) => !review || typeof review !== "object" || Array.isArray(review)
+      || Object.keys(review).sort().join("\u0000") !== expected
+      || typeof review.authorCanPushToRepository !== "boolean")) {
+    throw new PrototypeDeliveryError("INPUT", "SNAPSHOT_INVALID");
+  }
 }
 
 function targetFor(snapshot) {

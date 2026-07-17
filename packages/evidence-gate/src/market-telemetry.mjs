@@ -57,6 +57,40 @@ export function createLocalTelemetry(options = {}) {
   return deepFreeze({ schemaVersion: SCHEMA_VERSION, enabled: true, networkTransmission: false, events: boundedEvents });
 }
 
+/** @param {{ failure: { stage: string, reason: string }, clock?: { now: () => Date }, configurationParsed?: boolean, enabled?: boolean, evaluationCompleted?: boolean, receipts?: readonly unknown[], verificationStarted?: boolean }} options */
+export function createLocalDeliveryFailureTelemetry(options = {}) {
+  if (!isPlainRecord(options)) throw new LocalTelemetryError("OPTIONS_INVALID");
+  const enabled = enabledOption(options.enabled);
+  if (!enabled) return deepFreeze({ schemaVersion: SCHEMA_VERSION, enabled: false, networkTransmission: false, events: [] });
+  const failure = deliveryFailure(options.failure);
+  const configurationParsed = optionalBoolean(options.configurationParsed, "CONFIGURATION_PARSED_INVALID");
+  const verificationStarted = optionalBoolean(options.verificationStarted, "VERIFICATION_STARTED_INVALID");
+  const evaluationCompleted = optionalBoolean(options.evaluationCompleted, "EVALUATION_COMPLETED_INVALID");
+  const receipts = deliveryReceipts(options.receipts);
+  if ((!configurationParsed && verificationStarted) || (!verificationStarted && (receipts.length > 0 || evaluationCompleted))) {
+    throw new LocalTelemetryError("MILESTONES_INVALID");
+  }
+  const at = deliveryTime(options.clock);
+  const staleTarget = failure.reason === "PRF_STALE_TARGET";
+  const artifactFailure = failure.stage === "OUTPUT";
+  const fixedEventCount = 3 + Number(configurationParsed) + Number(verificationStarted) + Number(evaluationCompleted) + Number(staleTarget) + Number(artifactFailure);
+  const events = [];
+  add(events, { kind: "INSTALLATION", at, localOnly: true });
+  if (configurationParsed) add(events, { kind: "CONFIGURATION_PARSED", at, accepted: true });
+  if (verificationStarted) {
+    add(events, { kind: "VERIFICATION_STARTED", at, commandCount: receipts.length });
+    for (const receipt of receipts.slice(0, Math.max(0, MAX_TELEMETRY_EVENTS - fixedEventCount))) {
+      add(events, { kind: "COMMAND_DURATION", at, commandName: receipt.commandName, durationMs: receipt.durationMs, status: receipt.status });
+    }
+  }
+  if (evaluationCompleted) add(events, { kind: "EVALUATION_COMPLETED", at, completed: true });
+  add(events, { kind: "DELIVERY_FAILURE", at, stage: failure.stage, reason: failure.reason });
+  if (staleTarget) add(events, { kind: "STALE_TARGET", at, reason: failure.reason });
+  if (artifactFailure) add(events, { kind: "ARTIFACT_FAILURE", at, stage: failure.stage });
+  add(events, { kind: "RERUN_INTENT", at, deliveryStage: failure.stage, deliveryReason: failure.reason });
+  return deepFreeze({ schemaVersion: SCHEMA_VERSION, enabled: true, networkTransmission: false, events });
+}
+
 /** @param {unknown} telemetry */
 export function canonicalLocalTelemetryText(telemetry) {
   return `${canonicalJson(telemetry)}\n`;
@@ -95,4 +129,56 @@ function boundedOptional(value) {
 
 function finiteNonNegative(value) {
   return Number.isFinite(value) && Number(value) >= 0 ? Number(value) : 0;
+}
+
+function enabledOption(value) {
+  if (value === undefined) return true;
+  if (typeof value !== "boolean") throw new LocalTelemetryError("ENABLED_INVALID");
+  return value;
+}
+
+function optionalBoolean(value, code) {
+  if (value === undefined) return false;
+  if (typeof value !== "boolean") throw new LocalTelemetryError(code);
+  return value;
+}
+
+function deliveryFailure(value) {
+  if (!isPlainRecord(value) || typeof value.stage !== "string" || value.stage.length === 0 || typeof value.reason !== "string" || value.reason.length === 0) {
+    throw new LocalTelemetryError("FAILURE_INVALID");
+  }
+  return { stage: redactedBoundedOptional(value.stage, 128), reason: redactedBoundedOptional(value.reason, 256) };
+}
+
+function deliveryReceipts(value) {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) throw new LocalTelemetryError("RECEIPTS_INVALID");
+  return value.map((receipt) => {
+    if (!isPlainRecord(receipt)) throw new LocalTelemetryError("RECEIPTS_INVALID");
+    if (receipt.command !== undefined && !isPlainRecord(receipt.command)) throw new LocalTelemetryError("RECEIPTS_INVALID");
+    if (receipt.result !== undefined && !isPlainRecord(receipt.result)) throw new LocalTelemetryError("RECEIPTS_INVALID");
+    if (receipt.timing !== undefined && !isPlainRecord(receipt.timing)) throw new LocalTelemetryError("RECEIPTS_INVALID");
+    const command = receipt.command ?? {};
+    const result = receipt.result ?? {};
+    return {
+      commandName: redactedBoundedOptional(command.name, 512),
+      durationMs: finiteNonNegative(result.durationMs ?? receipt.timing?.durationMs),
+      status: redactedBoundedOptional(result.status, 512),
+    };
+  });
+}
+
+function redactedBoundedOptional(value, maxBytes) {
+  if (typeof value !== "string") return null;
+  return boundedUtf8(redactJson(value).value, maxBytes);
+}
+
+function deliveryTime(clock) {
+  const source = clock ?? { now: () => new Date() };
+  if (!isPlainRecord(source) || typeof source.now !== "function") throw new LocalTelemetryError("CLOCK_INVALID");
+  try {
+    return clockIso(source.now(), "clock.now");
+  } catch {
+    throw new LocalTelemetryError("CLOCK_INVALID");
+  }
 }

@@ -492,10 +492,13 @@ export async function simulateWorkflow(workflow, options = {}) {
 
   const effectiveExit = failureCode ?? (strict && verdict !== "ADMISSIBLE" ? 25 : 0);
   if (effectiveExit === 25 && reasonCodes.length === 0) reasonCodes = ["NON_ADMISSIBLE_VERDICT"];
-  const shouldCreateBundle = failureCode === null || failureCode === 23 || failureCode === 24 || failureCode === 25;
+  const shouldCreateBundle = failureCode === null || failureCode === 25;
   const bundle = shouldCreateBundle ? makeBundle(event, verdict, reasonCodes, targetEnvironment, caseName) : null;
-  const summary = bundle ? makeSummary(bundle) : `# Proofrail ${verdict}\n\nReason: \`${failureReason ?? reasonCodes[0] ?? "WORKFLOW_FAILED"}\`\n`;
-  const retained = JSON.stringify({ targetEnvironment, bundle, summary });
+  const outputs = bundle
+    ? { "evidence-bundle.json": `${JSON.stringify(bundle)}\n`, "summary.md": makeSummary(bundle), "telemetry.json": `${JSON.stringify({ enabled: false, networkTransmission: false, events: [] })}\n` }
+    : makeDeliveryFailureOutputs(failureReason ?? reasonCodes[0] ?? "WORKFLOW_FAILED");
+  const summary = outputs["summary.md"];
+  const retained = JSON.stringify({ targetEnvironment, outputs });
   const tokenCanaryInTarget = tokenCanary !== null && JSON.stringify(targetEnvironment).includes(tokenCanary);
   const tokenCanaryInArtifacts = tokenCanary !== null && retained.includes(tokenCanary);
   if (tokenCanaryInTarget || tokenCanaryInArtifacts) throw new WorkflowHarnessError("WORKFLOW_TOKEN_LEAK", "control token reached target or retained artifact");
@@ -515,9 +518,9 @@ export async function simulateWorkflow(workflow, options = {}) {
     artifact: { name: "proofrail-evidence", path: "proofrail-output/", published: bundle !== null && effectiveExit !== 24 },
     summary,
     bundle,
-    outputs: bundle ? { "evidence-bundle.json": `${JSON.stringify(bundle)}\n`, "summary.md": summary, "telemetry.json": `${JSON.stringify({ enabled: false, networkTransmission: false })}\n` } : {},
+    outputs,
   };
-  await writeOutputs(outputPath, result, effectiveExit === 24);
+  await writeOutputs(outputPath, result);
   return result;
 }
 
@@ -553,6 +556,15 @@ function makeSummary(bundle) {
   return `# Proofrail ${bundle.verdict}\n\nVerified head: \`${bundle.target.headSha}\`\nReason codes: ${reasons}\n`;
 }
 
+function makeDeliveryFailureOutputs(reason) {
+  const stage = reason === "WORKFLOW_INPUT_INVALID" ? "INPUT" : "EXECUTION";
+  return {
+    "failure.json": `${JSON.stringify({ schemaVersion: "proofrail.delivery-failure.v1", code: "PROOFRAIL_PROTOTYPE_DELIVERY_FAILED", stage, reason })}\n`,
+    "summary.md": `# Proofrail delivery blocked\n\nReason: \`${reason}\`\n\nNo Evidence Bundle was produced for this attempt. This failure packet is delivery evidence only; it is not a product Verdict.\n`,
+    "telemetry.json": `${JSON.stringify({ schemaVersion: "proofrail.telemetry.local.v1", enabled: false, networkTransmission: false, events: [] })}\n`,
+  };
+}
+
 async function writeAndReturnFailure(workflow, options, details) {
   const result = {
     exitCode: details.exitCode,
@@ -567,24 +579,26 @@ async function writeAndReturnFailure(workflow, options, details) {
     collectorEnvironment: { GH_TOKEN: "[CONTROL_TOKEN_ONLY]" },
     tokenIsolation: { targetReceivedControlToken: false, tokenCanaryReceivedByCollector: false, tokenCanaryInTarget: false, tokenCanaryInArtifacts: false },
     artifact: { name: "proofrail-evidence", path: "proofrail-output/", published: false },
-    summary: `# Proofrail FAILURE\n\nReason: \`${details.reason}\`\n`,
+    summary: makeDeliveryFailureOutputs(details.reason)["summary.md"],
     bundle: null,
-    outputs: {},
+    outputs: makeDeliveryFailureOutputs(details.reason),
   };
-  await writeOutputs(options.output ? path.resolve(options.output) : null, result, true);
+  await writeOutputs(options.output ? path.resolve(options.output) : null, result);
   return result;
 }
 
-async function writeOutputs(outputPath, result, failedArtifact) {
+async function writeOutputs(outputPath, result) {
   if (!outputPath) return;
   await mkdir(outputPath, { recursive: true });
   if (result.bundle) {
     await writeFile(path.join(outputPath, "evidence-bundle.json"), result.outputs["evidence-bundle.json"], "utf8");
     await writeFile(path.join(outputPath, "summary.md"), result.outputs["summary.md"], "utf8");
     await writeFile(path.join(outputPath, "telemetry.json"), result.outputs["telemetry.json"], "utf8");
+  } else if (result.outputs["failure.json"]) {
+    await writeFile(path.join(outputPath, "failure.json"), result.outputs["failure.json"], "utf8");
+    await writeFile(path.join(outputPath, "summary.md"), result.outputs["summary.md"], "utf8");
+    await writeFile(path.join(outputPath, "telemetry.json"), result.outputs["telemetry.json"], "utf8");
   }
-  if (result.exitCode !== 0) await writeFile(path.join(outputPath, "reason.txt"), `${result.failureReason ?? result.reasonCodes[0] ?? "WORKFLOW_FAILED"}\n`, "utf8");
-  if (failedArtifact && result.bundle) await writeFile(path.join(outputPath, "reason.txt"), "ARTIFACT_PUBLICATION_FAILED\n", "utf8");
 }
 
 export async function loadWorkflowFile(workflowPath) {

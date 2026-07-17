@@ -6,6 +6,10 @@ export const DEFAULT_MAX_BUNDLE_BYTES = 1024 * 1024;
 export const MAX_TELEMETRY_EVENTS = 64;
 
 const SECRET_PATTERNS = Object.freeze([
+  /-----BEGIN (?:[A-Z0-9]{1,32} ){0,4}PRIVATE KEY-----\r?\n(?:[A-Za-z0-9+/=]{1,128}\r?\n){1,256}-----END (?:[A-Z0-9]{1,32} ){0,4}PRIVATE KEY-----/g,
+  /\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g,
+  /\b(?:xox[baprs]-|xapp-)[A-Za-z0-9](?:[A-Za-z0-9-]{8,126}[A-Za-z0-9])\b/g,
+  /\bnpm_[A-Za-z0-9]{36}\b/g,
   /\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/g,
   /\bBearer\s+[A-Za-z0-9._~+\/-]{8,}={0,2}/gi,
 ]);

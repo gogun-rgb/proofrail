@@ -28,8 +28,10 @@ import { renderHumanReport } from "../../packages/evidence-gate/src/report.js";
 
 const {
   collectGitHubPullRequest,
+  collectMarketGitHubPullRequest,
   mapGitHubPullRequestToEvidenceInput,
-  normalizeGitHubSnapshot
+  normalizeGitHubSnapshot,
+  normalizeMarketGitHubSnapshot
 } = githubModule;
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -45,6 +47,7 @@ const METADATA_QUERY = `query($owner:String!,$name:String!,$number:Int!){reposit
 const FILES_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){headRefOid files(first:100,after:$cursor){nodes{path additions deletions}pageInfo{hasNextPage endCursor}}}}}`;
 const COMMITS_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){headRefOid commits(first:100,after:$cursor){nodes{commit{oid}}pageInfo{hasNextPage endCursor}}}}}`;
 const REVIEWS_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){headRefOid reviews(first:100,after:$cursor){nodes{state submittedAt author{login}commit{oid}}pageInfo{hasNextPage endCursor}}}}}`;
+const MARKET_REVIEWS_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){headRefOid reviews(first:100,after:$cursor){nodes{state submittedAt author{login}authorCanPushToRepository commit{oid}}pageInfo{hasNextPage endCursor}}}}}`;
 const CHECKS_QUERY = `query($owner:String!,$name:String!,$expression:String!,$cursor:String){repository(owner:$owner,name:$name){object(expression:$expression){... on Commit{oid statusCheckRollup{contexts(first:100,after:$cursor){nodes{__typename ... on CheckRun{name status conclusion}... on StatusContext{context state}}pageInfo{hasNextPage endCursor}}}}}}}`;
 const ALL_QUERIES = [METADATA_QUERY, FILES_QUERY, COMMITS_QUERY, REVIEWS_QUERY, CHECKS_QUERY];
 
@@ -178,7 +181,7 @@ function graphqlEnvelope(query, variables, snapshot) {
       (commit) => ({ commit })
     ) } } } };
   }
-  if (query === REVIEWS_QUERY) {
+  if (query === REVIEWS_QUERY || query === MARKET_REVIEWS_QUERY) {
     return { data: { repository: { pullRequest: { headRefOid: snapshot.headOid, reviews: connectionPage(
       snapshot.reviews,
       variables.cursor,
@@ -187,7 +190,8 @@ function graphqlEnvelope(query, variables, snapshot) {
         state: review.state,
         submittedAt: review.submittedAt,
         author: review.authorLogin === null ? null : { login: review.authorLogin },
-        commit: review.commitOid === null ? null : { oid: review.commitOid }
+        commit: review.commitOid === null ? null : { oid: review.commitOid },
+        ...(query === MARKET_REVIEWS_QUERY ? { authorCanPushToRepository: review.authorCanPushToRepository } : {})
       })
     ) } } } };
   }
@@ -219,7 +223,7 @@ function graphqlEnvelope(query, variables, snapshot) {
 function connectionFromEnvelope(result, query) {
   if (query === FILES_QUERY) return result.data.repository.pullRequest.files;
   if (query === COMMITS_QUERY) return result.data.repository.pullRequest.commits;
-  if (query === REVIEWS_QUERY) return result.data.repository.pullRequest.reviews;
+  if (query === REVIEWS_QUERY || query === MARKET_REVIEWS_QUERY) return result.data.repository.pullRequest.reviews;
   if (query === CHECKS_QUERY) return result.data.repository.object.statusCheckRollup.contexts;
   throw new Error("unexpected connection query");
 }
@@ -232,12 +236,13 @@ function indexedConnectionNode(query, index, snapshot) {
   if (query === COMMITS_QUERY) {
     return { commit: { oid: (index + 1).toString(16).padStart(40, "0") } };
   }
-  if (query === REVIEWS_QUERY) {
+  if (query === REVIEWS_QUERY || query === MARKET_REVIEWS_QUERY) {
     return {
       state: "APPROVED",
       submittedAt: "2026-01-01T00:00:00Z",
       author: { login: `reviewer-${suffix}` },
-      commit: { oid: snapshot.headOid }
+      commit: { oid: snapshot.headOid },
+      ...(query === MARKET_REVIEWS_QUERY ? { authorCanPushToRepository: true } : {})
     };
   }
   if (query === CHECKS_QUERY) {
@@ -264,7 +269,7 @@ function connectionEnvelope(query, snapshot, nodes, pageInfo) {
       commits: { nodes, pageInfo }
     } } } };
   }
-  if (query === REVIEWS_QUERY) {
+  if (query === REVIEWS_QUERY || query === MARKET_REVIEWS_QUERY) {
     return { data: { repository: { pullRequest: {
       headRefOid: snapshot.headOid,
       reviews: { nodes, pageInfo }
@@ -448,13 +453,46 @@ test("sanitized fixture contains only the collector allowlist", () => {
   assert.deepEqual(Object.keys(snapshot.reviews[0]).sort(), ["authorLogin", "commitOid", "state", "submittedAt"]);
 });
 
-test("GitHub module public exports remain the four established functions", () => {
+test("GitHub module retains legacy exports and exposes the strict market collector", () => {
   assert.deepEqual(Object.keys(githubModule).sort(), [
     "collectGitHubPullRequest",
+    "collectMarketGitHubPullRequest",
     "mapGitHubPullRequestToEvidenceInput",
     "normalizeDeclaredWriteScope",
-    "normalizeGitHubSnapshot"
+    "normalizeGitHubSnapshot",
+    "normalizeMarketGitHubSnapshot"
   ]);
+});
+
+test("market collector retains per-review write eligibility and rejects missing metadata", async () => {
+  const input = fixture();
+  input.reviews = [{
+    authorLogin: "maintainer",
+    authorCanPushToRepository: true,
+    state: "APPROVED",
+    submittedAt: "2026-01-01T00:00:00Z",
+    commitOid: input.headOid,
+  }];
+  const calls = [];
+  const snapshot = await collectMarketGitHubPullRequest({
+    repository: input.repository,
+    pullRequestNumber: input.number,
+    runGh: createGraphqlRunGh(input, calls),
+  });
+  assert.equal(snapshot.reviews[0].authorCanPushToRepository, true);
+  assert(calls.some((args) => parseGraphqlArgs(args).query === MARKET_REVIEWS_QUERY));
+
+  const withoutEligibility = structuredClone(input);
+  delete withoutEligibility.reviews[0].authorCanPushToRepository;
+  await assert.rejects(
+    collectMarketGitHubPullRequest({
+      repository: withoutEligibility.repository,
+      pullRequestNumber: withoutEligibility.number,
+      runGh: createGraphqlRunGh(withoutEligibility),
+    }),
+    /authorCanPushToRepository/
+  );
+  assert.throws(() => normalizeMarketGitHubSnapshot(withoutEligibility), /authorCanPushToRepository/);
 });
 
 test("collector uses exact minimized queries and completes every connection page", async () => {

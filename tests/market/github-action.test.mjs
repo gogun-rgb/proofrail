@@ -98,6 +98,15 @@ test("exact pinned actions and checkout boundaries are enforced", async () => {
   assert.equal(steps.find((step) => step.id === "artifact").uses, ACTIONS.uploadArtifact);
 });
 
+test("workflow never performs an implicit dependency install in the untrusted target checkout", async () => {
+  const { workflow } = await load();
+  const installCommands = workflow.jobs.proofrail.steps.filter((step) => /\bpnpm\s+(?:install|i)\b/.test(step.run ?? ""));
+
+  assert.deepEqual(installCommands.map((step) => step.id), ["install"]);
+  assert.match(installCommands[0].run, /cd proofrail-tool/);
+  assert.doesNotMatch(installCommands[0].run, /proofrail-target/);
+});
+
 test("token is available only to collection and never to target verification", async () => {
   const { workflow } = await load();
   const event = workflow.jobs.proofrail.steps.find((step) => step.id === "event");
@@ -202,6 +211,21 @@ test("local action harness writes artifacts without consumer Node, pnpm, or gh",
     assert.equal(result.exitCode, 0);
     assert.equal(JSON.parse(await readFile(path.join(output, "evidence-bundle.json"), "utf8")).verdict, "ADMISSIBLE");
     assert.match(await readFile(path.join(output, "summary.md"), "utf8"), /# Proofrail ADMISSIBLE/);
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});
+
+test("local action harness retains only the delivery-failure trio when no bundle exists", async () => {
+  const { workflow } = await load();
+  const output = await mkdtemp(path.join(os.tmpdir(), "proofrail-delivery-failure-"));
+  try {
+    const result = await simulateWorkflow(workflow, { caseName: "missing-collector", output });
+    assert.equal(result.bundle, null);
+    assert.equal(await readFile(path.join(output, "evidence-bundle.json"), "utf8").then(() => true).catch(() => false), false);
+    assert.deepEqual(JSON.parse(await readFile(path.join(output, "failure.json"), "utf8")).verdict, undefined);
+    assert.doesNotMatch(await readFile(path.join(output, "summary.md"), "utf8"), /Verdict:\s*\*\*|ADMISSIBLE|REVISION_REQUIRED|REJECTED|BLOCKED/);
+    assert.deepEqual(JSON.parse(await readFile(path.join(output, "telemetry.json"), "utf8")).events, []);
   } finally {
     await rm(output, { recursive: true, force: true });
   }

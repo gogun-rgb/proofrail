@@ -24,8 +24,16 @@ const TOP_LEVEL_FIELDS = Object.freeze([
   "schemaVersion", "kernelEngineVersion", "evaluationId", "target", "authority", "claims",
   "evidenceContract", "evidenceRequirements", "observations", "verificationReceipts", "evidence",
   "evidenceLineage", "rules", "policyConditions", "facts", "scope", "reviews", "reportedChecks",
-  "verdict", "reasonCodes", "verdictReduction", "summary",
+  "reviewNeeds", "verdict", "reasonCodes", "verdictReduction", "summary",
 ]);
+const KERNEL_FIELDS = Object.freeze([
+  "schemaVersion", "kernelEngineVersion", "evaluationId", "target", "authority", "claims",
+  "evidenceContract", "evidenceRequirements", "observations", "verificationReceipts", "evidence",
+  "evidenceLineage", "rules", "policyConditions", "verdict", "reasonCodes", "verdictReduction",
+]);
+const KERNEL_RUNTIME_FIELDS = Object.freeze(["componentDigests", "artifactDigest"]);
+const PROJECTION_FIELDS = Object.freeze(["facts", "scope", "reviews", "reportedChecks", "reviewNeeds", "summary"]);
+const MAX_SUMMARY_BYTES = 8192;
 
 export class EvidenceBundleError extends Error {
   /** @param {string} code @param {string} [message] */
@@ -55,15 +63,35 @@ export function createCanonicalEvidenceBundle(input, options = {}) {
   }
 }
 
-/** @param {unknown} input @param {{ maxBytes?: number, clock?: { now: () => Date } }} [options] */
+/** @param {unknown} input @param {{ maxBytes?: number, clock?: { now: () => Date }, projection?: unknown }} [options] */
 export function buildEvidenceArtifact(input, options = {}) {
   const maxBytes = options.maxBytes ?? DEFAULT_MAX_BUNDLE_BYTES;
   if (!Number.isInteger(maxBytes) || maxBytes <= 0) throw new EvidenceBundleError("ARTIFACT_LIMIT_INVALID");
-  const bundle = createCanonicalEvidenceBundle(input, options);
+  const finalizedInput = options.projection === undefined
+    ? input
+    : finalizeKernelBundle(input, options.projection);
+  const bundle = createCanonicalEvidenceBundle(finalizedInput, options);
   const text = canonicalEvidenceBundleText(bundle);
   const bytes = Buffer.byteLength(text, "utf8");
   if (bytes > maxBytes) throw new EvidenceBundleError("ARTIFACT_TOO_LARGE");
   return deepFreeze({ bundle, text, bytes, artifactDigest: bundle.artifactDigest });
+}
+
+/**
+ * Finalization is deliberately a one-way projection: delivery fields may enrich a kernel
+ * bundle but cannot supply or replace kernel Verdict authority.
+ * @param {unknown} kernelBundle
+ * @param {unknown} projection
+ */
+function finalizeKernelBundle(kernelBundle, projection) {
+  if (!isPlainRecord(kernelBundle)
+    || Object.keys(kernelBundle).some((key) => !KERNEL_FIELDS.includes(key) && !KERNEL_RUNTIME_FIELDS.includes(key))
+    || !Object.hasOwn(kernelBundle, "componentDigests")
+    || !Object.hasOwn(kernelBundle, "artifactDigest")) {
+    throw new EvidenceBundleError("INPUT_INVALID");
+  }
+  const { componentDigests: _kernelComponentDigests, artifactDigest: _kernelArtifactDigest, ...kernel } = kernelBundle;
+  return { ...kernel, ...normalizeProjection(projection, true) };
 }
 
 /** @param {unknown} bundle */
@@ -111,7 +139,91 @@ function normalizeSource(input) {
   source.reasonCodes = [...(source.reasonCodes ?? [])].sort(compareStrings);
   source.policyConditions = [...(source.policyConditions ?? [])].sort(compareStrings);
   source.verificationReceipts = source.verificationReceipts ?? [];
+  if (Object.hasOwn(source, "facts")) source.facts = normalizeFacts(source.facts);
+  if (Object.hasOwn(source, "scope")) source.scope = normalizeScope(source.scope);
+  if (Object.hasOwn(source, "reviews")) source.reviews = normalizeReviews(source.reviews);
+  if (Object.hasOwn(source, "reportedChecks")) source.reportedChecks = normalizeReportedChecks(source.reportedChecks);
+  if (Object.hasOwn(source, "reviewNeeds")) source.reviewNeeds = normalizeStrings(source.reviewNeeds, "reviewNeeds").sort(compareStrings);
+  if (Object.hasOwn(source, "summary")) source.summary = normalizeSummary(source.summary);
   return source;
+}
+
+function normalizeProjection(value, requireAllFields) {
+  if (!isPlainRecord(value)) throw new EvidenceBundleError("INPUT_INVALID");
+  const keys = Object.keys(value).sort(compareStrings);
+  const expected = [...PROJECTION_FIELDS].sort(compareStrings);
+  if (keys.length !== expected.length || keys.some((key, index) => key !== expected[index])) {
+    throw new EvidenceBundleError("INPUT_INVALID");
+  }
+  const projection = {
+    facts: normalizeFacts(value.facts),
+    scope: normalizeScope(value.scope),
+    reviews: normalizeReviews(value.reviews),
+    reportedChecks: normalizeReportedChecks(value.reportedChecks),
+    reviewNeeds: normalizeStrings(value.reviewNeeds, "reviewNeeds").sort(compareStrings),
+    summary: normalizeSummary(value.summary),
+  };
+  if (requireAllFields && Object.keys(projection).length !== PROJECTION_FIELDS.length) throw new EvidenceBundleError("INPUT_INVALID");
+  return projection;
+}
+
+function normalizeFacts(value) {
+  if (!isPlainRecord(value)) throw new EvidenceBundleError("INPUT_INVALID");
+  const output = Object.create(null);
+  for (const key of Object.keys(value).sort(compareStrings)) {
+    if (!nonEmptyString(key) || !jsonPrimitive(value[key])) throw new EvidenceBundleError("INPUT_INVALID");
+    Object.defineProperty(output, key, { value: redactJson(value[key]).value, enumerable: true, configurable: true, writable: true });
+  }
+  return output;
+}
+
+function normalizeScope(value) {
+  if (!isPlainRecord(value) || !hasExactKeys(value, ["allowedPatterns", "deniedPatterns", "changedPaths", "outsideDeclaredScope"])) {
+    throw new EvidenceBundleError("INPUT_INVALID");
+  }
+  return {
+    allowedPatterns: normalizeStrings(value.allowedPatterns, "scope.allowedPatterns").sort(compareStrings),
+    deniedPatterns: normalizeStrings(value.deniedPatterns, "scope.deniedPatterns").sort(compareStrings),
+    changedPaths: normalizeStrings(value.changedPaths, "scope.changedPaths").sort(compareStrings),
+    outsideDeclaredScope: normalizeStrings(value.outsideDeclaredScope, "scope.outsideDeclaredScope").sort(compareStrings),
+  };
+}
+
+function normalizeReviews(value) {
+  return normalizeArray(value, "reviews", (review) => {
+    if (!isPlainRecord(review) || !hasExactKeys(review, ["authorLogin", "state", "submittedAt", "commitOid", "authorCanPushToRepository"])
+      || (review.authorLogin !== null && !nonEmptyString(review.authorLogin))
+      || !nonEmptyString(review.state)
+      || (review.submittedAt !== null && !nonEmptyString(review.submittedAt))
+      || (review.commitOid !== null && !nonEmptyString(review.commitOid))
+      || typeof review.authorCanPushToRepository !== "boolean") {
+      throw new EvidenceBundleError("INPUT_INVALID");
+    }
+    return redactJson(review).value;
+  }).sort((left, right) => compareStrings(left.authorLogin ?? "", right.authorLogin ?? "")
+    || compareStrings(left.submittedAt ?? "", right.submittedAt ?? "")
+    || compareStrings(left.state, right.state)
+    || compareStrings(left.commitOid ?? "", right.commitOid ?? ""));
+}
+
+function normalizeReportedChecks(value) {
+  return normalizeArray(value, "reportedChecks", (check) => {
+    if (!isPlainRecord(check) || !hasExactKeys(check, ["kind", "name", "status", "conclusion"])
+      || !nonEmptyString(check.kind) || !nonEmptyString(check.name) || !nonEmptyString(check.status)
+      || (check.conclusion !== null && !nonEmptyString(check.conclusion))) {
+      throw new EvidenceBundleError("INPUT_INVALID");
+    }
+    return redactJson(check).value;
+  }).sort((left, right) => compareStrings(left.kind, right.kind) || compareStrings(left.name, right.name));
+}
+
+function normalizeSummary(value) {
+  if (typeof value !== "string" || value.length === 0 || value.includes("\r") || !value.endsWith("\n") || Buffer.byteLength(value, "utf8") > MAX_SUMMARY_BYTES) {
+    throw new EvidenceBundleError("INPUT_INVALID");
+  }
+  const redacted = redactText(value, MAX_SUMMARY_BYTES);
+  if (redacted.matchCount > 0 || redacted.text !== value) throw new EvidenceBundleError("INPUT_INVALID");
+  return value;
 }
 
 function normalizeReceipt(value) {
@@ -186,6 +298,14 @@ function componentDigests(source) {
     rules: digest(source.rules),
     policyConditions: digest(source.policyConditions),
     facts: digest(source.facts ?? {}),
+    scope: digest(source.scope ?? {}),
+    reviews: digest(source.reviews ?? []),
+    reportedChecks: digest(source.reportedChecks ?? []),
+    reviewNeeds: digest(source.reviewNeeds ?? []),
+    summary: digest(source.summary ?? ""),
+    verdict: digest(source.verdict),
+    reasonCodes: digest(source.reasonCodes),
+    verdictReduction: digest(source.verdictReduction),
   };
 }
 
@@ -228,6 +348,11 @@ function validateRecord(value, field) {
 }
 
 function nonEmptyString(value) { return typeof value === "string" && value.length > 0; }
+function hasExactKeys(value, keys) {
+  const actual = Object.keys(value).sort(compareStrings);
+  const expected = [...keys].sort(compareStrings);
+  return actual.length === expected.length && actual.every((key, index) => key === expected[index]);
+}
 function producer(value) { return isPlainRecord(value) && nonEmptyString(value.id) && nonEmptyString(value.version); }
 function stringArray(value) { return Array.isArray(value) && value.every(nonEmptyString); }
 function jsonPrimitive(value) { return value === null || typeof value === "string" || typeof value === "boolean" || (typeof value === "number" && Number.isFinite(value)); }

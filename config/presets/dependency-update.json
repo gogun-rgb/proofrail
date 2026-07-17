@@ -6,5 +6,5 @@
   "reviews": { "minimumApprovals": 1, "requireExactHeadApproval": true, "blockChangesRequested": true },
   "reportedChecks": { "requireSuccess": true, "minimumCount": 1 },
   "output": { "uploadEvidenceBundle": true, "includeCommandPreview": true, "strict": true },
-  "telemetry": { "enabled": false }
+  "telemetry": { "enabled": true }
 }

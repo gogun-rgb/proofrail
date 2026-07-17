@@ -11,7 +11,7 @@ import {
 } from "../../packages/evidence-gate/src/market-bundle.mjs";
 import { redactText } from "../../packages/evidence-gate/src/market-common.mjs";
 import { renderActionableSummary, renderDeliveryFailureSummary } from "../../packages/evidence-gate/src/market-report.mjs";
-import { createLocalTelemetry } from "../../packages/evidence-gate/src/market-telemetry.mjs";
+import { createLocalDeliveryFailureTelemetry, createLocalTelemetry } from "../../packages/evidence-gate/src/market-telemetry.mjs";
 
 const TARGET = {
   repository: "proofrail/demo",
@@ -130,6 +130,40 @@ test("prefixed and space-separated secret labels are absent from every retained 
   assert.match(retained, new RegExp(ordinary));
 });
 
+test("raw credential families and complete private-key blocks are absent from every retained market surface", () => {
+  const canaries = [
+    `AKIA${"A".repeat(16)}`,
+    ["xox", "b-123456789012-123456789012-abcdefghijklmnop"].join(""),
+    `npm_${"n".repeat(36)}`,
+    "-----BEGIN PRIVATE KEY-----\ncHJvb2ZyYWlsLXN5bnRoZXRpYy1wZW0tY2FuYXJ5\n-----END PRIVATE KEY-----",
+  ];
+  const raw = canaries.join("\n");
+  const source = sourceBundle();
+  source.verificationReceipts[0] = {
+    ...source.verificationReceipts[0],
+    command: { ...source.verificationReceipts[0].command, run: `printf '%s' ${raw}` },
+    result: {
+      ...source.verificationReceipts[0].result,
+      stdout: raw,
+      stderr: raw,
+      stdoutPreview: raw,
+      stderrPreview: raw,
+    },
+  };
+
+  const bundle = createCanonicalEvidenceBundle(source, { clock: fixedClock });
+  const retained = [
+    canonicalEvidenceBundleText(bundle),
+    renderActionableSummary(bundle),
+    JSON.stringify(createLocalTelemetry({ bundle, clock: fixedClock, enabled: true })),
+  ].join("\n");
+
+  assert.equal(bundle.verificationReceipts[0].redaction.applied, true);
+  assert.ok(bundle.verificationReceipts[0].redaction.matchCount >= canaries.length);
+  for (const canary of canaries) assert.doesNotMatch(retained, new RegExp(canary.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.equal(retained.match(/\[REDACTED\]/g)?.length >= canaries.length, true);
+});
+
 test("market redaction covers required labels and token families", () => {
   const canaries = [
     ["CI_GITHUB_TOKEN=supersecretvalue", "supersecretvalue"],
@@ -153,6 +187,17 @@ test("market redaction covers required labels and token families", () => {
 
   const ordinary = "CI_GITHUB_TOKENIZED=value OPENAI_API_KEYS:value tokenization=visible BUILD_MODE=release";
   assert.deepEqual(redactText(ordinary), { text: ordinary, matchCount: 0 });
+});
+
+test("market redaction preserves incomplete raw credential lookalikes", () => {
+  const text = [
+    `AKIA${"A".repeat(15)}`,
+    "xoxb-too-short",
+    `npm_${"n".repeat(35)}`,
+    "-----BEGIN PRIVATE KEY-----\ncHJvb2ZyYWlsLXN5bnRoZXRpYy1wZW0tY2FuYXJ5",
+  ].join("\n");
+
+  assert.deepEqual(redactText(text), { text, matchCount: 0 });
 });
 
 test("market redaction removes quoted and JSON assignment values", () => {
@@ -219,6 +264,111 @@ test("telemetry emits complete local event set and supports opt-out", () => {
   assert.doesNotMatch(JSON.stringify(telemetry), /t9-secret-canary/);
   const disabled = createLocalTelemetry({ bundle, clock: fixedClock, enabled: false });
   assert.deepEqual(disabled.events, []);
+});
+
+test("delivery failure telemetry emits a bounded deterministic milestone matrix", () => {
+  const commandReceipt = {
+    command: { name: "test" },
+    result: { durationMs: 12, status: "FAIL" },
+  };
+  const cases = [
+    {
+      name: "input",
+      options: { failure: { stage: "INPUT", reason: "INPUT_INVALID" } },
+      expected: ["INSTALLATION", "DELIVERY_FAILURE", "RERUN_INTENT"],
+    },
+    {
+      name: "execution",
+      options: {
+        failure: { stage: "EXECUTION", reason: "COMMAND_FAILED" },
+        configurationParsed: true,
+        verificationStarted: true,
+        receipts: [commandReceipt],
+      },
+      expected: ["INSTALLATION", "CONFIGURATION_PARSED", "VERIFICATION_STARTED", "COMMAND_DURATION", "DELIVERY_FAILURE", "RERUN_INTENT"],
+    },
+    {
+      name: "evaluation",
+      options: {
+        failure: { stage: "EVALUATION", reason: "EVALUATION_FAILED" },
+        configurationParsed: true,
+        verificationStarted: true,
+        receipts: [commandReceipt],
+        evaluationCompleted: true,
+      },
+      expected: ["INSTALLATION", "CONFIGURATION_PARSED", "VERIFICATION_STARTED", "COMMAND_DURATION", "EVALUATION_COMPLETED", "DELIVERY_FAILURE", "RERUN_INTENT"],
+    },
+    {
+      name: "output",
+      options: {
+        failure: { stage: "OUTPUT", reason: "OUTPUT_WRITE_FAILED" },
+        configurationParsed: true,
+        verificationStarted: true,
+        receipts: [commandReceipt],
+        evaluationCompleted: true,
+      },
+      expected: ["INSTALLATION", "CONFIGURATION_PARSED", "VERIFICATION_STARTED", "COMMAND_DURATION", "EVALUATION_COMPLETED", "DELIVERY_FAILURE", "ARTIFACT_FAILURE", "RERUN_INTENT"],
+    },
+  ];
+
+  for (const entry of cases) {
+    const telemetry = createLocalDeliveryFailureTelemetry({ ...entry.options, clock: fixedClock });
+    assert.deepEqual(telemetry.events.map(({ kind }) => kind), entry.expected, entry.name);
+    assert.equal(telemetry.networkTransmission, false);
+  }
+});
+
+test("delivery failure telemetry represents stale and output failures without product authority", () => {
+  const stale = createLocalDeliveryFailureTelemetry({
+    failure: { stage: "EXECUTION", reason: "PRF_STALE_TARGET" },
+    configurationParsed: true,
+    verificationStarted: true,
+    clock: fixedClock,
+  });
+  const output = createLocalDeliveryFailureTelemetry({
+    failure: { stage: "OUTPUT", reason: "OUTPUT_WRITE_FAILED" },
+    configurationParsed: true,
+    verificationStarted: true,
+    evaluationCompleted: true,
+    clock: fixedClock,
+  });
+
+  assert.deepEqual(stale.events.map(({ kind }) => kind), ["INSTALLATION", "CONFIGURATION_PARSED", "VERIFICATION_STARTED", "DELIVERY_FAILURE", "STALE_TARGET", "RERUN_INTENT"]);
+  assert.equal(stale.events.find(({ kind }) => kind === "STALE_TARGET").reason, "PRF_STALE_TARGET");
+  assert(output.events.some(({ kind }) => kind === "ARTIFACT_FAILURE"));
+  for (const telemetry of [stale, output]) {
+    const kinds = telemetry.events.map(({ kind }) => kind);
+    assert(!kinds.includes("VERDICT"));
+    assert(!kinds.includes("REASON_CODES"));
+  }
+});
+
+test("delivery failure telemetry projects only redacted bounded delivery fields and supports opt-out", () => {
+  const delayedAwsAccessKey = `AKIA${"A".repeat(16)}`;
+  const telemetry = createLocalDeliveryFailureTelemetry({
+    failure: {
+      stage: "OUTPUT",
+      reason: `${"x".repeat(300)}${delayedAwsAccessKey}`,
+      source: "const source = delivery-telemetry-source-canary",
+      stdout: "delivery-telemetry-output-canary",
+    },
+    receipts: [{ command: { name: "delivery-telemetry-command-canary" }, result: { stdout: "delivery-telemetry-receipt-output-canary", durationMs: 1, status: "FAIL" } }],
+    configurationParsed: true,
+    verificationStarted: true,
+    clock: fixedClock,
+  });
+  const text = JSON.stringify(telemetry);
+
+  assert.doesNotMatch(text, new RegExp(`${delayedAwsAccessKey}|delivery-telemetry-source-canary|delivery-telemetry-output-canary|delivery-telemetry-receipt-output-canary`));
+  assert.doesNotMatch(text, /source|stdout|evidence-bundle|ADMISSIBLE|REVISION_REQUIRED|REJECTED|BLOCKED/);
+  assert.deepEqual(
+    createLocalDeliveryFailureTelemetry({ failure: { stage: "INPUT", reason: "INPUT_INVALID" }, enabled: false }).events,
+    [],
+  );
+  assert.throws(
+    () => createLocalDeliveryFailureTelemetry({ failure: { stage: "INPUT" }, clock: fixedClock }),
+    (error) => error?.name === "LocalTelemetryError" && error?.code === "FAILURE_INVALID",
+  );
 });
 
 test("telemetry redacts secret-shaped event kinds and payloads before retention", () => {
@@ -349,4 +499,65 @@ test("real-clock invariant projection excludes only documented runtime fields", 
 
 test("oversized artifacts fail closed with a typed artifact error", () => {
   assert.throws(() => buildEvidenceArtifact(sourceBundle({ facts: { large: "x".repeat(500) } }), { maxBytes: 100, clock: fixedClock }), (error) => error instanceof EvidenceBundleError && error.code === "ARTIFACT_TOO_LARGE");
+});
+
+test("artifact finalization projects delivery detail without replacing kernel verdict authority", () => {
+  const { facts: _facts, ...kernelSource } = sourceBundle({
+    evidence: [],
+    reasonCodes: ["PRF_REQUIRED_EVIDENCE_MISSING"],
+    verdict: "REVISION_REQUIRED",
+    verdictReduction: { verdict: "REVISION_REQUIRED", reasonCodes: ["PRF_REQUIRED_EVIDENCE_MISSING"], candidateIds: ["candidate:one"], lineageIds: ["lineage:one"], precedence: ["BLOCKED", "REJECTED", "REVISION_REQUIRED", "ADMISSIBLE"] },
+  });
+  const { finalizedAt: _finalizedAt, ...kernelBundle } = createCanonicalEvidenceBundle(kernelSource, { clock: fixedClock });
+  const deliveryProjection = {
+    facts: { "checks.ok": true },
+    scope: { allowedPatterns: ["src/**"], deniedPatterns: ["secrets/**"], changedPaths: ["src/index.js"], outsideDeclaredScope: [] },
+    reviews: [{ authorLogin: "maintainer", state: "APPROVED", submittedAt: "2026-07-15T00:00:00.000Z", commitOid: TARGET.headSha, authorCanPushToRepository: true }],
+    reportedChecks: [{ kind: "check-run", name: "test", status: "COMPLETED", conclusion: "SUCCESS" }],
+    reviewNeeds: ["PRF_REQUIRED_EVIDENCE_MISSING: one or more required observations or verification receipts are absent."],
+  };
+  const summary = renderActionableSummary({ ...kernelBundle, ...deliveryProjection });
+  const artifact = buildEvidenceArtifact(kernelBundle, { projection: { ...deliveryProjection, summary }, clock: fixedClock });
+
+  assert.equal(artifact.bundle.verdict, "REVISION_REQUIRED");
+  assert.deepEqual(artifact.bundle.reasonCodes, ["PRF_REQUIRED_EVIDENCE_MISSING"]);
+  assert.equal(artifact.bundle.summary, summary);
+  for (const field of ["scope", "reviews", "reportedChecks", "reviewNeeds", "summary", "verdict", "reasonCodes", "verdictReduction"]) {
+    assert.match(artifact.bundle.componentDigests[field], /^sha256:[0-9A-F]{64}$/);
+  }
+});
+
+test("artifact finalization rejects projection attempts to replace kernel fields", () => {
+  const { facts: _facts, ...kernelSource } = sourceBundle();
+  const { finalizedAt: _finalizedAt, ...kernelBundle } = createCanonicalEvidenceBundle(kernelSource, { clock: fixedClock });
+  const projection = {
+    facts: { "checks.ok": true },
+    scope: { allowedPatterns: [], deniedPatterns: [], changedPaths: [], outsideDeclaredScope: [] },
+    reviews: [],
+    reportedChecks: [],
+    reviewNeeds: [],
+    summary: "# Proofrail ADMISSIBLE\n",
+    verdict: "ADMISSIBLE",
+  };
+  assert.throws(
+    () => buildEvidenceArtifact(kernelBundle, { projection, clock: fixedClock }),
+    (error) => error instanceof EvidenceBundleError && error.code === "INPUT_INVALID",
+  );
+});
+
+test("summary renders structured audit detail without object coercion", () => {
+  const bundle = sourceBundle({
+    scope: { allowedPatterns: ["src/**"], deniedPatterns: ["secrets/**"], changedPaths: ["src/index.js"], outsideDeclaredScope: [] },
+    reviews: [{ authorLogin: "maintainer", state: "APPROVED", submittedAt: "2026-07-15T00:00:00.000Z", commitOid: TARGET.headSha, authorCanPushToRepository: true }],
+    reportedChecks: [{ kind: "check-run", name: "test", status: "COMPLETED", conclusion: "SUCCESS" }],
+    reviewNeeds: ["PRF_MINIMUM_APPROVALS_MISSING: 0 of 1 distinct latest exact-head approvals are present."],
+    evidence: [],
+  });
+  const summary = renderActionableSummary(bundle);
+
+  for (const heading of ["Unsatisfied evidence requirements", "Review history", "Reported checks", "Evidence Bundle"]) assert.match(summary, new RegExp(heading));
+  assert.match(summary, /requirement:one/);
+  assert.match(summary, /check-run/);
+  assert.match(summary, /evidence-bundle\.json/);
+  assert.doesNotMatch(summary, /\[object Object\]/);
 });

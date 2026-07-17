@@ -1,0 +1,14 @@
+{
+  "name": "proofrail-preset-execution-fixture",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.7.0",
+  "scripts": {
+    "typecheck": "node scripts/typecheck-local-dependency.mjs",
+    "test": "node scripts/verify-local-dependency.mjs"
+  },
+  "dependencies": {
+    "preset-local-dependency": "file:./local-dependency"
+  }
+}

@@ -12,6 +12,7 @@ const METADATA_QUERY = `query($owner:String!,$name:String!,$number:Int!){reposit
 const FILES_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){headRefOid files(first:100,after:$cursor){nodes{path additions deletions}pageInfo{hasNextPage endCursor}}}}}`;
 const COMMITS_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){headRefOid commits(first:100,after:$cursor){nodes{commit{oid}}pageInfo{hasNextPage endCursor}}}}}`;
 const REVIEWS_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){headRefOid reviews(first:100,after:$cursor){nodes{state submittedAt author{login}commit{oid}}pageInfo{hasNextPage endCursor}}}}}`;
+const MARKET_REVIEWS_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){headRefOid reviews(first:100,after:$cursor){nodes{state submittedAt author{login}authorCanPushToRepository commit{oid}}pageInfo{hasNextPage endCursor}}}}}`;
 const CHECKS_QUERY = `query($owner:String!,$name:String!,$expression:String!,$cursor:String){repository(owner:$owner,name:$name){object(expression:$expression){... on Commit{oid statusCheckRollup{contexts(first:100,after:$cursor){nodes{__typename ... on CheckRun{name status conclusion}... on StatusContext{context state}}pageInfo{hasNextPage endCursor}}}}}}}`;
 
 export async function collectGitHubPullRequest({
@@ -19,6 +20,18 @@ export async function collectGitHubPullRequest({
   pullRequestNumber,
   runGh = runGhCommand
 }) {
+  return collectPullRequest({ repository, pullRequestNumber, runGh }, false);
+}
+
+export async function collectMarketGitHubPullRequest({
+  repository,
+  pullRequestNumber,
+  runGh = runGhCommand
+}) {
+  return collectPullRequest({ repository, pullRequestNumber, runGh }, true);
+}
+
+async function collectPullRequest({ repository, pullRequestNumber, runGh }, requireReviewEligibility) {
   const normalizedRepository = normalizeRepository(repository);
   if (typeof pullRequestNumber === "string"
       && /^\d+$/.test(pullRequestNumber)
@@ -75,16 +88,24 @@ export async function collectGitHubPullRequest({
   });
   const reviews = await collectConnection({
     runGh,
-    query: REVIEWS_QUERY,
+    query: requireReviewEligibility ? MARKET_REVIEWS_QUERY : REVIEWS_QUERY,
     variables: common,
     stage: "reviews",
     select: (result) => requireHeadConnection(result, "reviews", headOid, "reviews"),
-    map: (node) => ({
-      authorLogin: node?.author?.login ?? null,
-      state: node?.state,
-      submittedAt: node?.submittedAt,
-      commitOid: node?.commit?.oid ?? null
-    })
+    map: (node) => requireReviewEligibility
+      ? {
+          authorLogin: node?.author?.login ?? null,
+          authorCanPushToRepository: node?.authorCanPushToRepository,
+          state: node?.state,
+          submittedAt: node?.submittedAt,
+          commitOid: node?.commit?.oid ?? null
+        }
+      : {
+          authorLogin: node?.author?.login ?? null,
+          state: node?.state,
+          submittedAt: node?.submittedAt,
+          commitOid: node?.commit?.oid ?? null
+        }
   });
   const checks = await collectConnection({
     runGh,
@@ -110,7 +131,7 @@ export async function collectGitHubPullRequest({
     commits,
     checks,
     reviews
-  });
+  }, requireReviewEligibility);
 }
 
 export function mapGitHubPullRequestToEvidenceInput(value, declaredWriteScope = []) {
@@ -287,6 +308,10 @@ export function normalizeGitHubSnapshot(value) {
   return normalizeSnapshot(value);
 }
 
+export function normalizeMarketGitHubSnapshot(value) {
+  return normalizeSnapshot(value, true);
+}
+
 export function normalizeDeclaredWriteScope(value) {
   if (!Array.isArray(value)
       || value.length > 100
@@ -437,7 +462,7 @@ async function runGhCommand(args) {
   });
 }
 
-function normalizeSnapshot(value) {
+function normalizeSnapshot(value, requireReviewEligibility = false) {
   if (!isObject(value)) {
     throw new TypeError("snapshot must be an object");
   }
@@ -455,7 +480,7 @@ function normalizeSnapshot(value) {
     files: normalizeFiles(value.files),
     commits: normalizeCommits(value.commits),
     checks: normalizeChecks(value.checks),
-    reviews: normalizeReviews(value.reviews)
+    reviews: normalizeReviews(value.reviews, requireReviewEligibility)
   });
 }
 
@@ -517,12 +542,27 @@ function normalizeChecks(value) {
     || compare(left.conclusion ?? "", right.conclusion ?? ""));
 }
 
-function normalizeReviews(value) {
+function normalizeReviews(value, requireReviewEligibility) {
   return requiredArray(value, "snapshot.reviews").map((review, index) => {
     if (!isObject(review)) {
       throw new TypeError(`snapshot.reviews[${index}] must be an object`);
     }
-    return Object.freeze({
+    if (requireReviewEligibility && typeof review.authorCanPushToRepository !== "boolean") {
+      throw new TypeError(`snapshot.reviews[${index}].authorCanPushToRepository must be a boolean`);
+    }
+    return Object.freeze(requireReviewEligibility ? {
+      authorLogin: optionalIdentity(
+        review.authorLogin,
+        "(unknown-reviewer)",
+        `snapshot.reviews[${index}].authorLogin`
+      ),
+      state: safeText(review.state, `snapshot.reviews[${index}].state`, 64).toUpperCase(),
+      submittedAt: optionalIsoTimestamp(review.submittedAt, `snapshot.reviews[${index}].submittedAt`),
+      commitOid: review.commitOid == null
+        ? null
+        : commitOid(review.commitOid, `snapshot.reviews[${index}].commitOid`),
+      authorCanPushToRepository: review.authorCanPushToRepository
+    } : {
       authorLogin: optionalIdentity(
         review.authorLogin,
         "(unknown-reviewer)",
