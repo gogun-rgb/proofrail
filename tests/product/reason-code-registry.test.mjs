@@ -47,9 +47,9 @@ test("committed repository product reason-code contract is valid", async () => {
   assert.deepEqual(await validateReasonCodeRepository(ROOT), []);
 });
 
-test("registry is the exact sorted set of 45 currently emitted product-owned codes", () => {
+test("registry is the exact sorted set of 54 currently emitted product-owned codes", () => {
   const emittedIds = [...new Set(scan.emissions.map((emission) => emission.id))].sort();
-  assert.equal(emittedIds.length, 45);
+  assert.equal(emittedIds.length, 54);
   assert.deepEqual(registry.codes.map((entry) => entry.id), emittedIds);
   assert.deepEqual(scan.findings, []);
 });

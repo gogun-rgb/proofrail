@@ -36,6 +36,11 @@ const SUPPORTED_ERROR_CONSTRUCTORS = new Set([
   "ReleaseOrchestratorError",
   "TrustedConfigurationError",
 ]);
+const FIXED_CODE_ERROR_CONSTRUCTORS = new Set([
+  "PrototypeDeliveryError",
+  "ReleaseDeliveryError",
+  "WorkflowEventError",
+]);
 const GUARDED_EMITTER_IDENTIFIERS = new Set([
   ...MACHINE_CALLS,
   ...SUPPORTED_ERROR_CONSTRUCTORS,
@@ -350,6 +355,10 @@ export function inspectSourceText({ source, sourcePath, surface }) {
       && node.operatorToken.kind === ts.SyntaxKind.EqualsToken
       && isThisCodeProperty(node.left)
     ) {
+      if (!isRelevantCodeAssignment(node)) {
+        ts.forEachChild(node, visit);
+        return;
+      }
       if (ts.isStringLiteral(node.right) || ts.isNoSubstitutionTemplateLiteral(node.right)) {
         record(node, node.right, "this.code");
       } else if (!isAllowedForwardingAssignment(node)) {
@@ -377,6 +386,19 @@ function isThisCodeProperty(node) {
   return ts.isPropertyAccessExpression(node)
     && node.expression.kind === ts.SyntaxKind.ThisKeyword
     && node.name.text === "code";
+}
+
+function isRelevantCodeAssignment(node) {
+  let current = node.parent;
+  while (current && !ts.isSourceFile(current)) {
+    if (ts.isClassDeclaration(current)) {
+      return Boolean(current.name)
+        && (SUPPORTED_ERROR_CONSTRUCTORS.has(current.name.text)
+          || FIXED_CODE_ERROR_CONSTRUCTORS.has(current.name.text));
+    }
+    current = current.parent;
+  }
+  return false;
 }
 
 function isAllowedForwardingAssignment(node) {
@@ -435,6 +457,15 @@ function isVerifiedWrapperConstruction(node) {
 
 function isAllowedEmitterIdentifierUse(node) {
   const parent = node.parent;
+  if (
+    ts.isImportSpecifier(parent)
+    || ts.isExportSpecifier(parent)
+    || ts.isImportClause(parent)
+    || ts.isNamespaceImport(parent)
+    || ts.isNamedImports(parent)
+  ) {
+    return true;
+  }
   if (MACHINE_CALLS.has(node.text)) {
     return (ts.isCallExpression(parent) && parent.expression === node)
       || (ts.isFunctionDeclaration(parent) && parent.name === node);

@@ -3,6 +3,8 @@ import path from "node:path";
 
 import ts from "typescript";
 
+import { checkArchitectureGuards } from "./architecture-guards.mjs";
+
 const PACKAGE_RULES = Object.freeze({
   "@proofrail/contracts": Object.freeze({
     directory: "contracts",
@@ -14,9 +16,15 @@ const PACKAGE_RULES = Object.freeze({
   "@proofrail/evidence-gate": Object.freeze({
     directory: "evidence-gate",
     layer: "delivery",
-    workspaceImports: Object.freeze(["@proofrail/release-orchestrator"]),
+    workspaceImports: Object.freeze([
+      "@proofrail/release-orchestrator",
+      "@proofrail/trusted-config",
+      "@proofrail/verification-runner",
+    ]),
     dependencies: Object.freeze({
       "@proofrail/release-orchestrator": "workspace:*",
+      "@proofrail/trusted-config": "workspace:*",
+      "@proofrail/verification-runner": "workspace:*",
     }),
     nodeImports: Object.freeze([
       "node:child_process",
@@ -62,12 +70,27 @@ const PACKAGE_RULES = Object.freeze({
     directory: "trusted-config",
     layer: "authority",
     workspaceImports: Object.freeze([]),
-    dependencies: Object.freeze({}),
+    dependencies: Object.freeze({
+      yaml: "^2.8.1",
+    }),
     nodeImports: Object.freeze([
       "node:crypto",
       "node:fs/promises",
       "node:path",
       "node:util",
+    ]),
+  }),
+  "@proofrail/verification-runner": Object.freeze({
+    directory: "verification-runner",
+    layer: "capability",
+    workspaceImports: Object.freeze([]),
+    dependencies: Object.freeze({}),
+    nodeImports: Object.freeze([
+      "node:child_process",
+      "node:crypto",
+      "node:fs/promises",
+      "node:os",
+      "node:path",
     ]),
   }),
 });
@@ -119,6 +142,15 @@ const PACKAGE_LOADING_SURFACES = Object.freeze({
       ".": Object.freeze({ default: "./src/index.js" }),
     }),
   }),
+  "@proofrail/verification-runner": Object.freeze({
+    type: "module",
+    exports: Object.freeze({
+      ".": Object.freeze({
+        types: "./src/index.d.ts",
+        default: "./src/index.js",
+      }),
+    }),
+  }),
 });
 const MANIFEST_LOADING_FIELDS = Object.freeze([
   "type",
@@ -138,6 +170,17 @@ const SUBPROCESS_LOADER_IDENTIFIERS = new Set([
   "spawn",
   "spawnSync",
 ]);
+const AUTHORIZED_SUBPROCESS_IMPORTS = Object.freeze({
+  "@proofrail/evidence-gate": Object.freeze({
+    "packages/evidence-gate/src/github.js": "execFile",
+    "packages/evidence-gate/src/workflow-event.js": "execFile",
+    "packages/evidence-gate/src/workflow-event-gh.js": "execFile",
+  }),
+  "@proofrail/verification-runner": Object.freeze({
+    "packages/verification-runner/src/index.js": "spawn",
+    "packages/verification-runner/src/lifecycle.js": "spawn",
+  }),
+});
 
 
 const PACKAGE_NAMES = Object.freeze(Object.keys(PACKAGE_RULES).sort(compareStrings));
@@ -183,6 +226,16 @@ export async function checkPackageBoundaries(repositoryRoot) {
 
   try {
     await inspectRepository(root, findings);
+    findings.push(
+      ...(await checkArchitectureGuards(
+        root,
+        {
+          packageLoadingSurfaces: PACKAGE_LOADING_SURFACES,
+          packageNames: PACKAGE_NAMES,
+          packageRules: PACKAGE_RULES,
+        },
+      )),
+    );
   } catch {
     addFinding(findings, {
       id: "ARCHCHK_TOOL_FAILURE",
@@ -638,7 +691,7 @@ async function inspectSourceFile(
     return;
   }
 
-  const authorizedGhExecFile = hasAuthorizedGhExecFileImport(
+  const authorizedSubprocessImport = findAuthorizedSubprocessImport(
     sourceFile,
     packageRecord,
     relativePath,
@@ -693,11 +746,11 @@ async function inspectSourceFile(
         target,
       });
     },
-    authorizedGhExecFile,
+    authorizedSubprocessImport,
   );
 }
 
-function collectModuleReferences(sourceFile, onReference, onBypass, authorizedGhExecFile) {
+function collectModuleReferences(sourceFile, onReference, onBypass, authorizedSubprocessImport) {
   const seen = new Set();
 
   function visit(node) {
@@ -732,7 +785,7 @@ function collectModuleReferences(sourceFile, onReference, onBypass, authorizedGh
         onBypass({ node, target: "require-reference" });
       } else if (
         SUBPROCESS_LOADER_IDENTIFIERS.has(node.text)
-        && !isAllowedSubprocessIdentifierUse(node, authorizedGhExecFile)
+        && !isAllowedSubprocessIdentifierUse(node, authorizedSubprocessImport)
       ) {
         onBypass({ node, target: "subprocess-loader" });
       }
@@ -879,49 +932,200 @@ function isAllowedRequireIdentifierUse(node) {
   return ts.isElementAccessExpression(parent) && parent.expression === node;
 }
 
-function isAllowedSubprocessIdentifierUse(node, authorizedGhExecFile) {
-  if (!authorizedGhExecFile) {
+function isAllowedSubprocessIdentifierUse(node, authorizedSubprocessImport) {
+  if (!authorizedSubprocessImport || node.text !== authorizedSubprocessImport.name) {
     return false;
   }
   const parent = node.parent;
-  if (
-    node.text === "execFile"
-    && ts.isImportSpecifier(parent)
-    && parent.name === node
-    && !parent.propertyName
-    && !parent.isTypeOnly
-  ) {
-    return true;
+  if (ts.isImportSpecifier(parent) && parent.name === node) {
+    return node === authorizedSubprocessImport.binding;
   }
-  return node.text === "execFile"
-    && ts.isCallExpression(parent)
-    && parent.expression === node
-    && literalText(parent.arguments[0]) === "gh";
+  if (
+    !ts.isCallExpression(parent)
+    || parent.expression !== node
+    || !isAuthorizedImportReference(node, authorizedSubprocessImport)
+  ) {
+    return false;
+  }
+  return authorizedSubprocessImport.name === "spawn"
+    || literalText(parent.arguments[0]) === "gh";
 }
 
-function hasAuthorizedGhExecFileImport(sourceFile, packageRecord, relativePath) {
-  return sourceFile.statements.some(
-    (statement) => ts.isImportDeclaration(statement)
+function findAuthorizedSubprocessImport(sourceFile, packageRecord, relativePath) {
+  const expectedImport = AUTHORIZED_SUBPROCESS_IMPORTS[packageRecord.name]?.[relativePath] ?? null;
+  if (expectedImport === null) {
+    return null;
+  }
+  for (const statement of sourceFile.statements) {
+    if (
+      ts.isImportDeclaration(statement)
       && literalText(statement.moduleSpecifier) === "node:child_process"
-      && isAuthorizedChildProcessImport(statement.moduleSpecifier, packageRecord, relativePath),
-  );
+      && isAuthorizedChildProcessImport(statement.moduleSpecifier, packageRecord, relativePath)
+    ) {
+      return {
+        binding: statement.importClause.namedBindings.elements[0].name,
+        declaration: statement,
+        name: expectedImport,
+      };
+    }
+  }
+  return null;
 }
 
 function isAuthorizedChildProcessImport(moduleSpecifier, packageRecord, relativePath) {
   const declaration = moduleSpecifier.parent;
   const importClause = declaration?.importClause;
   const bindings = importClause?.namedBindings;
-  return packageRecord.name === "@proofrail/evidence-gate"
-    && relativePath === "packages/evidence-gate/src/github.js"
+  const expectedImport = AUTHORIZED_SUBPROCESS_IMPORTS[packageRecord.name]?.[relativePath] ?? null;
+  return expectedImport !== null
     && ts.isImportDeclaration(declaration)
     && Boolean(importClause)
     && !importClause.isTypeOnly
     && !importClause.name
     && ts.isNamedImports(bindings)
     && bindings.elements.length === 1
-    && bindings.elements[0].name.text === "execFile"
+    && bindings.elements[0].name.text === expectedImport
     && !bindings.elements[0].propertyName
     && !bindings.elements[0].isTypeOnly;
+}
+
+function isAuthorizedImportReference(node, authorizedSubprocessImport) {
+  let current = node.parent;
+  while (current) {
+    if (isLexicalScope(current) && scopeDeclaresName(current, node.text, authorizedSubprocessImport)) {
+      return false;
+    }
+    if (ts.isSourceFile(current)) {
+      return true;
+    }
+    current = current.parent;
+  }
+  return false;
+}
+
+function isLexicalScope(node) {
+  return ts.isSourceFile(node)
+    || ts.isBlock(node)
+    || ts.isModuleBlock(node)
+    || ts.isCaseBlock(node)
+    || ts.isFunctionLike(node)
+    || ts.isCatchClause(node)
+    || ts.isForStatement(node)
+    || ts.isForInStatement(node)
+    || ts.isForOfStatement(node);
+}
+
+function scopeDeclaresName(scope, name, authorizedSubprocessImport) {
+  if (ts.isSourceFile(scope) || ts.isBlock(scope) || ts.isModuleBlock(scope)) {
+    return scope.statements.some(
+      (statement) => statementDeclaresName(statement, name, authorizedSubprocessImport),
+    );
+  }
+  if (ts.isCaseBlock(scope)) {
+    return scope.clauses.some(
+      (clause) => clause.statements.some(
+        (statement) => statementDeclaresName(statement, name, authorizedSubprocessImport),
+      ),
+    );
+  }
+  if (ts.isFunctionLike(scope)) {
+    if (scope.name && bindingPatternContainsName(scope.name, name)) {
+      return true;
+    }
+    if (scope.parameters.some((parameter) => bindingPatternContainsName(parameter.name, name))) {
+      return true;
+    }
+    return scope.body ? hasVarDeclaration(scope.body, name) : false;
+  }
+  if (ts.isCatchClause(scope)) {
+    return Boolean(
+      scope.variableDeclaration
+      && bindingPatternContainsName(scope.variableDeclaration.name, name),
+    );
+  }
+  if (ts.isForStatement(scope)) {
+    return ts.isVariableDeclarationList(scope.initializer)
+      && scope.initializer.declarations.some(
+        (declaration) => bindingPatternContainsName(declaration.name, name),
+      );
+  }
+  if (ts.isForInStatement(scope) || ts.isForOfStatement(scope)) {
+    return ts.isVariableDeclarationList(scope.initializer)
+      && scope.initializer.declarations.some(
+        (declaration) => bindingPatternContainsName(declaration.name, name),
+      );
+  }
+  return false;
+}
+
+function statementDeclaresName(statement, name, authorizedSubprocessImport) {
+  if (ts.isImportDeclaration(statement)) {
+    if (statement === authorizedSubprocessImport.declaration) {
+      return false;
+    }
+    const importClause = statement.importClause;
+    if (!importClause || importClause.isTypeOnly) {
+      return false;
+    }
+    return Boolean(
+      (importClause.name && importClause.name.text === name)
+      || (ts.isNamespaceImport(importClause.namedBindings)
+        && importClause.namedBindings.name.text === name)
+      || (ts.isNamedImports(importClause.namedBindings)
+        && importClause.namedBindings.elements.some((element) => element.name.text === name)),
+    );
+  }
+  if (ts.isVariableStatement(statement)) {
+    return statement.declarationList.declarations.some(
+      (declaration) => bindingPatternContainsName(declaration.name, name),
+    );
+  }
+  if (
+    ts.isFunctionDeclaration(statement)
+    || ts.isClassDeclaration(statement)
+    || ts.isEnumDeclaration(statement)
+    || ts.isModuleDeclaration(statement)
+  ) {
+    return Boolean(statement.name && statement.name.text === name);
+  }
+  return false;
+}
+
+function bindingPatternContainsName(node, name) {
+  if (!node) {
+    return false;
+  }
+  if (ts.isIdentifier(node)) {
+    return node.text === name;
+  }
+  if (ts.isBindingElement(node)) {
+    return bindingPatternContainsName(node.name, name);
+  }
+  if (ts.isObjectBindingPattern(node) || ts.isArrayBindingPattern(node)) {
+    return node.elements.some((element) => bindingPatternContainsName(element, name));
+  }
+  return false;
+}
+
+function hasVarDeclaration(root, name) {
+  let found = false;
+  function visit(node) {
+    if (found || (node !== root && ts.isFunctionLike(node))) {
+      return;
+    }
+    if (
+      ts.isVariableDeclaration(node)
+      && ts.isVariableDeclarationList(node.parent)
+      && (node.parent.flags & ts.NodeFlags.Var) !== 0
+      && bindingPatternContainsName(node.name, name)
+    ) {
+      found = true;
+      return;
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(root);
+  return found;
 }
 
 
@@ -987,6 +1191,11 @@ function inspectSpecifier(
     return;
   }
 
+  const dependencyName = bareDependencyName(specifier);
+  if (declaredDependencies.has(dependencyName)) {
+    return;
+  }
+
   addFinding(findings, {
     id: "ARCHCHK_IMPORT_UNAPPROVED",
     path: relativePath,
@@ -994,6 +1203,14 @@ function inspectSpecifier(
     column: location.column,
     target: diagnosticTarget(specifier, portableSpecifier),
   });
+}
+
+function bareDependencyName(specifier) {
+  if (specifier.startsWith("@")) {
+    const parts = specifier.split("/");
+    return parts.length >= 2 ? `${parts[0]}/${parts[1]}` : specifier;
+  }
+  return specifier.split("/")[0];
 }
 
 function workspacePackageForSpecifier(specifier) {

@@ -68,11 +68,11 @@ Phase 1 preserved the existing authoritative data-flow direction and canonical t
 
 Phase 1 production package scope was limited to the minimum layers required by the vertical slice: `packages/contracts` and `packages/kernel`.
 
-The current product focus is Phase 2 AI PR Evidence Gate. Its implemented local slices separate claims, observed evidence, missing evidence, scope, and review needs; `PRODUCT-RELEASE-001` additionally binds separately supplied Trusted Configuration, Policy, and Evidence Contract bytes to one exact read-only GitHub snapshot and unchanged-kernel evaluation. This remains bounded product runtime, not product readiness, trusted release status, external acceptance, or a release decision.
+The current product focus is Phase 2 AI PR Evidence Gate. Its implemented local slices separate claims, observed evidence, missing evidence, scope, and review needs; `PRODUCT-RELEASE-001` binds separately supplied v1 runtime authority to one exact read-only GitHub snapshot. `PRODUCT-MARKET-001` adds a parallel versioned v2 public prototype: separately supplied v2 Trusted Configuration, Policy, and Evidence Contract bytes authorize a closed base-branch configuration, exact target binding, bounded verification execution, canonical Verification Receipts, and deterministic kernel evaluation.
 
-Proofrail still does not authorize or contain repository inspection, execution of target repository code, verification execution, language adapters, Python path traversal detection, CLI, API, MCP, web, GitHub integration, SARIF export, model provider integration, Inference Zone implementation, LLM judgment, probabilistic confidence in the authoritative path, complete Evidence Bundle protocol completion, or complete product Verdict runtime behavior.
+The public prototype is an implemented but bounded product surface. It is not a general repository-inspection engine, complete sandbox, hosted service, GitHub App, Marketplace listing, API, MCP server, SARIF exporter, language-adapter system, model-provider integration, Inference Zone implementation, trusted release, deployment decision, or external acceptance. Its canonical Verdict applies only to the exact authority, target, observations, receipts, and environment recorded in its bundle.
 
-Any future implementation after this focus narrowing requires a later valid Machine Task Contract and independent review. `PRODUCT-FOCUS-001` is not product readiness, not a trusted release, and not a Proofrail product Verdict.
+Any future implementation beyond this bounded focus requires a later valid Machine Task Contract and the configured evidence-based repository engineering review. Repository engineering acceptance is not product readiness, not a trusted release, and not a Proofrail product Verdict.
 
 ## Documentation Authority Index
 

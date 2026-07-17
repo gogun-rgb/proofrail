@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Proofrail is a bounded evidence control plane for autonomous software changes.">
+    <meta name="referrer" content="no-referrer">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; img-src 'self' data:; script-src 'none'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none';">
+    <meta name="theme-color" content="#0d1110">
+    <title>Proofrail | Evidence before approval</title>
+    <link rel="stylesheet" href="./styles.css">
+    <link rel="canonical" href="./">
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+
+    <header class="site-header">
+      <div class="site-shell header-inner">
+        <a class="brand" href="./" aria-label="Proofrail home">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span>Proofrail</span>
+        </a>
+        <nav aria-label="Primary navigation">
+          <ul class="nav-list">
+            <li><a href="#how-it-works">Workflow</a></li>
+            <li><a href="#verdicts">Verdicts</a></li>
+            <li><a href="#non-guarantees">Boundaries</a></li>
+          </ul>
+        </nav>
+        <a class="header-link" href="#how-it-works">Read the model <span aria-hidden="true">↘</span></a>
+      </div>
+    </header>
+
+    <main id="main-content">
+      <section class="hero site-shell" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">Evidence control for autonomous changes</p>
+          <h1 id="hero-title"><span class="hero-title-line">Make the change</span><span class="hero-title-line">admissible.</span></h1>
+          <p class="hero-lede">Proofrail binds a pull request to its exact head, runs only base-authorized checks, and records the receipts that a deterministic Verdict can actually use.</p>
+          <div class="hero-actions">
+            <a class="action action-primary" href="#install">See the install path <span aria-hidden="true">↘</span></a>
+            <a class="action action-secondary" href="#non-guarantees">Read the boundaries <span aria-hidden="true">↘</span></a>
+          </div>
+          <p class="hero-note">Static public prototype. The Verdict path remains deterministic and bounded.</p>
+        </div>
+
+        <figure class="evidence-rail" aria-labelledby="rail-title">
+          <div class="rail-topline">
+            <span class="eyebrow">Representative bundle shape</span>
+            <span class="rail-caption">Local illustration</span>
+          </div>
+          <h2 id="rail-title">One change, separate records.</h2>
+          <div class="rail-stack">
+            <article class="rail-step rail-claim">
+              <div class="rail-step-head">
+                <span class="rail-label">Claim</span>
+                <span class="rail-kind">proposed</span>
+              </div>
+              <p>“The change is ready for release.”</p>
+            </article>
+            <div class="rail-line" aria-hidden="true"></div>
+            <article class="rail-step rail-observation">
+              <div class="rail-step-head">
+                <span class="rail-label">Observation</span>
+                <span class="rail-kind">scoped fact</span>
+              </div>
+              <p>Exact pull-request head is bound to the base configuration.</p>
+            </article>
+            <div class="rail-line" aria-hidden="true"></div>
+            <article class="rail-step rail-receipt">
+              <div class="rail-step-head">
+                <span class="rail-label">Verification Receipt</span>
+                <span class="rail-kind">recorded action</span>
+              </div>
+              <p>Bounded command result, output digests, and environment lineage.</p>
+            </article>
+            <div class="rail-line" aria-hidden="true"></div>
+            <article class="rail-step rail-verdict">
+              <div class="rail-step-head">
+                <span class="rail-label">Verdict</span>
+                <span class="state-chip state-admissible">ADMISSIBLE</span>
+              </div>
+              <p>Derived only when the declared Evidence Requirements and Rules are satisfied.</p>
+            </article>
+          </div>
+          <figcaption>Representative bundle shape. This is an illustration, not a live evaluation or trust badge.</figcaption>
+        </figure>
+      </section>
+
+      <section id="how-it-works" class="section site-shell" aria-labelledby="flow-title">
+        <div class="section-heading">
+          <p class="eyebrow">From claim to Verdict</p>
+          <h2 id="flow-title">Keep the evidence chain legible.</h2>
+          <p>Proofrail does not turn a confident sentence into authority. It keeps each record distinct, checks the declared boundary, and lets deterministic rules decide what follows.</p>
+        </div>
+        <div class="flow-grid">
+          <article class="info-card flow-card">
+            <p class="card-label">Input</p>
+            <h3>Claims stay proposed.</h3>
+            <p>An agent can say a change is ready. That statement can motivate an evaluation, but it cannot satisfy an Evidence Requirement by itself.</p>
+          </article>
+          <article class="info-card flow-card">
+            <p class="card-label">Collection</p>
+            <h3>Facts keep their scope.</h3>
+            <p>Authorized inspection produces Observations. Bounded commands produce Verification Receipts. Each record names its target, method, and lineage.</p>
+          </article>
+          <article class="info-card flow-card">
+            <p class="card-label">Decision</p>
+            <h3>Rules derive the outcome.</h3>
+            <p>Policy evaluates the declared inputs and emits one canonical Verdict: ADMISSIBLE, REVISION_REQUIRED, REJECTED, or BLOCKED.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="verdicts" class="section section-muted site-shell" aria-labelledby="verdict-title">
+        <div class="section-heading section-heading-compact">
+          <p class="eyebrow">Four canonical outcomes</p>
+          <h2 id="verdict-title">A result with a reason, not a score.</h2>
+          <p>These values describe the exact evaluation captured in an Evidence Bundle. They are not confidence labels and do not imply a general release decision.</p>
+        </div>
+        <ul class="verdict-grid">
+          <li class="info-card verdict-card">
+            <span class="state-chip state-admissible">ADMISSIBLE</span>
+            <h3>Declared requirements are met.</h3>
+            <p>The authorized target, scope, Observations, and Receipts satisfy the applicable deterministic Rules.</p>
+          </li>
+          <li class="info-card verdict-card">
+            <span class="state-chip state-revision">REVISION_REQUIRED</span>
+            <h3>Something needs another pass.</h3>
+            <p>Evidence is insufficient or a declared requirement is not satisfied, while the evaluation remains within its boundary.</p>
+          </li>
+          <li class="info-card verdict-card">
+            <span class="state-chip state-rejected">REJECTED</span>
+            <h3>A rule denies this change.</h3>
+            <p>The evaluated scope or policy condition fails in a way that cannot be treated as an admissible result.</p>
+          </li>
+          <li class="info-card verdict-card">
+            <span class="state-chip state-blocked">BLOCKED</span>
+            <h3>The determination cannot continue.</h3>
+            <p>Authority, target identity, execution boundary, or system integrity is not sufficient for a trustworthy determination.</p>
+          </li>
+        </ul>
+      </section>
+
+      <section id="install" class="section site-shell" aria-labelledby="install-title">
+        <div class="section-heading">
+          <p class="eyebrow">Install once, inspect every run</p>
+          <h2 id="install-title">A workflow you can read before you trust it.</h2>
+          <p>The public prototype uses a reusable workflow, a base-branch configuration, and explicit bounded commands. The snippet below is intentionally copyable and contains no credentials.</p>
+        </div>
+        <div class="install-layout">
+          <div class="install-copy">
+            <ol class="install-list">
+              <li><span class="list-marker">01</span><span>Place the configuration at <code>.proofrail/config.yml</code> on the base branch.</span></li>
+              <li><span class="list-marker">02</span><span>Call the pinned workflow from the repository that owns the pull request.</span></li>
+              <li><span class="list-marker">03</span><span>Read the summary and retain the Evidence Bundle for the exact evaluated head.</span></li>
+            </ol>
+            <p class="install-note">The prototype is local and bounded. It does not ask for API keys, paid services, or a secret-bearing target environment.</p>
+          </div>
+          <div class="code-frame">
+            <div class="code-frame-head">
+              <span>workflow.yml + .proofrail/config.yml</span>
+              <span>select to copy</span>
+            </div>
+            <pre tabindex="0" aria-label="Proofrail workflow and base configuration example"><code>name: Proofrail
+on:
+  workflow_call:
+    inputs:
+      config-path:
+        type: string
+        required: false
+        default: .proofrail/config.yml
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
+  statuses: read
+jobs:
+  proofrail:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: 24
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: proofrail-evidence
+
+# Base branch file: .proofrail/config.yml
+preset: typescript-basic
+strict: true</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="pricing" class="section section-muted site-shell" aria-labelledby="pricing-title">
+        <div class="section-heading">
+          <p class="eyebrow">Pricing hypothesis</p>
+          <h2 id="pricing-title">Keep the first proof local.</h2>
+          <p>Pricing is a hypothesis, not a launch offer. The current prototype is designed to help teams measure the value of deterministic evidence before they choose a delivery model.</p>
+        </div>
+        <div class="hypothesis-grid">
+          <article class="info-card hypothesis-card">
+            <p class="card-label">Now</p>
+            <h3>Local prototype</h3>
+            <p>Run the bounded path in a repository you control. Keep the Evidence Bundle with your own artifacts.</p>
+          </article>
+          <article class="info-card hypothesis-card">
+            <p class="card-label">Learning</p>
+            <h3>Measure evidence gaps</h3>
+            <p>Learn which requirements, Receipts, and boundaries matter before introducing a hosted product decision.</p>
+          </article>
+          <article class="info-card hypothesis-card">
+            <p class="card-label">Later</p>
+            <h3>Revisit the boundary</h3>
+            <p>Any future delivery model would need its own explicit authority, security review, and product contract.</p>
+          </article>
+        </div>
+        <div class="cta-row">
+          <a class="action action-primary" href="#early-access">Request early access <span aria-hidden="true">↘</span></a>
+          <a class="action action-secondary" href="#feedback">Share feedback <span aria-hidden="true">↘</span></a>
+        </div>
+      </section>
+
+      <section id="early-access" class="section contact-section site-shell" aria-labelledby="early-access-title">
+        <div class="contact-card">
+          <div>
+            <p class="eyebrow">Early access</p>
+            <h2 id="early-access-title">Start with a bounded question.</h2>
+            <p>The pilot is invite-led and intentionally small. Tell us the evidence boundary you need to make legible, and we will share the current prototype context when it fits.</p>
+          </div>
+          <a class="action action-primary" href="mailto:early-access@proofrail.dev?subject=Proofrail%20early%20access">Email the pilot desk <span aria-hidden="true">↗</span></a>
+        </div>
+      </section>
+
+      <section id="feedback" class="section contact-section site-shell" aria-labelledby="feedback-title">
+        <div class="contact-card contact-card-quiet">
+          <div>
+            <p class="eyebrow">Feedback</p>
+            <h2 id="feedback-title">Make the boundary sharper.</h2>
+            <p>Share a confusing requirement, a missing receipt, or a place where the explanation overclaims. Feedback should improve the evidence path, not add a new Verdict.</p>
+          </div>
+          <a class="action action-secondary" href="mailto:feedback@proofrail.dev?subject=Proofrail%20feedback">Send feedback <span aria-hidden="true">↗</span></a>
+        </div>
+      </section>
+
+      <section id="non-guarantees" class="section section-boundaries site-shell" aria-labelledby="boundaries-title">
+        <div class="section-heading section-heading-compact">
+          <p class="eyebrow">Current non-guarantees</p>
+          <h2 id="boundaries-title">Bounded means bounded.</h2>
+          <p>Proofrail is explicit about what this prototype does not establish. A repository engineering review is not a product Verdict.</p>
+        </div>
+        <ul class="boundary-list">
+          <li><strong>No hosted service.</strong> The public surface is a browser-readable static prototype.</li>
+          <li><strong>No Marketplace listing.</strong> Installation is a copyable workflow surface, not a publication claim.</li>
+          <li><strong>No trusted release claim.</strong> ADMISSIBLE applies only to the exact inputs and environment recorded in one bundle.</li>
+          <li><strong>No complete sandbox.</strong> Execution is allowed only within the declared, bounded path and fails closed when enforcement is unavailable.</li>
+          <li><strong>No enterprise certification.</strong> The prototype does not establish compliance, certification, or external acceptance.</li>
+          <li><strong>No cloud retention.</strong> Artifacts remain with the caller-controlled workflow and local run.</li>
+          <li><strong>No payment automation.</strong> Pricing is a hypothesis, not a billing system.</li>
+        </ul>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="site-shell footer-inner">
+        <div>
+          <a class="brand" href="./" aria-label="Proofrail home">
+            <span class="brand-mark" aria-hidden="true"></span>
+            <span>Proofrail</span>
+          </a>
+          <p>Claim is not evidence. Verify it.</p>
+        </div>
+        <nav aria-label="Footer navigation">
+          <ul class="footer-list">
+            <li><a href="#how-it-works">Workflow</a></li>
+            <li><a href="#verdicts">Verdicts</a></li>
+            <li><a href="#non-guarantees">Boundaries</a></li>
+          </ul>
+        </nav>
+        <p class="footer-meta">Static prototype. No tracking. No secrets.</p>
+      </div>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "preset": "dependency-update",
+  "scope": { "allowed": ["package.json", "pnpm-lock.yaml", "npm-shrinkwrap.json", "package-lock.json", "yarn.lock"], "denied": ["src/**", "packages/**", ".github/**", "config/**", "**/*.pem", "**/*.key"] },
+  "verification": { "timeoutMinutes": 40, "maximumOutputBytes": 1048576, "commands": [{ "name": "frozen-install", "run": "pnpm install --frozen-lockfile", "timeoutMinutes": 20 }, { "name": "test", "run": "pnpm test", "timeoutMinutes": 20 }] },
+  "reviews": { "minimumApprovals": 1, "requireExactHeadApproval": true, "blockChangesRequested": true },
+  "reportedChecks": { "requireSuccess": true, "minimumCount": 1 },
+  "output": { "uploadEvidenceBundle": true, "includeCommandPreview": true, "strict": true },
+  "telemetry": { "enabled": false }
+}

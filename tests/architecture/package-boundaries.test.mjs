@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
+  cp,
   mkdir,
   mkdtemp,
   readFile,
@@ -55,6 +56,8 @@ const PACKAGE_MANIFESTS = Object.freeze({
     }),
     dependencies: Object.freeze({
       "@proofrail/release-orchestrator": "workspace:*",
+      "@proofrail/trusted-config": "workspace:*",
+      "@proofrail/verification-runner": "workspace:*",
     }),
   }),
   kernel: Object.freeze({
@@ -97,6 +100,19 @@ const PACKAGE_MANIFESTS = Object.freeze({
     type: "module",
     exports: Object.freeze({
       ".": Object.freeze({ default: "./src/index.js" }),
+    }),
+    dependencies: Object.freeze({ yaml: "^2.8.1" }),
+  }),
+  "verification-runner": Object.freeze({
+    name: "@proofrail/verification-runner",
+    version: "0.0.0-test",
+    private: true,
+    type: "module",
+    exports: Object.freeze({
+      ".": Object.freeze({
+        types: "./src/index.d.ts",
+        default: "./src/index.js",
+      }),
     }),
   }),
 });
@@ -429,6 +445,7 @@ test("enforces the exact Node import surface and rejects all external bare impor
       'import "node:fs";',
       'import "lodash";',
       'import "@proofrail/contracts-extra";',
+      'import "yaml";',
     ].join("\n"),
   );
 
@@ -437,7 +454,7 @@ test("enforces the exact Node import surface and rejects all external bare impor
   );
   assert.deepEqual(
     rejected.map(({ target }) => target),
-    ["node:fs", "lodash", "@proofrail/contracts-extra"],
+    ["node:fs", "lodash", "@proofrail/contracts-extra", "yaml"],
   );
 });
 
@@ -453,12 +470,16 @@ test("freezes the release authority, orchestration, and delivery edges", async (
     'import "@proofrail/kernel";',
     'import "@proofrail/trusted-config";',
   ].join("\n"));
-  await writeSource(root, "evidence-gate", "allowed-release.js", 'import "@proofrail/release-orchestrator";');
+  await writeSource(root, "evidence-gate", "allowed-release.js", [
+    'import "@proofrail/release-orchestrator";',
+    'import "@proofrail/trusted-config";',
+    'import "@proofrail/verification-runner";',
+  ].join("\n"));
   assert.deepEqual(await checkPackageBoundaries(root), []);
 
   await writeSource(root, "evidence-gate", "forbidden-direct.js", [
     'import "@proofrail/kernel";',
-    'import "@proofrail/trusted-config";',
+    'import "@proofrail/static-evaluator";',
   ].join("\n"));
   await writeSource(root, "release-orchestrator", "forbidden-delivery.js", 'import "@proofrail/evidence-gate";');
   await writeSource(root, "release-orchestrator", "forbidden-node.js", 'import "node:path";');
@@ -678,6 +699,87 @@ test("limits the gh subprocess exception to the exact GitHub adapter import and 
       .map(({ target }) => target),
     ["subprocess-loader"],
   );
+
+  const workflowRoot = await createFixture(t);
+  await writeSource(
+    workflowRoot,
+    "evidence-gate",
+    "workflow-event.js",
+    [
+      'import { execFile } from "node:child_process";',
+      'execFile("gh", ["api", "/repos/example/example"]);',
+    ].join("\n"),
+  );
+  await writeSource(
+    workflowRoot,
+    "evidence-gate",
+    "workflow-event-gh.js",
+    [
+      'import { execFile } from "node:child_process";',
+      'execFile("gh", ["api", "/repos/example/example"]);',
+    ].join("\n"),
+  );
+  assert.deepEqual(await checkPackageBoundaries(workflowRoot), []);
+
+  const runnerRoot = await createFixture(t);
+  await writeSource(
+    runnerRoot,
+    "verification-runner",
+    "lifecycle.js",
+    [
+      'import { spawn } from "node:child_process";',
+      'spawn("taskkill.exe", ["/PID", "1"]);',
+    ].join("\n"),
+  );
+  assert.deepEqual(await checkPackageBoundaries(runnerRoot), []);
+});
+
+test("rejects unbound subprocess calls in copied authorized files with an exact loader finding", async (t) => {
+  const cases = [
+    [
+      "github unbound spawn",
+      "evidence-gate",
+      "github.js",
+      'spawn("evil", []);',
+    ],
+    [
+      "runner unbound execFile",
+      "verification-runner",
+      "lifecycle.js",
+      'execFile("gh", []);',
+    ],
+  ];
+
+  for (const [label, packageDirectory, sourceFile, injectedSource] of cases) {
+    await t.test(label, async (subtest) => {
+      const root = await createCopiedRepository(subtest);
+      const targetPath = path.join(
+        root,
+        "packages",
+        packageDirectory,
+        "src",
+        sourceFile,
+      );
+      const original = await readFile(targetPath, "utf8");
+      const source = `${original}${original.endsWith("\n") ? "" : "\n"}${injectedSource}\n`;
+      await writeFile(targetPath, source);
+      const line = source.slice(0, source.lastIndexOf(injectedSource)).split(/\r?\n/).length;
+
+      assert.deepEqual(
+        (await checkPackageBoundaries(root)).filter(
+          ({ id, path: findingPath }) => id === "ARCHCHK_LOADER_BYPASS"
+            && findingPath === `packages/${packageDirectory}/src/${sourceFile}`,
+        ),
+        [{
+          id: "ARCHCHK_LOADER_BYPASS",
+          path: `packages/${packageDirectory}/src/${sourceFile}`,
+          line,
+          column: 1,
+          target: "subprocess-loader",
+        }],
+      );
+    });
+  }
 });
 
 
@@ -749,6 +851,7 @@ test("rejects malformed, non-object, missing-name, and non-string-name manifests
   const cases = [
     ["malformed", "{", "ARCHCHK_MANIFEST_INVALID"],
     ["non-object", "[]", "ARCHCHK_PACKAGE_UNCLASSIFIED"],
+    ["null", "null", "ARCHCHK_PACKAGE_UNCLASSIFIED"],
     ["missing-name", "{}", "ARCHCHK_PACKAGE_UNCLASSIFIED"],
     ["non-string-name", '{"name":7}', "ARCHCHK_PACKAGE_UNCLASSIFIED"],
   ];
@@ -972,6 +1075,56 @@ test("emits byte-identical sorted POSIX diagnostics without host paths or source
   );
 });
 
+test("rejects a workspace cycle with a stable cycle diagnostic", async (t) => {
+  const root = await createFixture(t);
+  await writeSource(root, "contracts", "cycle.js", 'import "@proofrail/kernel";');
+  await writeSource(root, "kernel", "cycle.js", 'import "@proofrail/contracts";');
+
+  const findings = (await checkPackageBoundaries(root)).filter(
+    ({ id }) => id === "ARCHCHK_WORKSPACE_CYCLE",
+  );
+  assert.deepEqual(
+    findings.map(({ target }) => target),
+    ["@proofrail/contracts -> @proofrail/kernel -> @proofrail/contracts"],
+  );
+});
+
+test("rejects direct coupling between the two shared authority owners", async (t) => {
+  const root = await createFixture(t);
+  await writeSource(
+    root,
+    "evidence-gate",
+    "authority-coupling.js",
+    [
+      'import "@proofrail/contracts";',
+      'import "@proofrail/trusted-config";',
+    ].join("\n"),
+  );
+
+  const findings = (await checkPackageBoundaries(root)).filter(
+    ({ id }) => id === "ARCHCHK_SHARED_AUTHORITY_COUPLING",
+  );
+  assert.deepEqual(
+    findings.map(({ target }) => target),
+    ["@proofrail/evidence-gate: @proofrail/contracts + @proofrail/trusted-config"],
+  );
+});
+
+test("rejects a missing file behind an exact production entrypoint", async (t) => {
+  const root = await createFixture(t);
+  await rm(
+    path.join(root, "packages", "evidence-gate", "src", "cli.mjs"),
+  );
+
+  const findings = (await checkPackageBoundaries(root)).filter(
+    ({ id }) => id === "ARCHCHK_ENTRYPOINT_MISSING",
+  );
+  assert.deepEqual(
+    findings.map(({ target }) => target),
+    ["./src/cli.mjs"],
+  );
+});
+
 async function createFixture(t) {
   const root = await mkdtemp(path.join(tmpdir(), "proofrail-architecture-"));
   t.after(async () => {
@@ -984,6 +1137,22 @@ async function createFixture(t) {
   return root;
 }
 
+async function createCopiedRepository(t) {
+  const root = await mkdtemp(path.join(tmpdir(), "proofrail-architecture-copy-"));
+  t.after(async () => {
+    await rm(root, { force: true, recursive: true });
+  });
+  await cp(
+    path.join(REPOSITORY_ROOT, "packages"),
+    path.join(root, "packages"),
+    {
+      recursive: true,
+      filter: (source) => !source.split(path.sep).includes("node_modules"),
+    },
+  );
+  return root;
+}
+
 async function writePackage(root, directory, manifest) {
   await mkdir(path.join(root, "packages", directory, "src"), { recursive: true });
   await writeFile(
@@ -991,6 +1160,37 @@ async function writePackage(root, directory, manifest) {
     `${JSON.stringify(manifest, null, 2)}\n`,
   );
   await writeSource(root, directory, "index.js", "export {};\n");
+  await writeManifestEntryPoints(root, directory, manifest);
+}
+
+async function writeManifestEntryPoints(root, directory, manifest) {
+  const targets = new Set();
+  const collect = (value) => {
+    if (typeof value === "string") {
+      if (value.startsWith("./")) {
+        targets.add(value);
+      }
+      return;
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        collect(item);
+      }
+      return;
+    }
+    if (value && typeof value === "object") {
+      for (const nested of Object.values(value)) {
+        collect(nested);
+      }
+    }
+  };
+  collect(manifest.bin);
+  collect(manifest.exports);
+  for (const target of targets) {
+    const file = path.join(root, "packages", directory, target);
+    await mkdir(path.dirname(file), { recursive: true });
+    await writeFile(file, "export {};\n");
+  }
 }
 
 async function writeSource(root, packageDirectory, relativePath, source) {

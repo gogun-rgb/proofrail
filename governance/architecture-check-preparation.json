@@ -2,9 +2,16 @@
   "schemaVersion": "1",
   "artifact": "architecture-check-preparation",
   "authority": "docs/architecture/dependency-rules.md",
-  "enforcementState": "bounded_current_six_package_loading_enforcement",
-  "productionPackageLayout": "present_six_classified_packages",
-  "scopeBoundary": "The repository engineering checker freezes the exact retained six-package classification, runtime dependency declarations, workspace and Node imports, manifest loading fields, relative containment, recognized production-source module forms, and explicitly guarded loader bypass syntax. It does not redefine dependency authority or grant product execution authority.",
+  "enforcementState": "bounded_current_seven_package_loading_enforcement",
+  "productionPackageLayout": "present_seven_classified_packages",
+  "scopeBoundary": "The repository engineering checker freezes the exact retained seven-package classification, runtime dependency declarations, workspace, Node and approved external imports, manifest loading fields, relative containment, recognized production-source module forms, and exact GitHub and verification-runner subprocess boundaries. It does not redefine dependency authority or grant product execution authority.",
+  "coveredArchitectureGuards": [
+    "exact_seven_package_set",
+    "approved_workspace_edges_and_layer_direction",
+    "acyclic_workspace_graph",
+    "targeted_shared_authority_owner_coupling",
+    "declared_production_entrypoint_presence"
+  ],
   "coveredLoadingForms": [
     "static_import_and_reexport",
     "typescript_import_equals_and_import_type",
@@ -47,5 +54,5 @@
       "description": "The loading guard does not prove semantic absence of private Verdict, Evidence, Evidence Requirement, Policy, Rule, or Evidence Bundle definitions in delivery code."
     }
   ],
-  "partialEnforcementStatement": "PRODUCT-HARDEN-001 closes the observable current six-package loading-form gaps enumerated by the bounded checker. The result remains a repository engineering drift guard, not general module resolution, transitive or generated-code analysis, target-repository inspection, inference-isolation proof, delivery-definition analysis, or complete architecture quality enforcement."
+  "partialEnforcementStatement": "PRODUCT-MARKET-001 extends the bounded checker to the exact seven-package surface, approved YAML dependency, prototype entry point, verification-runner subprocess boundary, acyclic workspace graph, targeted shared-authority owner coupling, and declared entrypoint presence. The result remains a repository engineering drift guard, not general module resolution, transitive or generated-code analysis, operating-system sandbox proof, runtime data-flow analysis, inference-isolation proof, delivery-definition analysis, or complete architecture quality enforcement."
 }

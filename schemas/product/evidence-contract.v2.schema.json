@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://proofrail.dev/schemas/product/evidence-contract.v2.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "version", "authorizationEventId", "targetScopeSelector", "selectionProvenance", "requirements", "requirementTemplates"],
+  "properties": {
+    "schemaVersion": { "const": "proofrail.evidence-contract.v2" },
+    "id": { "type": "string", "minLength": 1 },
+    "version": { "type": "string", "minLength": 1 },
+    "authorizationEventId": { "type": "string", "minLength": 1 },
+    "targetScopeSelector": { "const": "CURRENT_GITHUB_PULL_REQUEST" },
+    "selectionProvenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "configurationId", "configurationVersion"],
+      "properties": {
+        "source": { "const": "TRUSTED_CONFIGURATION" },
+        "configurationId": { "type": "string", "minLength": 1 },
+        "configurationVersion": { "type": "string", "minLength": 1 }
+      }
+    },
+    "requirements": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/requirement" }
+    },
+    "requirementTemplates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["idPrefix", "source", "inputKind", "requiredProducer", "expectedReceiptStatus"],
+        "properties": {
+          "idPrefix": { "type": "string", "minLength": 1 },
+          "source": { "const": "CONFIGURED_VERIFICATION_COMMANDS" },
+          "inputKind": { "const": "VERIFICATION_RECEIPT" },
+          "requiredProducer": { "$ref": "#/$defs/producer" },
+          "expectedReceiptStatus": { "const": "PASS" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 }
+      }
+    },
+    "expectation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": { "const": "CONSTANT_EQUALS" },
+            "value": { "type": ["string", "number", "boolean", "null"] }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "targetField"],
+          "properties": {
+            "kind": { "const": "TARGET_BINDING_EQUALS" },
+            "targetField": { "enum": ["repository", "pullRequestNumber", "baseSha", "headSha"] }
+          }
+        }
+      ]
+    },
+    "requirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "inputKind", "requiredProducer", "factKey", "expectation"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "inputKind": { "const": "OBSERVATION" },
+        "requiredProducer": { "$ref": "#/$defs/producer" },
+        "factKey": { "type": "string", "minLength": 1 },
+        "expectation": { "$ref": "#/$defs/expectation" }
+      }
+    }
+  }
+}

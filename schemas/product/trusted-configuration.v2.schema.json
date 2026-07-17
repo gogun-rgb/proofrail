@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://proofrail.dev/schemas/product/trusted-configuration.v2.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "version", "authorizationEventId", "issuerActorId", "targetSelector", "observer", "marketConfig", "policy", "evidenceContract", "executionBoundary", "kernel", "output"],
+  "properties": {
+    "schemaVersion": { "const": "proofrail.trusted-configuration.v2" },
+    "id": { "type": "string", "minLength": 1 },
+    "version": { "type": "string", "minLength": 1 },
+    "authorizationEventId": { "type": "string", "minLength": 1 },
+    "issuerActorId": { "type": "string", "minLength": 1 },
+    "targetSelector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "repository", "pullRequest", "baseConfiguration", "requireExactBaseSha", "requireExactHeadSha", "requirePostVerificationHeadMatch"],
+      "properties": {
+        "kind": { "const": "GITHUB_PULL_REQUEST_EVENT" },
+        "repository": { "const": "CURRENT_CALLER_REPOSITORY" },
+        "pullRequest": { "const": "CURRENT_EVENT" },
+        "baseConfiguration": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["source", "path"],
+          "properties": {
+            "source": { "const": "GIT_OBJECT_AT_EXACT_BASE_SHA" },
+            "path": { "const": ".proofrail/config.yml" }
+          }
+        },
+        "requireExactBaseSha": { "const": true },
+        "requireExactHeadSha": { "const": true },
+        "requirePostVerificationHeadMatch": { "const": true }
+      }
+    },
+    "observer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 }
+      }
+    },
+    "marketConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "source", "path", "allowedPresets"],
+      "properties": {
+        "schemaVersion": { "const": "proofrail.market-config.v1" },
+        "source": { "const": "TARGET_BASE_CONFIGURATION" },
+        "path": { "const": ".proofrail/config.yml" },
+        "allowedPresets": {
+          "const": ["ai-pr-strict", "dependency-update", "docs-only", "typescript-basic"]
+        }
+      }
+    },
+    "policy": { "$ref": "#/$defs/artifactReference" },
+    "evidenceContract": { "$ref": "#/$defs/artifactReference" },
+    "executionBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "githubRead", "githubWrite", "networkPolicy", "credentialPolicy", "forkSecretPolicy", "checkoutCredentialPolicy", "targetCheckout", "targetRepositoryContentRead", "targetCommandExecution", "verificationCommandExecution", "modelExecution", "shellPolicy", "maximumCommandCount", "maximumCommandTimeoutSeconds", "maximumTotalTimeoutSeconds", "maximumOutputBytesPerStream", "maximumPreviewBytesPerStream", "terminateProcessTree", "allowedEnvironmentNames", "deniedEnvironmentNames", "filesystemPolicy"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "githubRead": { "const": true },
+        "githubWrite": { "const": false },
+        "networkPolicy": { "const": "CONTROL_PLANE_GITHUB_ONLY_TARGET_COMMANDS_RUNNER_NETWORK_NO_CREDENTIALS" },
+        "credentialPolicy": { "const": "NO_CONTROL_PLANE_CREDENTIALS_IN_TARGET_ENVIRONMENT" },
+        "forkSecretPolicy": { "const": "NO_SECRETS" },
+        "checkoutCredentialPolicy": { "const": "PERSIST_CREDENTIALS_FALSE" },
+        "targetCheckout": { "const": true },
+        "targetRepositoryContentRead": { "const": true },
+        "targetCommandExecution": { "const": true },
+        "verificationCommandExecution": { "const": true },
+        "modelExecution": { "const": false },
+        "shellPolicy": { "const": "BASE_CONFIGURATION_BASH" },
+        "maximumCommandCount": { "type": "integer", "minimum": 1, "maximum": 12 },
+        "maximumCommandTimeoutSeconds": { "type": "integer", "minimum": 1, "maximum": 1800 },
+        "maximumTotalTimeoutSeconds": { "type": "integer", "minimum": 1, "maximum": 3600 },
+        "maximumOutputBytesPerStream": { "type": "integer", "minimum": 1024, "maximum": 1048576 },
+        "maximumPreviewBytesPerStream": { "type": "integer", "minimum": 256, "maximum": 16384 },
+        "terminateProcessTree": { "const": true },
+        "allowedEnvironmentNames": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" }
+        },
+        "deniedEnvironmentNames": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" }
+        },
+        "filesystemPolicy": { "const": "CHECKOUT_AND_RUNNER_TEMP_ONLY" }
+      }
+    },
+    "kernel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["inputSchemaVersion", "bundleSchemaVersion", "engineVersion", "maximumInvocationCount"],
+      "properties": {
+        "inputSchemaVersion": { "const": "proofrail.kernel.input.v2" },
+        "bundleSchemaVersion": { "const": "proofrail.evidence-bundle.v2" },
+        "engineVersion": { "const": "0.3.0-market-prototype" },
+        "maximumInvocationCount": { "const": 1 }
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "format", "publicationBoundary", "strict"],
+      "properties": {
+        "kind": { "const": "FINALIZED_EVIDENCE_BUNDLE" },
+        "format": { "const": "CANONICAL_JSON_LF" },
+        "publicationBoundary": { "const": "GITHUB_ACTIONS_ARTIFACT_AND_STEP_SUMMARY" },
+        "strict": { "const": true }
+      }
+    }
+  },
+  "$defs": {
+    "artifactReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "path", "sha256"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9A-F]{64}$" }
+      }
+    }
+  }
+}

@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://proofrail.dev/schemas/product/verification-receipt.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "type", "producer", "target", "command", "environment", "executionBoundaryId", "timing", "result", "dependencyLockfile", "redaction", "lineage"],
+  "properties": {
+    "schemaVersion": { "const": "proofrail.verification-receipt.v1" },
+    "id": { "type": "string", "pattern": "^receipt:[0-9a-f]{32}$" },
+    "type": { "const": "COMMAND_EXECUTION" },
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9.-]{0,127}$" },
+        "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "pullRequestNumber", "baseSha", "headSha", "targetScopeId"],
+      "properties": {
+        "repository": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" },
+        "pullRequestNumber": { "type": "integer", "minimum": 1 },
+        "baseSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "headSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "targetScopeId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "run", "orderingKey"],
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$" },
+        "run": { "type": "string", "minLength": 1, "maxLength": 2048 },
+        "orderingKey": { "type": "string", "pattern": "^[0-9]{3}$" }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runner", "os", "architecture", "node", "allowedEnvironmentNames"],
+      "properties": {
+        "runner": { "type": "string", "minLength": 1 },
+        "os": { "type": "string", "minLength": 1 },
+        "architecture": { "type": "string", "minLength": 1 },
+        "node": { "type": "string", "minLength": 1 },
+        "allowedEnvironmentNames": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" }
+        }
+      }
+    },
+    "executionBoundaryId": { "type": "string", "minLength": 1 },
+    "timing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["startedAt", "endedAt", "durationMs"],
+      "properties": {
+        "startedAt": { "type": "string", "format": "date-time" },
+        "endedAt": { "type": "string", "format": "date-time" },
+        "durationMs": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "exitCode", "stdoutDigest", "stderrDigest", "stdoutBytes", "stderrBytes", "stdoutPreview", "stderrPreview", "stdoutTruncated", "stderrTruncated", "timedOut"],
+      "properties": {
+        "status": { "enum": ["PASS", "FAIL", "TIMEOUT", "ERROR"] },
+        "exitCode": { "type": ["integer", "null"] },
+        "stdoutDigest": { "$ref": "#/$defs/digest" },
+        "stderrDigest": { "$ref": "#/$defs/digest" },
+        "stdoutBytes": { "type": "integer", "minimum": 0 },
+        "stderrBytes": { "type": "integer", "minimum": 0 },
+        "stdoutPreview": { "type": "string", "maxLength": 16384 },
+        "stderrPreview": { "type": "string", "maxLength": 16384 },
+        "stdoutTruncated": { "type": "boolean" },
+        "stderrTruncated": { "type": "boolean" },
+        "timedOut": { "type": "boolean" }
+      }
+    },
+    "dependencyLockfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": ["string", "null"], "maxLength": 512 },
+        "sha256": { "anyOf": [{ "$ref": "#/$defs/digest" }, { "type": "null" }] }
+      }
+    },
+    "redaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["applied", "matchCount"],
+      "properties": {
+        "applied": { "type": "boolean" },
+        "matchCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["trustedConfigurationSha256", "policySha256", "evidenceContractSha256", "marketConfigSha256"],
+      "properties": {
+        "trustedConfigurationSha256": { "$ref": "#/$defs/digest" },
+        "policySha256": { "$ref": "#/$defs/digest" },
+        "evidenceContractSha256": { "$ref": "#/$defs/digest" },
+        "marketConfigSha256": { "$ref": "#/$defs/digest" }
+      }
+    }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9A-F]{64}$" }
+  }
+}

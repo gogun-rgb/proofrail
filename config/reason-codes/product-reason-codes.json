@@ -20,6 +20,36 @@
       "replacement": null
     },
     {
+      "id": "AUTHORITY_LIMIT_EXCEEDED",
+      "kind": "COMPONENT_ERROR",
+      "category": "AUTHORITY",
+      "surfaces": [
+        "trusted-config"
+      ],
+      "visibility": "PUBLIC",
+      "severity": "ERROR",
+      "retryable": false,
+      "status": "ACTIVE",
+      "description": "A repository configuration requests authority beyond the maxima fixed by Trusted Configuration.",
+      "remediation": "Reduce the repository configuration to the authorized limits or issue new Trusted Configuration through the external authority path.",
+      "replacement": null
+    },
+    {
+      "id": "CONFLICTING_CONFIGURATION",
+      "kind": "COMPONENT_ERROR",
+      "category": "INPUT",
+      "surfaces": [
+        "trusted-config"
+      ],
+      "visibility": "PUBLIC",
+      "severity": "ERROR",
+      "retryable": false,
+      "status": "ACTIVE",
+      "description": "Repository configuration contains mutually inconsistent settings that cannot form one deterministic effective configuration.",
+      "remediation": "Resolve the conflicting settings so the selected preset and repository overrides produce one unambiguous configuration.",
+      "replacement": null
+    },
+    {
       "id": "CYCLIC_INPUT",
       "kind": "BOUNDARY_ISSUE",
       "category": "INPUT",
@@ -322,6 +352,36 @@
       "replacement": null
     },
     {
+      "id": "MALFORMED_YAML",
+      "kind": "COMPONENT_ERROR",
+      "category": "INPUT",
+      "surfaces": [
+        "trusted-config"
+      ],
+      "visibility": "PUBLIC",
+      "severity": "ERROR",
+      "retryable": false,
+      "status": "ACTIVE",
+      "description": "A repository configuration document is not valid strict single-document YAML.",
+      "remediation": "Correct the YAML syntax and retain one bounded document using only the supported core data model.",
+      "replacement": null
+    },
+    {
+      "id": "MARKET_CONFIG_INVALID",
+      "kind": "COMPONENT_ERROR",
+      "category": "INPUT",
+      "surfaces": [
+        "release-orchestrator"
+      ],
+      "visibility": "PUBLIC",
+      "severity": "ERROR",
+      "retryable": false,
+      "status": "ACTIVE",
+      "description": "The supplied market-prototype configuration was not produced by the separately branded trusted loader or is internally inconsistent.",
+      "remediation": "Load the base-branch configuration through the market trusted-configuration boundary and pass the resulting validated object unchanged.",
+      "replacement": null
+    },
+    {
       "id": "MISSING_FIELD",
       "kind": "BOUNDARY_ISSUE",
       "category": "INPUT",
@@ -413,6 +473,21 @@
       "replacement": null
     },
     {
+      "id": "PROOFRAIL_PROTOTYPE_DELIVERY_FAILED",
+      "kind": "DELIVERY_ERROR",
+      "category": "DELIVERY",
+      "surfaces": [
+        "evidence-gate"
+      ],
+      "visibility": "PUBLIC",
+      "severity": "ERROR",
+      "retryable": true,
+      "status": "ACTIVE",
+      "description": "The bounded public-prototype delivery workflow failed at the separately reported stage.",
+      "remediation": "Inspect the machine-readable stage, correct the configuration, execution, or delivery boundary, and retry without changing authority.",
+      "replacement": null
+    },
+    {
       "id": "PROOFRAIL_RELEASE_DELIVERY_FAILED",
       "kind": "DELIVERY_ERROR",
       "category": "DELIVERY",
@@ -425,6 +500,21 @@
       "status": "ACTIVE",
       "description": "The bounded release delivery workflow failed at the separately reported stage.",
       "remediation": "Inspect the machine-readable stage, correct that boundary condition, and retry without changing authority.",
+      "replacement": null
+    },
+    {
+      "id": "PROOFRAIL_WORKFLOW_EVENT_FAILED",
+      "kind": "DELIVERY_ERROR",
+      "category": "DELIVERY",
+      "surfaces": [
+        "evidence-gate"
+      ],
+      "visibility": "PUBLIC",
+      "severity": "ERROR",
+      "retryable": true,
+      "status": "ACTIVE",
+      "description": "The bounded GitHub workflow-event collection surface failed at the separately reported stage.",
+      "remediation": "Inspect the machine-readable collection stage and reason, correct the bounded input or source boundary, and retry without changing authority.",
       "replacement": null
     },
     {
@@ -456,6 +546,21 @@
       "status": "ACTIVE",
       "description": "A required local file could not be opened, inspected, or read completely.",
       "remediation": "Restore stable read access to the selected regular file and retry.",
+      "replacement": null
+    },
+    {
+      "id": "RECEIPTS_INVALID",
+      "kind": "COMPONENT_ERROR",
+      "category": "EVIDENCE",
+      "surfaces": [
+        "release-orchestrator"
+      ],
+      "visibility": "PUBLIC",
+      "severity": "ERROR",
+      "retryable": false,
+      "status": "ACTIVE",
+      "description": "Verification Receipts are missing, duplicated, malformed, stale, or not bound to the exact selected target and authority lineage.",
+      "remediation": "Run the authorized verification commands for the exact target and supply the resulting complete receipt set without alteration.",
       "replacement": null
     },
     {
@@ -531,6 +636,21 @@
       "status": "ACTIVE",
       "description": "The supplied repository root is missing, unreadable, symbolic, or not a directory.",
       "remediation": "Provide an accessible canonical directory as the trusted repository root.",
+      "replacement": null
+    },
+    {
+      "id": "RUNTIME_STATE_INVALID",
+      "kind": "COMPONENT_ERROR",
+      "category": "TARGET",
+      "surfaces": [
+        "release-orchestrator"
+      ],
+      "visibility": "PUBLIC",
+      "severity": "ERROR",
+      "retryable": false,
+      "status": "ACTIVE",
+      "description": "Runtime target state is malformed or does not provide the exact checkout and current-head identities required for evaluation.",
+      "remediation": "Collect fresh runtime state after verification and bind both checkout and current head to the selected pull-request target.",
       "replacement": null
     },
     {
@@ -652,6 +772,21 @@
       "status": "ACTIVE",
       "description": "An authoritative record contains a field outside its closed protocol shape.",
       "remediation": "Remove the unknown field or use a separately authorized schema version that defines it.",
+      "replacement": null
+    },
+    {
+      "id": "UNSAFE_YAML",
+      "kind": "COMPONENT_ERROR",
+      "category": "INPUT",
+      "surfaces": [
+        "trusted-config"
+      ],
+      "visibility": "PUBLIC",
+      "severity": "ERROR",
+      "retryable": false,
+      "status": "ACTIVE",
+      "description": "A repository configuration uses YAML aliases, custom tags, multiple documents, or another construct outside the safe closed subset.",
+      "remediation": "Replace unsafe YAML constructs with explicit core-schema scalars, arrays, and mappings in one document.",
       "replacement": null
     },
     {
