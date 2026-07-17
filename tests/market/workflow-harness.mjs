@@ -74,7 +74,7 @@ if [[ "$CONFIG_PATH" != ".proofrail/config.yml" ]]; then
   exit 1
 fi`,
   corepack: "corepack enable",
-  install: "pnpm --dir proofrail-tool install --frozen-lockfile",
+  install: "corepack pnpm@11.7.0 --dir proofrail-tool install --frozen-lockfile",
   event: String.raw`node proofrail-tool/packages/evidence-gate/src/workflow-event-cli.mjs \
   --github-repo "$GITHUB_REPOSITORY" \
   --pull-request "$PR_NUMBER" \
