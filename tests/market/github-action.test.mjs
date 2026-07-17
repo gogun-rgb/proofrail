@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
@@ -17,12 +18,25 @@ const requireFromTrustedConfig = createRequire(new URL("../../packages/trusted-c
 const YAML = requireFromTrustedConfig("yaml");
 const WORKFLOW_PATH = new URL("../../.github/workflows/proofrail.yml", import.meta.url);
 const DEMO_WORKFLOW_PATH = new URL("../../examples/market-prototype/demo/.github/workflows/proofrail.yml", import.meta.url);
-const REVIEWED_WORKFLOW_SHA = "166573bc5ea5c32e7f8f0ed0943e67e466df9fcb";
+const REVIEWED_WORKFLOW_SHA = "462e2296ea5e495db8a1a6271f9710b02e582beb";
 
 async function load() {
   const source = await readFile(WORKFLOW_PATH, "utf8");
   return { source, workflow: parseWorkflow(YAML.parse(source)) };
 }
+
+test("reviewed workflow pin resolves to the exact retained workflow source", async () => {
+  const source = await readFile(WORKFLOW_PATH, "utf8");
+  const pinnedSource = execFileSync(
+    "git",
+    ["show", `${REVIEWED_WORKFLOW_SHA}:.github/workflows/proofrail.yml`],
+    {
+      cwd: new URL("../../", import.meta.url),
+      encoding: "utf8",
+    },
+  );
+  assert.equal(pinnedSource, source.replaceAll("\r\n", "\n"));
+});
 
 test("sole-source workflow parses and simulates every step exactly once", async () => {
   const { source, workflow } = await load();
