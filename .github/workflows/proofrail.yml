@@ -95,7 +95,10 @@ jobs:
       - name: Install Proofrail
         id: install
         shell: bash
-        run: pnpm --dir proofrail-tool install --frozen-lockfile
+        run: |
+          cd proofrail-tool
+          corepack install
+          pnpm install --frozen-lockfile
 
       - name: Collect exact pull request event
         id: event
