@@ -74,6 +74,11 @@ export function validateSite(siteRoot = SITE_ROOT) {
   assert.match(html, /<meta\b[^>]*\bname=["']description["'][^>]*>/i, 'site needs a useful description');
   assert.match(html, /<meta\b[^>]*\bname=["']referrer["'][^>]*\bcontent=["']no-referrer["']/i, 'site must opt out of referrer leakage');
   assert.match(html, /<meta\b[^>]*\bhttp-equiv=["']content-security-policy["'][^>]*>/i, 'site needs a restrictive security meta policy');
+  assert.doesNotMatch(
+    html,
+    /<meta\b[^>]*\bhttp-equiv=["']content-security-policy["'][^>]*\bcontent=["'][^"']*\bframe-ancestors\b/i,
+    'frame-ancestors must be delivered as an HTTP header because browsers ignore it in a meta policy',
+  );
   assert.match(html, /<a\b[^>]*\bhref=["']#main-content["'][^>]*>.*?skip/i, 'site needs a keyboard skip link');
   assert.match(html, /<header\b/i, 'site needs a semantic header');
   assert.match(html, /<nav\b/i, 'site needs a semantic navigation');
