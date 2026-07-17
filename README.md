@@ -16,7 +16,7 @@ Proofrail collects bounded pull request facts, keeps Claims separate from Observ
 
 The current Phase 2 implementation supports caller-supplied static inputs, sanitized read-only GitHub metadata collection, the exact externally configured release-candidate workflow, and the separately authorized `PRODUCT-MARKET-001` reusable GitHub Actions prototype.
 
-For the external installation path, see [Install the bounded market prototype](docs/getting-started/installation.md) and [the implementation reference](docs/reference/market-prototype.md). The prototype requires no local Node.js, pnpm, or `gh` installation in the caller repository.
+For the external installation path, see [Install the bounded market prototype](docs/getting-started/installation.md). For its capability and security limits, see [the market prototype guide](docs/getting-started/market-prototype.md). The prototype requires no local Node.js, pnpm, or `gh` installation in the caller repository.
 
 ## See the result
 

@@ -1,8 +1,8 @@
-# PRODUCT-MARKET-001 reference
+# Market prototype capability and limits
+
+This guide describes the bounded `PRODUCT-MARKET-001` delivery path. For setup, see [Install the bounded market prototype](installation.md).
 
 ## Capability boundary
-
-The market prototype is a narrow delivery path composed of the following stages:
 
 ```text
 GitHub pull-request event
@@ -28,9 +28,9 @@ The base and head identities, configuration lineage, changed paths, reviews, rep
 
 ## Inputs and outputs
 
-The trusted runtime authority selects the base configuration path `.proofrail/config.yml`, the allowed presets, the exact target binding, command count and timeout bounds, filtered environment names, and the canonical output format. The base configuration selects a preset and may provide scope, command, review, reported-check, output, and local telemetry settings.
+The trusted runtime authority selects `.proofrail/config.yml`, allowed presets, exact target binding, command count and timeout bounds, filtered environment names, and the canonical output format. The base configuration selects a preset and may provide only permitted stricter scope, command, review, reported-check, output, and telemetry values.
 
-The output directory contains only canonical LF JSON and Markdown files:
+The output directory contains canonical LF JSON and Markdown files:
 
 ```text
 proofrail-output/
@@ -39,9 +39,9 @@ proofrail-output/
 └── telemetry.json
 ```
 
-When delivery is blocked before evaluation and the output directory did not already exist, the retained packet instead contains failure.json and summary.md. It explicitly states that no Evidence Bundle was produced and gives the next boundary-remediation step.
+Telemetry is artifact-local by default and reports `networkTransmission: false`; it is not a network telemetry channel. A base configuration can explicitly opt out with `telemetry.enabled: false`. If delivery is blocked before evaluation and a fresh output directory is available, the retained packet instead contains `failure.json`, `summary.md`, and `telemetry.json`. It explicitly states that no Evidence Bundle or product Verdict was produced and gives the next boundary-remediation step.
 
-The Evidence Bundle contains the exact repository, pull-request number, base SHA, head SHA, authority lineage, observations, receipts, scope result, policy conditions, reason codes, Verdict, and artifact digest. Raw stdout and stderr are never retained; the runner records stream digests and bounded redacted previews.
+The Evidence Bundle contains the exact repository, pull-request number, base SHA, head SHA, authority lineage, observations, receipts, scope result, policy conditions, reason codes, Verdict, and artifact digest. Raw stdout and stderr are not retained; the runner records stream digests and bounded redacted previews.
 
 ## Verdict semantics
 
@@ -60,14 +60,15 @@ These are deterministic product Verdicts for the recorded evaluation only. They 
 - Fork pull requests receive no secrets from the workflow.
 - The base configuration is loaded from the exact base checkout, not from the pull-request head.
 - Shell identity, checkout identity, worktree stability, changed-path containment, output publication, command count, command timeout, total timeout, output bytes, process-tree termination, and dependency-lockfile identity are bounded and fail closed.
+- TypeScript and AI presets begin with a credential-free frozen dependency install; an unavailable or mismatched lockfile fails the verification path rather than relaxing it.
 - The current runtime authority denies GitHub writes, model execution, and credential persistence.
-- The accepted runner backend name is `GITHUB_HOSTED_LINUX_SANDBOX_V1`; absence of an explicit attestation yields `BLOCKED_EXECUTION_BOUNDARY` rather than a fabricated receipt.
+- The accepted runner backend name is `GITHUB_HOSTED_LINUX_SANDBOX_V1`; the repository currently has no approved provider that supplies its required attestation. Its absence yields `BLOCKED_EXECUTION_BOUNDARY`, never a fabricated receipt.
 
 These controls are application-level boundaries for the current prototype. They are not a complete VM or operating-system sandbox and do not prove arbitrary target code is safe.
 
 ## Local verification
 
-The checked-in fixtures exercise the success, stale-target, failed-command, timeout, output-limit, scope, token-isolation, path-alias, and output-publication paths:
+The checked-in fixtures exercise success, stale-target, failed-command, timeout, output-limit, scope, token-isolation, path-alias, output-publication, and local frozen-install paths:
 
 ```bash
 pnpm test:market
@@ -77,7 +78,7 @@ pnpm verify
 
 The live GitHub collector requires the runner's read-only `GH_TOKEN` context. The local importer uses an already-authenticated `gh` CLI, while the reusable workflow handles collection inside GitHub Actions and does not require local tool installation.
 
-The reusable workflow names its job `Proofrail`, so GitHub displays the workflow result as its automatic job check. This is host-provided status; the current Proofrail authority still does not create a separate Check Run or any other GitHub write.
+The reusable workflow names its job `Proofrail`, so GitHub displays the workflow result as its automatic job check. This is host-provided status; the current Proofrail authority does not create a separate Check Run or any other GitHub write.
 
 ## Explicit exclusions
 

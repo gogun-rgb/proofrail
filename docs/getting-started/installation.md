@@ -12,46 +12,14 @@ Commit this file on the pull request's base branch as `.proofrail/config.yml`. T
 version: 1
 preset: typescript-basic
 
-scope:
-  allowed:
-    - src/**
-    - tests/**
-    - package.json
-    - pnpm-lock.yaml
-  denied:
-    - .github/workflows/**
-    - secrets/**
-
-verification:
-  timeoutMinutes: 20
-  commands:
-    - name: install
-      run: pnpm install --frozen-lockfile
-    - name: typecheck
-      run: pnpm typecheck
-    - name: test
-      run: pnpm test
-    - name: build
-      run: pnpm build
-
-reviews:
-  minimumApprovals: 1
-  requireExactHeadApproval: true
-  blockChangesRequested: true
-
-reportedChecks:
-  requireSuccess: true
-
-output:
-  uploadEvidenceBundle: true
-  includeCommandPreview: true
-  strict: true
-
 telemetry:
+# Optional explicit opt-out. The preset default is enabled: true.
   enabled: false
 ```
 
-Use a smaller command set for a repository that does not use pnpm. Commands are read from this base configuration, are bounded by the trusted runtime authority, and run with a filtered environment. Do not put credentials or secret values in the file.
+The selected `typescript-basic` preset has a fixed, authority-selected command sequence: a 10-minute `pnpm install --frozen-lockfile`, followed by 10-minute `pnpm typecheck` and `pnpm test` commands. The `ai-pr-strict` preset uses the same bounded frozen install before lint, typecheck, test, and build. A base configuration may only select a preset or make permitted values stricter; it cannot replace those command identities or add credentials. Dependencies fail closed if the frozen lockfile cannot be satisfied.
+
+All presets enable artifact-local telemetry by default. It records no network transmission (`networkTransmission: false`) and does not grant network or credential access. The `enabled: false` value above is the explicit opt-out when that local artifact metadata is not wanted. Do not put credentials or secret values in the file.
 
 ## 2. Add the caller workflow
 
@@ -108,4 +76,4 @@ The `Proofrail` job is shown by GitHub as the workflow's automatic job check. Th
 
 The workflow intentionally does not provide complete VM or sandbox isolation, arbitrary repository inspection, patch or file-content analysis, network credentials, GitHub writes, an API, an MCP server, a hosted retention service, or model-based judgment. These limits are part of the current `PRODUCT-MARKET-001` contract and must not be read as product readiness or trusted-release authority.
 
-For the local deterministic fixture and the full implementation boundary, see [the market prototype reference](../reference/market-prototype.md).
+The local deterministic fixture is under `examples/market-prototype/demo`. The implementation boundary is the sequence of read-only GitHub collection, exact base/head checkout, base-configuration loading, bounded verification, canonical Verification Receipts, deterministic kernel evaluation, and artifact/Step Summary publication described above. See [the market prototype guide](market-prototype.md) for the capability boundary and explicit exclusions.
