@@ -17,7 +17,7 @@ const requireFromTrustedConfig = createRequire(new URL("../../packages/trusted-c
 const YAML = requireFromTrustedConfig("yaml");
 const WORKFLOW_PATH = new URL("../../.github/workflows/proofrail.yml", import.meta.url);
 const DEMO_WORKFLOW_PATH = new URL("../../examples/market-prototype/demo/.github/workflows/proofrail.yml", import.meta.url);
-const REVIEWED_WORKFLOW_SHA = "166573bc5ea5c32e7f8f0ed0943e67e466df9fcb";
+const REVIEWED_WORKFLOW_SHA = "25e0c644859fc77fb0805fbadfe48050b5c63ccb";
 
 async function load() {
   const source = await readFile(WORKFLOW_PATH, "utf8");
