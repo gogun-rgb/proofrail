@@ -105,3 +105,14 @@ test("worktree baseline rejects additions beneath git metadata", async (t) => {
 
   await expectStale(snapshot);
 });
+
+test("worktree baseline rejects generated-output additions beneath git metadata", async (t) => {
+  const root = await fixture(t);
+  await mkdir(path.join(root, ".git"));
+  const snapshot = await captureWorktreeSnapshot(root);
+  await assert.doesNotReject(assertWorktreeSnapshotStable(snapshot));
+  await mkdir(path.join(root, ".git", "node_modules", "sentinel"), { recursive: true });
+  await writeFile(path.join(root, ".git", "node_modules", "sentinel", "later-command-input"), "metadata\n", "utf8");
+
+  await expectStale(snapshot);
+});

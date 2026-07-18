@@ -304,6 +304,9 @@ async function assertNoUnrecognizedWorktreeEntry(root, relative, baselinePaths) 
   }
   for (const child of children) {
     const childRelative = relative === "" ? child.name : `${relative}/${child.name}`;
+    if (!baselinePaths.has(childRelative) && childRelative.replaceAll("\\", "/").split("/")[0] === ".git") {
+      throw new PrototypeBoundaryError("PRF_STALE_TARGET", "target worktree changed during verification");
+    }
     const outputRoot = generatedOutputRoot(childRelative);
     if (!baselinePaths.has(childRelative) && outputRoot === null) {
       throw new PrototypeBoundaryError("PRF_STALE_TARGET", "target worktree changed during verification");
