@@ -27,14 +27,42 @@ async function expectStale(snapshot) {
 
 test("worktree baseline permits fresh dependency and build output directories", async (t) => {
   const root = await fixture(t);
+  await mkdir(path.join(root, "packages", "workspace"), { recursive: true });
   const snapshot = await captureWorktreeSnapshot(root);
 
   await mkdir(path.join(root, "node_modules", "example"), { recursive: true });
   await writeFile(path.join(root, "node_modules", "example", "index.js"), "export {};\n", "utf8");
+  await mkdir(path.join(root, "packages", "workspace", "node_modules", "example"), { recursive: true });
+  await writeFile(path.join(root, "packages", "workspace", "node_modules", "example", "index.js"), "export {};\n", "utf8");
   await mkdir(path.join(root, "dist"), { recursive: true });
   await writeFile(path.join(root, "dist", "bundle.js"), "console.log('built');\n", "utf8");
 
   await assert.doesNotReject(assertWorktreeSnapshotStable(snapshot));
+});
+
+test("worktree baseline rejects an arbitrary top-level addition", async (t) => {
+  const root = await fixture(t);
+  const snapshot = await captureWorktreeSnapshot(root);
+  await writeFile(path.join(root, "runner-created-sentinel.txt"), "unexpected\n", "utf8");
+
+  await expectStale(snapshot);
+});
+
+test("worktree baseline rejects an arbitrary nested addition", async (t) => {
+  const root = await fixture(t);
+  const snapshot = await captureWorktreeSnapshot(root);
+  await mkdir(path.join(root, "baseline", "runner-created"));
+  await writeFile(path.join(root, "baseline", "runner-created", "sentinel.txt"), "unexpected\n", "utf8");
+
+  await expectStale(snapshot);
+});
+
+test("worktree baseline rejects generated-output roots with a non-directory type", async (t) => {
+  const root = await fixture(t);
+  const snapshot = await captureWorktreeSnapshot(root);
+  await writeFile(path.join(root, "dist"), "not a directory\n", "utf8");
+
+  await expectStale(snapshot);
 });
 
 test("worktree baseline rejects mutation, deletion, and replacement of retained files", async (t) => {

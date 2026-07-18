@@ -68,7 +68,7 @@ export async function assertWorktreeSnapshotStable(before) {
       throw new PrototypeBoundaryError("PRF_STALE_TARGET", "target worktree changed during verification");
     }
   }
-  await assertNoGitMetadataAdditions(before);
+  await assertNoUnrecognizedWorktreeAdditions(before);
   return before;
 }
 
@@ -289,40 +289,40 @@ function sameBaselineWorktreeEntry(left, right) {
     && left.linkTarget === right.linkTarget;
 }
 
-async function assertNoGitMetadataAdditions(before) {
-  const gitEntry = before.entries.find((entry) => entry.relative === ".git");
-  const gitPath = path.join(before.root, ".git");
-  let details;
-  try {
-    details = await lstat(gitPath, { bigint: true });
-  } catch (error) {
-    if (error?.code === "ENOENT") return;
-    throw new PrototypeBoundaryError("PRF_STALE_TARGET", "git metadata cannot be inspected");
-  }
-  if (!gitEntry) {
-    throw new PrototypeBoundaryError("PRF_STALE_TARGET", "git metadata changed during verification");
-  }
-  if (gitEntry.kind !== "directory") return;
-  if (!details.isDirectory()) throw new PrototypeBoundaryError("PRF_STALE_TARGET", "git metadata changed during verification");
+async function assertNoUnrecognizedWorktreeAdditions(before) {
   const baselinePaths = new Set(before.entries.map((entry) => entry.relative));
-  await assertNoNewGitMetadataEntry(before.root, ".git", baselinePaths);
+  await assertNoUnrecognizedWorktreeEntry(before.root, "", baselinePaths);
 }
 
-async function assertNoNewGitMetadataEntry(root, relative, baselinePaths) {
-  const directory = path.join(root, ...relative.split("/"));
+async function assertNoUnrecognizedWorktreeEntry(root, relative, baselinePaths) {
+  const directory = relative === "" ? root : path.join(root, ...relative.split("/"));
   let children;
   try {
     children = await readdir(directory, { withFileTypes: true });
   } catch {
-    throw new PrototypeBoundaryError("PRF_STALE_TARGET", "git metadata cannot be inspected");
+    throw new PrototypeBoundaryError("PRF_STALE_TARGET", "target worktree cannot be inspected");
   }
   for (const child of children) {
-    const childRelative = `${relative}/${child.name}`;
-    if (!baselinePaths.has(childRelative)) {
-      throw new PrototypeBoundaryError("PRF_STALE_TARGET", "git metadata changed during verification");
+    const childRelative = relative === "" ? child.name : `${relative}/${child.name}`;
+    const outputRoot = generatedOutputRoot(childRelative);
+    if (!baselinePaths.has(childRelative) && outputRoot === null) {
+      throw new PrototypeBoundaryError("PRF_STALE_TARGET", "target worktree changed during verification");
     }
-    if (child.isDirectory()) await assertNoNewGitMetadataEntry(root, childRelative, baselinePaths);
+    if (!baselinePaths.has(childRelative) && outputRoot === childRelative) {
+      const entry = await captureWorktreeEntry(path.join(root, ...childRelative.split("/")), childRelative);
+      if (entry.kind !== "directory") {
+        throw new PrototypeBoundaryError("PRF_STALE_TARGET", "generated output root is not a directory");
+      }
+    }
+    if (child.isDirectory()) await assertNoUnrecognizedWorktreeEntry(root, childRelative, baselinePaths);
   }
+}
+
+function generatedOutputRoot(relative) {
+  const segments = relative.split("/");
+  if (segments[0] === "dist") return "dist";
+  const index = segments.indexOf("node_modules");
+  return index < 0 ? null : segments.slice(0, index + 1).join("/");
 }
 
 async function boundedDigest(file, size) {

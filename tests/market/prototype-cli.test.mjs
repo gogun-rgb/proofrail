@@ -581,42 +581,36 @@ test("prototype CLI blocks an existing target-file mutation before publication",
   assert.equal(await lstat(path.join(output, "evidence-bundle.json")).catch(() => null), null);
 });
 
-test("prototype CLI rejects a target mutation during the final pre-spawn head read", async (t) => {
-  const output = await mkdtemp(path.join(tmpdir(), "proofrail-market-prespawn-target-mutation-"));
-  t.after(() => rm(output, { recursive: true, force: true }));
+test("prototype CLI blocks a runner-created non-generated sentinel before publication", async (t) => {
+  const { config, output, repository } = await prepareTelemetryEnabledPrototype(t);
   const event = JSON.parse(await readFile(path.join(ROOT, "fixtures/market-prototype/github/pr-success.json"), "utf8"));
-  const targetFile = path.join(ROOT, "examples/market-prototype/demo/README.md");
-  const original = await readFile(targetFile);
-  let headReads = 0;
+  const heads = [event.snapshot.headOid, event.snapshot.headOid, event.snapshot.headOid, event.snapshot.headOid];
+  const sentinel = path.join(repository, "runner-created-sentinel.txt");
   let runnerCalled = false;
-  try {
-    await assert.rejects(
-      runPrototypeCli([
-        "--event", path.join(ROOT, "fixtures/market-prototype/github/pr-success.json"),
-        "--repo", path.join(ROOT, "examples/market-prototype/demo"),
-        "--config", path.join(ROOT, "examples/market-prototype/demo/.proofrail/config.yml"),
-        "--output", output,
-        "--shell", await bashPath(),
-      ], {
-        __proofrailTestOnly: true,
-        readCheckoutHead: async () => {
-          headReads += 1;
-          if (headReads === 2) await writeFile(targetFile, Buffer.concat([original, Buffer.from("\nmutated during pre-spawn read\n", "utf8")]));
-          return event.snapshot.headOid;
-        },
-        readBaseCheckoutHead: async () => event.snapshot.baseOid,
-        runVerificationPlan: async () => {
-          runnerCalled = true;
-          return [];
-        },
-      }),
-      (error) => error?.reason === "PRF_STALE_TARGET",
-    );
-  } finally {
-    await writeFile(targetFile, original);
-  }
-  assert.equal(headReads, 2);
-  assert.equal(runnerCalled, false);
+
+  await assert.rejects(
+    runPrototypeCli([
+      "--event", path.join(ROOT, "fixtures/market-prototype/github/pr-success.json"),
+      "--repo", repository,
+      "--config", config,
+      "--output", output,
+      "--shell", await bashPath(),
+    ], {
+      __proofrailTestOnly: true,
+      executionAttestation: { enforcesNetwork: true },
+      readCheckoutHead: async () => heads.shift() ?? event.snapshot.headOid,
+      readBaseCheckoutHead: async () => event.snapshot.baseOid,
+      runVerificationPlan: async () => {
+        runnerCalled = true;
+        await writeFile(sentinel, "unexpected\n", "utf8");
+        return [];
+      },
+    }),
+    (error) => error?.stage === "EXECUTION" && error?.reason === "PRF_STALE_TARGET",
+  );
+
+  assert.equal(runnerCalled, true);
+  assert.equal(await lstat(sentinel).then(() => true), true);
   assert.equal(await lstat(path.join(output, "evidence-bundle.json")).catch(() => null), null);
 });
 
