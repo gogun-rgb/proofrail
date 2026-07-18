@@ -120,10 +120,18 @@ jobs:
         id: prototype
         shell: bash
         env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           CONFIG_PATH: ${{ inputs.config-path }}
           STRICT: ${{ inputs.strict }}
         run: |
+          set -o pipefail
+          BASE_CONFIG_SHA256="$(git -C proofrail-base show "$BASE_SHA:$CONFIG_PATH" | sha256sum | awk '{print $1}')"
+          [[ "$BASE_CONFIG_SHA256" =~ ^[0-9a-f]{64}$ ]] || {
+            echo "Proofrail: unable to bind exact base configuration." >&2
+            exit 1
+          }
           node proofrail-tool/packages/evidence-gate/src/prototype-cli.mjs \
             --event "$RUNNER_TEMP/proofrail-event.json" \
             --repo proofrail-target \
@@ -132,6 +140,7 @@ jobs:
             --shell /usr/bin/bash \
             --github-repo "$GITHUB_REPOSITORY" \
             --pull-request "$PR_NUMBER" \
+            --base-config-sha256 "$BASE_CONFIG_SHA256" \
             --strict
 
       - name: Publish Proofrail summary

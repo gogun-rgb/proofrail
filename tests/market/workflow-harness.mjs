@@ -83,7 +83,13 @@ pnpm install --frozen-lockfile`,
   --base-sha "$BASE_SHA" \
   --head-sha "$HEAD_SHA" \
   --output "$RUNNER_TEMP/proofrail-event.json"`,
-  prototype: String.raw`node proofrail-tool/packages/evidence-gate/src/prototype-cli.mjs \
+  prototype: String.raw`set -o pipefail
+BASE_CONFIG_SHA256="$(git -C proofrail-base show "$BASE_SHA:$CONFIG_PATH" | sha256sum | awk '{print $1}')"
+[[ "$BASE_CONFIG_SHA256" =~ ^[0-9a-f]{64}$ ]] || {
+  echo "Proofrail: unable to bind exact base configuration." >&2
+  exit 1
+}
+node proofrail-tool/packages/evidence-gate/src/prototype-cli.mjs \
   --event "$RUNNER_TEMP/proofrail-event.json" \
   --repo proofrail-target \
   --config "proofrail-base/$CONFIG_PATH" \
@@ -91,6 +97,7 @@ pnpm install --frozen-lockfile`,
   --shell /usr/bin/bash \
   --github-repo "$GITHUB_REPOSITORY" \
   --pull-request "$PR_NUMBER" \
+  --base-config-sha256 "$BASE_CONFIG_SHA256" \
   --strict`,
   summary: String.raw`if [[ -f proofrail-output/summary.md ]]; then
   cat proofrail-output/summary.md >> "$GITHUB_STEP_SUMMARY"
@@ -253,11 +260,12 @@ function validateStep(step, index) {
     assertStepShape(step, ["name", "id", "shell", "env", "run"]);
     if (step.shell !== "bash" || !sameRun(step.run, RUN_TEMPLATES.prototype)) failSchema("prototype step");
     assertExactEnv(step.env, {
+      GH_TOKEN: "${{ github.token }}",
+      BASE_SHA: "${{ github.event.pull_request.base.sha }}",
       PR_NUMBER: "${{ github.event.pull_request.number }}",
       CONFIG_PATH: "${{ inputs.config-path }}",
       STRICT: "${{ inputs.strict }}",
     });
-    if (Object.hasOwn(step.env, "GH_TOKEN") || Object.hasOwn(step.env, "GITHUB_TOKEN")) failSchema("prototype token isolation");
   } else if (id === "summary") {
     assertStepShape(step, ["name", "id", "if", "shell", "run"]);
     if (step.if !== "always()" || step.shell !== "bash" || !sameRun(step.run, RUN_TEMPLATES.summary)) failSchema("summary step");
@@ -392,6 +400,7 @@ export async function simulateWorkflow(workflow, options = {}) {
   let prototypeOutcome = "success";
   let artifactOutcome = "success";
   let tokenCanaryReceivedByCollector = false;
+  let tokenCanaryReceivedByPrototype = false;
   const targetEnvironment = Object.freeze({
     CI: "true",
     HOME: "/home/runner",
@@ -440,6 +449,8 @@ export async function simulateWorkflow(workflow, options = {}) {
         failureReason ??= "WORKFLOW_COLLECTOR_UNAVAILABLE";
       }
     } else if (step.id === "prototype") {
+      const prototypeEnvironment = { GH_TOKEN: tokenCanary ?? "[CONTROL_TOKEN_ONLY]" };
+      tokenCanaryReceivedByPrototype = tokenCanary !== null && prototypeEnvironment.GH_TOKEN === tokenCanary;
       if (failureCode === null && caseName !== "missing-collector" && caseName !== "invalid-input" && caseName !== "unsupported-argument" && caseName !== "checkout-mismatch" && caseName !== "wrong-sha") {
         if (caseName === "stale-head") {
           verdict = "BLOCKED";
@@ -513,7 +524,8 @@ export async function simulateWorkflow(workflow, options = {}) {
     checkouts,
     targetEnvironment,
     collectorEnvironment: { GH_TOKEN: "[CONTROL_TOKEN_ONLY]" },
-    tokenIsolation: { targetReceivedControlToken: false, tokenCanaryReceivedByCollector, tokenCanaryInTarget, tokenCanaryInArtifacts },
+    prototypeEnvironment: { GH_TOKEN: "[CONTROL_TOKEN_ONLY]" },
+    tokenIsolation: { targetReceivedControlToken: false, runnerReceivedControlToken: false, tokenCanaryReceivedByCollector, tokenCanaryReceivedByPrototype, tokenCanaryInTarget, tokenCanaryInArtifacts },
     failureReason,
     artifact: { name: "proofrail-evidence", path: "proofrail-output/", published: bundle !== null && effectiveExit !== 24 },
     summary,
@@ -577,7 +589,8 @@ async function writeAndReturnFailure(workflow, options, details) {
     checkouts: [],
     targetEnvironment: {},
     collectorEnvironment: { GH_TOKEN: "[CONTROL_TOKEN_ONLY]" },
-    tokenIsolation: { targetReceivedControlToken: false, tokenCanaryReceivedByCollector: false, tokenCanaryInTarget: false, tokenCanaryInArtifacts: false },
+    prototypeEnvironment: { GH_TOKEN: "[CONTROL_TOKEN_ONLY]" },
+    tokenIsolation: { targetReceivedControlToken: false, runnerReceivedControlToken: false, tokenCanaryReceivedByCollector: false, tokenCanaryReceivedByPrototype: false, tokenCanaryInTarget: false, tokenCanaryInArtifacts: false },
     artifact: { name: "proofrail-evidence", path: "proofrail-output/", published: false },
     summary: makeDeliveryFailureOutputs(details.reason)["summary.md"],
     bundle: null,

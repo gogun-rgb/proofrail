@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -36,8 +37,8 @@ import { readRepositoryHead } from "./prototype-head.mjs";
 const PROOFRAIL_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 const AUTHORITY_PATH = "config/trusted/proofrail-market-prototype-v1.json";
 const MAX_INPUT_BYTES = 1024 * 1024;
-const USAGE = "Usage: proofrail-prototype --event <event.json> --repo <checkout> --config <base-config.yml> --output <directory> --shell <bash> [--github-repo <owner/name> --pull-request <number>] [--strict]\n";
-const LIVE_KEYS = ["--github-repo", "--pull-request"];
+const USAGE = "Usage: proofrail-prototype --event <event.json> --repo <checkout> --config <base-config.yml> --output <directory> --shell <bash> [--github-repo <owner/name> --pull-request <number> --base-config-sha256 <sha256>] [--strict]\n";
+const LIVE_KEYS = ["--github-repo", "--pull-request", "--base-config-sha256"];
 const OFFLINE_KEYS = ["--event", "--repo", "--config", "--output", "--shell"];
 
 export class PrototypeDeliveryError extends Error {
@@ -103,13 +104,14 @@ export function parsePrototypeArguments(args) {
   };
   if (Object.hasOwn(values, "--strict")) parsed.strict = true;
   if (hasLive) {
-    if (!/^[A-Za-z0-9](?:[A-Za-z0-9_.-]{0,99})\/[A-Za-z0-9_.-]{1,100}$/.test(values["--github-repo"]) || !/^\d+$/.test(values["--pull-request"])) {
+    if (!/^[A-Za-z0-9](?:[A-Za-z0-9_.-]{0,99})\/[A-Za-z0-9_.-]{1,100}$/.test(values["--github-repo"]) || !/^\d+$/.test(values["--pull-request"]) || !/^[0-9a-f]{64}$/i.test(values["--base-config-sha256"])) {
       throw new PrototypeDeliveryError("ARGUMENTS", "INVALID_OPTIONS");
     }
     const pullRequestNumber = Number(values["--pull-request"]);
     if (!Number.isSafeInteger(pullRequestNumber) || pullRequestNumber < 1 || pullRequestNumber > 2_147_483_647) throw new PrototypeDeliveryError("ARGUMENTS", "INVALID_OPTIONS");
     parsed.repositoryName = values["--github-repo"];
     parsed.pullRequestNumber = pullRequestNumber;
+    parsed.baseConfigSha256 = values["--base-config-sha256"].toLowerCase();
   }
   return Object.freeze(parsed);
 }
@@ -139,6 +141,9 @@ export async function runPrototypeCli(args = process.argv.slice(2), operations =
     event = parsePrototypeEvent(parseStrictJson(eventDocument.source), options);
     await assertRepositoryChangedPaths(event.snapshot, paths.repository.realPath);
     const configDocument = await readStableInput(paths.config, read, MAX_INPUT_BYTES);
+    if (options.mode === "live" && createHash("sha256").update(configDocument.source, "utf8").digest("hex") !== options.baseConfigSha256) {
+      throw new PrototypeBoundaryError("PRF_STALE_BASE", "base configuration does not match the exact base object");
+    }
     parsed = await parseMarketConfiguration({ source: configDocument.source, presetsDirectory: path.join(PROOFRAIL_ROOT, "config/presets"), repositoryRoot: PROOFRAIL_ROOT, validatedAuthority: authority });
     failureTelemetry.enabled = parsed.marketConfiguration.telemetry.enabled;
     failureTelemetry.configurationParsed = true;
@@ -221,6 +226,24 @@ export async function runPrototypeCli(args = process.argv.slice(2), operations =
     failureTelemetry.evaluationCompleted = true;
   } catch (error) {
     const failure = deliveryError("EVALUATION", error);
+    await publishDeliveryFailure(paths.output, failure, write, failureTelemetry);
+    throw failure;
+  }
+  try {
+    await assertPrototypePathsStable(paths);
+    await assertWorktreeSnapshotStable(worktreeBeforeRun);
+    const publicationCheckoutHeadSha = await readCheckoutHead(paths.repository.realPath);
+    if (!/^[0-9a-f]{40}$/i.test(publicationCheckoutHeadSha) || publicationCheckoutHeadSha.toLowerCase() !== event.snapshot.headOid) throw new PrototypeBoundaryError("PRF_STALE_TARGET", "checkout HEAD changed before publication");
+    const publicationBaseHeadSha = await (seams.readBaseCheckoutHead ?? readRepositoryHead)(paths.config.realPath);
+    if (!/^[0-9a-f]{40}$/i.test(publicationBaseHeadSha) || publicationBaseHeadSha.toLowerCase() !== event.snapshot.baseOid) throw new PrototypeBoundaryError("PRF_STALE_BASE", "base checkout HEAD changed before publication");
+    if (options.mode === "live") {
+      const publicationHeadSha = await readLiveHead(options, seams, clock);
+      if (publicationHeadSha.toLowerCase() !== event.snapshot.headOid) throw new PrototypeBoundaryError("PRF_STALE_TARGET", "pull request head changed before publication");
+    }
+    await assertWorktreeSnapshotStable(worktreeBeforeRun);
+    await assertPrototypePathsStable(paths);
+  } catch (error) {
+    const failure = deliveryError("EXECUTION", error);
     await publishDeliveryFailure(paths.output, failure, write, failureTelemetry);
     throw failure;
   }

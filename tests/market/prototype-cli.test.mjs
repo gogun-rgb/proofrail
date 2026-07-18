@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { access, cp, lstat, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -61,6 +62,10 @@ async function prepareTelemetryEnabledPrototype(t) {
   const source = await readFile(config, "utf8");
   await writeFile(config, source.replace("enabled: false", "enabled: true"), "utf8");
   return { config, output, repository };
+}
+
+async function baseConfigSha256(config) {
+  return createHash("sha256").update(await readFile(config, "utf8"), "utf8").digest("hex");
 }
 
 test("prototype CLI writes a digest-bound deterministic ADMISSIBLE bundle", async (t) => {
@@ -216,6 +221,7 @@ test("prototype CLI consumes a live event and structured post-run head", async (
     "--shell", await bashPath(),
     "--github-repo", snapshot.repository,
     "--pull-request", String(snapshot.number),
+    "--base-config-sha256", await baseConfigSha256(path.join(ROOT, "examples/market-prototype/demo/.proofrail/config.yml")),
   ], {
     __proofrailTestOnly: true,
     readCheckoutHead: async () => snapshot.headOid,
@@ -259,6 +265,7 @@ test("prototype CLI fails closed when live current-head authorization is unavail
       "--shell", await bashPath(),
       "--github-repo", snapshot.repository,
       "--pull-request", String(snapshot.number),
+      "--base-config-sha256", await baseConfigSha256(path.join(ROOT, "examples/market-prototype/demo/.proofrail/config.yml")),
     ], {
       __proofrailTestOnly: true,
       executionAttestation: { enforcesNetwork: true },
@@ -276,7 +283,44 @@ test("prototype CLI fails closed when live current-head authorization is unavail
   assert.equal(await lstat(path.join(output, "evidence-bundle.json")).catch(() => null), null);
 });
 
-test("prototype CLI publishes a blocked bundle when live post-head is stale", async (t) => {
+test("prototype CLI rejects a dirty live base configuration at an unchanged base HEAD before runner spawn", async (t) => {
+  const directory = await mkdtemp(path.join(tmpdir(), "proofrail-market-live-base-config-"));
+  const baseRepository = path.join(directory, "base");
+  const targetRepository = path.join(directory, "target");
+  const config = path.join(baseRepository, ".proofrail", "config.yml");
+  const eventPath = path.join(directory, "event.json");
+  const output = path.join(directory, "output");
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  await cp(path.join(ROOT, "examples/market-prototype/demo"), baseRepository, { recursive: true });
+  await cp(path.join(ROOT, "examples/market-prototype/demo"), targetRepository, { recursive: true });
+  const expectedConfigSha256 = await baseConfigSha256(config);
+  await writeFile(config, `${await readFile(config, "utf8")}\n# replaced after exact base checkout\n`, "utf8");
+  const snapshot = JSON.parse(await readFile(path.join(ROOT, "fixtures/market-prototype/github/pr-success.json"), "utf8")).snapshot;
+  await writeFile(eventPath, JSON.stringify({
+    schemaVersion: "proofrail.workflow-event.v1", origin: "live", snapshot,
+    source: { collector: "github-pr-bounded-collector.v1", repository: snapshot.repository, pullRequestNumber: snapshot.number, baseRepository: snapshot.repository, headRepository: snapshot.repository, baseSha: snapshot.baseOid, headSha: snapshot.headOid, collectedAt: "2026-07-15T00:00:00.000Z" },
+  }), "utf8");
+  let runnerCalls = 0;
+
+  await assert.rejects(
+    runPrototypeCli([
+      "--event", eventPath, "--repo", targetRepository, "--config", config, "--output", output, "--shell", await bashPath(),
+      "--github-repo", snapshot.repository, "--pull-request", String(snapshot.number), "--base-config-sha256", expectedConfigSha256,
+    ], {
+      __proofrailTestOnly: true,
+      executionAttestation: { enforcesNetwork: true },
+      readCheckoutHead: async () => snapshot.headOid,
+      readBaseCheckoutHead: async () => snapshot.baseOid,
+      runVerificationPlan: async () => { runnerCalls += 1; return []; },
+    }),
+    (error) => error?.stage === "INPUT" && error?.reason === "PRF_STALE_BASE",
+  );
+
+  assert.equal(runnerCalls, 0);
+  assert.equal(await lstat(path.join(output, "evidence-bundle.json")).catch(() => null), null);
+});
+
+test("prototype CLI emits only a delivery failure when live post-head is stale", async (t) => {
   const directory = await mkdtemp(path.join(tmpdir(), "proofrail-market-live-stale-"));
   const eventPath = path.join(directory, "event.json");
   const output = path.join(directory, "output");
@@ -286,10 +330,9 @@ test("prototype CLI publishes a blocked bundle when live post-head is stale", as
     schemaVersion: "proofrail.workflow-event.v1", origin: "live", snapshot,
     source: { collector: "github-pr-bounded-collector.v1", repository: snapshot.repository, pullRequestNumber: snapshot.number, baseRepository: snapshot.repository, headRepository: snapshot.repository, baseSha: snapshot.baseOid, headSha: snapshot.headOid, collectedAt: "2026-07-15T00:00:00.000Z" },
   }), "utf8");
-  const previousExitCode = process.exitCode;
-  try {
-    const result = await runPrototypeCli([
-      "--event", eventPath, "--repo", path.join(ROOT, "examples/market-prototype/demo"), "--config", path.join(ROOT, "examples/market-prototype/demo/.proofrail/config.yml"), "--output", output, "--shell", await bashPath(), "--github-repo", snapshot.repository, "--pull-request", String(snapshot.number),
+  await assert.rejects(
+    runPrototypeCli([
+      "--event", eventPath, "--repo", path.join(ROOT, "examples/market-prototype/demo"), "--config", path.join(ROOT, "examples/market-prototype/demo/.proofrail/config.yml"), "--output", output, "--shell", await bashPath(), "--github-repo", snapshot.repository, "--pull-request", String(snapshot.number), "--base-config-sha256", await baseConfigSha256(path.join(ROOT, "examples/market-prototype/demo/.proofrail/config.yml")),
     ], {
       __proofrailTestOnly: true,
       readCheckoutHead: async () => snapshot.headOid,
@@ -298,14 +341,53 @@ test("prototype CLI publishes a blocked bundle when live post-head is stale", as
       runVerificationPlan: async ({ target, commands, authorityLineage, marketConfigSha256 }) => [{
         schemaVersion: "proofrail.verification-receipt.v1", id: "receipt:cccccccccccccccccccccccccccccccc", type: "COMMAND_EXECUTION", producer: { id: "runner.proofrail-verification", version: "1.0.0" }, target, command: { name: commands[0].name, run: commands[0].run, orderingKey: "001" }, environment: {}, executionBoundaryId: "execution.github-actions-market-v1", timing: {}, result: { status: "PASS", exitCode: 0, stdoutDigest: `sha256:${"A".repeat(64)}`, stderrDigest: `sha256:${"B".repeat(64)}`, stdoutBytes: 0, stderrBytes: 0, stdoutPreview: "", stderrPreview: "", stdoutTruncated: false, stderrTruncated: false, timedOut: false }, dependencyLockfile: {}, redaction: {}, lineage: { trustedConfigurationSha256: `sha256:${authorityLineage.trustedConfigurationSha256}`, policySha256: `sha256:${authorityLineage.policySha256}`, evidenceContractSha256: `sha256:${authorityLineage.evidenceContractSha256}`, marketConfigSha256: `sha256:${marketConfigSha256}` },
       }],
-    });
-    assert.equal(result.bundle.verdict, "BLOCKED");
-    assert(result.bundle.reasonCodes.includes("PRF_STALE_TARGET"));
-    assert.equal(process.exitCode, 1);
-    assert.match(await readFile(path.join(output, "summary.md"), "utf8"), /PRF_STALE_TARGET/);
-  } finally {
-    process.exitCode = previousExitCode;
-  }
+    }),
+    (error) => error?.stage === "EXECUTION" && error?.reason === "PRF_STALE_TARGET",
+  );
+  assert.equal(await lstat(path.join(output, "evidence-bundle.json")).catch(() => null), null);
+  assert.equal(JSON.parse(await readFile(path.join(output, "failure.json"), "utf8")).reason, "PRF_STALE_TARGET");
+});
+
+test("prototype CLI rejects a live head race after evaluation and before publication", async (t) => {
+  const directory = await mkdtemp(path.join(tmpdir(), "proofrail-market-live-publication-race-"));
+  const eventPath = path.join(directory, "event.json");
+  const output = path.join(directory, "output");
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const snapshot = JSON.parse(await readFile(path.join(ROOT, "fixtures/market-prototype/github/pr-success.json"), "utf8")).snapshot;
+  await writeFile(eventPath, JSON.stringify({
+    schemaVersion: "proofrail.workflow-event.v1", origin: "live", snapshot,
+    source: { collector: "github-pr-bounded-collector.v1", repository: snapshot.repository, pullRequestNumber: snapshot.number, baseRepository: snapshot.repository, headRepository: snapshot.repository, baseSha: snapshot.baseOid, headSha: snapshot.headOid, collectedAt: "2026-07-15T00:00:00.000Z" },
+  }), "utf8");
+  let runnerCalls = 0;
+  let currentHeadQueries = 0;
+
+  await assert.rejects(
+    runPrototypeCli([
+      "--event", eventPath, "--repo", path.join(ROOT, "examples/market-prototype/demo"), "--config", path.join(ROOT, "examples/market-prototype/demo/.proofrail/config.yml"), "--output", output, "--shell", await bashPath(),
+      "--github-repo", snapshot.repository, "--pull-request", String(snapshot.number), "--base-config-sha256", await baseConfigSha256(path.join(ROOT, "examples/market-prototype/demo/.proofrail/config.yml")),
+    ], {
+      __proofrailTestOnly: true,
+      executionAttestation: { enforcesNetwork: true },
+      readCheckoutHead: async () => snapshot.headOid,
+      readBaseCheckoutHead: async () => snapshot.baseOid,
+      readCurrentPullRequestHead: async () => {
+        currentHeadQueries += 1;
+        return { repository: snapshot.repository, pullRequestNumber: snapshot.number, headSha: currentHeadQueries === 1 ? snapshot.headOid : "3".repeat(40), observedAt: "2026-07-15T00:00:00.250Z", source: "github-api" };
+      },
+      runVerificationPlan: async ({ target, commands, authorityLineage, marketConfigSha256 }) => {
+        runnerCalls += 1;
+        return [{
+          schemaVersion: "proofrail.verification-receipt.v1", id: "receipt:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", type: "COMMAND_EXECUTION", producer: { id: "runner.proofrail-verification", version: "1.0.0" }, target, command: { name: commands[0].name, run: commands[0].run, orderingKey: "001" }, environment: {}, executionBoundaryId: "execution.github-actions-market-v1", timing: {}, result: { status: "PASS", exitCode: 0, stdoutDigest: `sha256:${"A".repeat(64)}`, stderrDigest: `sha256:${"B".repeat(64)}`, stdoutBytes: 0, stderrBytes: 0, stdoutPreview: "", stderrPreview: "", stdoutTruncated: false, stderrTruncated: false, timedOut: false }, dependencyLockfile: {}, redaction: {}, lineage: { trustedConfigurationSha256: `sha256:${authorityLineage.trustedConfigurationSha256}`, policySha256: `sha256:${authorityLineage.policySha256}`, evidenceContractSha256: `sha256:${authorityLineage.evidenceContractSha256}`, marketConfigSha256: `sha256:${marketConfigSha256}` },
+        }];
+      },
+    }),
+    (error) => error?.stage === "EXECUTION" && error?.reason === "PRF_STALE_TARGET",
+  );
+
+  assert.equal(runnerCalls, 1);
+  assert.equal(currentHeadQueries, 2);
+  assert.equal(await lstat(path.join(output, "evidence-bundle.json")).catch(() => null), null);
+  assert.equal(JSON.parse(await readFile(path.join(output, "failure.json"), "utf8")).stage, "EXECUTION");
 });
 
 test("prototype CLI rejects a nested base config before runner spawn", async (t) => {
@@ -693,10 +775,19 @@ test("prototype CLI accepts the exact live argument extension", () => {
     "--shell", process.platform === "win32" ? "C:\\Program Files\\Git\\bin\\bash.exe" : "/bin/bash",
     "--github-repo", "proofrail/demo",
     "--pull-request", "8",
+    "--base-config-sha256", "a".repeat(64),
   ]);
   assert.equal(parsed.mode, "live");
   assert.equal(parsed.repositoryName, "proofrail/demo");
   assert.equal(parsed.pullRequestNumber, 8);
+  assert.equal(parsed.baseConfigSha256, "a".repeat(64));
+  assert.throws(
+    () => parsePrototypeArguments([
+      "--event", "event.json", "--repo", "target", "--config", "base/.proofrail/config.yml", "--output", "output", "--shell", "/bin/bash",
+      "--github-repo", "proofrail/demo", "--pull-request", "8", "--base-config-sha256", "not-a-sha",
+    ]),
+    (error) => error?.reason === "INVALID_OPTIONS",
+  );
 });
 
 test("prototype CLI rejects traversal before path resolution", () => {

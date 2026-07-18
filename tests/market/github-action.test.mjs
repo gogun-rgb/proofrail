@@ -107,7 +107,7 @@ test("workflow never performs an implicit dependency install in the untrusted ta
   assert.doesNotMatch(installCommands[0].run, /proofrail-target/);
 });
 
-test("token is available only to collection and never to target verification", async () => {
+test("token is available only to the control plane and never to target verification", async () => {
   const { workflow } = await load();
   const event = workflow.jobs.proofrail.steps.find((step) => step.id === "event");
   const prototype = workflow.jobs.proofrail.steps.find((step) => step.id === "prototype");
@@ -117,10 +117,13 @@ test("token is available only to collection and never to target verification", a
     BASE_SHA: "${{ github.event.pull_request.base.sha }}",
     HEAD_SHA: "${{ github.event.pull_request.head.sha }}",
   });
-  assert.equal(prototype.env.GH_TOKEN, undefined);
+  assert.equal(prototype.env.GH_TOKEN, "${{ github.token }}");
   assert.equal(prototype.env.GITHUB_TOKEN, undefined);
   assert.match(prototype.run, /--strict\s*$/);
   const result = await simulateWorkflow(workflow, { caseName: "success", consumerPathMode: "no-toolchain", tokenCanary: "ghp_TEST_CANARY" });
+  assert.equal(result.tokenIsolation.tokenCanaryReceivedByCollector, true);
+  assert.equal(result.tokenIsolation.tokenCanaryReceivedByPrototype, true);
+  assert.equal(result.tokenIsolation.runnerReceivedControlToken, false);
   assert.equal(result.targetEnvironment.GH_TOKEN, undefined);
   assert.equal(result.tokenIsolation.tokenCanaryInTarget, false);
   assert.equal(result.tokenIsolation.tokenCanaryInArtifacts, false);
@@ -259,11 +262,13 @@ test("workflow validation rejects every config path except the exact base path",
   assert.match(validation.run, /unsafe config path/);
 });
 
-test("token canary is observed by collector then proven absent from target and artifacts", async () => {
+test("token canary is observed only by control-plane steps and is absent from runner, target, and artifacts", async () => {
   const { workflow } = await load();
   const canary = "ghp_T8_CORRECTION_CANARY";
   const result = await simulateWorkflow(workflow, { caseName: "success", tokenCanary: canary, consumerPathMode: "no-toolchain" });
   assert.equal(result.tokenIsolation.tokenCanaryReceivedByCollector, true);
+  assert.equal(result.tokenIsolation.tokenCanaryReceivedByPrototype, true);
+  assert.equal(result.tokenIsolation.runnerReceivedControlToken, false);
   assert.equal(result.tokenIsolation.tokenCanaryInTarget, false);
   assert.equal(result.tokenIsolation.tokenCanaryInArtifacts, false);
   assert.doesNotMatch(JSON.stringify(result), new RegExp(canary));
