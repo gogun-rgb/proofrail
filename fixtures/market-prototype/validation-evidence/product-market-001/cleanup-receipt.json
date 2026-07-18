@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "proofrail.product-market-validation.cleanup.v1",
+  "recordedAt": "2026-07-18",
+  "sourceCandidateSha": "521aa8110c776538013bd447939921eae7e55a00",
+  "checks": {
+    "temporaryDebugShimRemoved": true,
+    "temporaryDebugJournalRemoved": true,
+    "visualQaBrowserContextsClosed": true,
+    "ownedBrowserProcessRemaining": false,
+    "ownedLocalServerRemaining": false,
+    "hermesRunCancelled": true,
+    "hermesDetachedWorktreesRemoved": true,
+    "hermesBoardRemoved": true,
+    "hermesProfileRemoved": true
+  },
+  "limitations": [
+    "The unrelated pre-existing .omo working directory remains untracked and was neither modified nor staged.",
+    "The downloaded live artifact outside the repository is retained as an independent source copy."
+  ]
+}

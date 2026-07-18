@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "proofrail.product-market-validation.summary.v1",
+  "recordedAt": "2026-07-18",
+  "taskId": "PRODUCT-MARKET-001",
+  "baselineSha": "f643815f4acc716bcf817cb78636a9fa94ce7523",
+  "sourceCandidateSha": "521aa8110c776538013bd447939921eae7e55a00",
+  "authorityDigests": {
+    "machineTaskContract": "sha256:D8419049A948E45904097800F2D7A242D6EC437F889A9A58C9723D40B67E679C",
+    "trustedConfiguration": "sha256:7A76DCA50F3F76167EA92F5AF68D64ACFCE8539C03EAE20262876F5D6423A683",
+    "policy": "sha256:C4AFB49EE70B3701837DF8ACC65427A180CF0453ABA773265B9DFC159E11CC1F",
+    "evidenceContract": "sha256:C195378ECDDDAE3FDE703EFC6A9A9C052A09683F68CF3490D2730A71F1B84C61"
+  },
+  "results": {
+    "repositoryVerification": "PASS",
+    "publicPrototypeVisualQa": "PASS",
+    "consumerDiffWorkflow": "SUCCESS",
+    "liveProofrailWorkflow": "BLOCKED_EXECUTION_BOUNDARY",
+    "productionEvidenceBundleProduced": false,
+    "productVerdictProduced": false,
+    "trustedReleaseGranted": false
+  },
+  "remainingRequirement": "Supply an authority-approved GITHUB_HOSTED_LINUX_SANDBOX_V1 attestation through an approved provider and rerun the live workflow.",
+  "prohibitionsObserved": [
+    "No attestation was fabricated.",
+    "No authority document was changed.",
+    "No product Verdict, trusted release, deployment authorization, or external acceptance was inferred.",
+    "The consumer pull request was not merged."
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "proofrail.product-market-validation.visual-qa.v1",
+  "recordedAt": "2026-07-18",
+  "sourceCandidateSha": "521aa8110c776538013bd447939921eae7e55a00",
+  "screenshots": [
+    {
+      "path": "visual-qa/landing-375.png",
+      "width": 375,
+      "height": 9519,
+      "sha256": "42f3ec26256501898e7c4c78f1db8886b40d06bcf799adb4dd986b45247d8d86"
+    },
+    {
+      "path": "visual-qa/landing-768.png",
+      "width": 768,
+      "height": 7621,
+      "sha256": "b09808e366d840de3ad6847ecfe1ff463abb7343ac80e2d835b9e089ca305b37"
+    },
+    {
+      "path": "visual-qa/landing-1280.png",
+      "width": 1280,
+      "height": 6127,
+      "sha256": "0dbf34aa4ffae3de7db4aae029fff0b409d39fc0ba0a5e990b1143dd3e1c28d2"
+    },
+    {
+      "path": "visual-qa/landing-1280-skip-rest.png",
+      "width": 1280,
+      "height": 900,
+      "sha256": "13b58cdb1b8721cd52503a1527c7e14895c6e099c3dfd847c97b22452dc737e2"
+    },
+    {
+      "path": "visual-qa/landing-1280-skip-mid.png",
+      "width": 1280,
+      "height": 900,
+      "sha256": "868a20ef53f01de5cdb2ae47d36579f95129bf459f35c204307265503927c36b"
+    },
+    {
+      "path": "visual-qa/landing-1280-skip-focus.png",
+      "width": 1280,
+      "height": 900,
+      "sha256": "c86871f24a7716a15a7a7973bde6fe64883b2be9b4a278853a172343b96f45c9"
+    },
+    {
+      "path": "visual-qa/landing-1280-anchor-install.png",
+      "width": 1280,
+      "height": 900,
+      "sha256": "ae14165c382f013b7c4765f9f9a9ebfaac001b71780784dd3e082eb6792a4816"
+    }
+  ],
+  "objectiveChecks": {
+    "consoleErrors": 0,
+    "pageErrors": 0,
+    "requestErrors": 0,
+    "horizontalOverflow": false,
+    "primaryNavigationVisible": true,
+    "heroPhraseIntegrityAtOrAbove768": true,
+    "mobileHeroWrappingIntentional": true,
+    "anchorTargetTopPixels": {
+      "375": 120,
+      "768": 120,
+      "1280": 88
+    },
+    "firstTabSkipLinkTopPixels": 12,
+    "firstTabSkipLinkOutlinePixels": 2,
+    "firstTabSkipLinkHaloPixels": 4,
+    "reducedMotionEffective": true
+  },
+  "freshReviewPasses": [
+    {
+      "lane": "visual_precision",
+      "result": "PASS",
+      "basis": "Fresh screenshot set, responsive measurements, focus state, anchor offsets, and browser error observations."
+    },
+    {
+      "lane": "design_quality",
+      "result": "PASS",
+      "basis": "Fresh screenshot set across 375, 768, and 1280 pixel layouts, including navigation, hero, and accessibility states."
+    }
+  ],
+  "limitations": [
+    "This visual QA covers the public prototype page and does not establish product Verdict correctness or trusted-release authority.",
+    "The screenshots are retained test evidence, not a replacement for the live execution boundary requirement."
+  ]
+}

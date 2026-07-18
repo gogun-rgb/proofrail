@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "proofrail.product-market-validation.live-run.v1",
+  "recordedAt": "2026-07-18",
+  "consumerPullRequestNumber": 1,
+  "consumerHeadSha": "294b5bbf81b38e5b7f6ebdecd12f53691cb98925",
+  "consumerDiffWorkflowRun": {
+    "id": 29560665111,
+    "conclusion": "SUCCESS"
+  },
+  "proofrailWorkflowRun": {
+    "id": 29560665469,
+    "conclusion": "FAILURE",
+    "workflowSourceSha": "454eaa9f87950829108281a617c6b38dcbd7e1d6",
+    "collectionCompleted": true,
+    "artifactUploadCompleted": true,
+    "evaluationCompleted": false,
+    "failureReason": "BLOCKED_EXECUTION_BOUNDARY"
+  },
+  "artifactDigests": {
+    "failure.json": "sha256:7a63df1d2168007521bed744fe5cd857cd5089c0bd7837c04b1f0bc3c960a34f",
+    "summary.md": "sha256:97c89fe3ff4f509974e0fb0a266bf2ea76bfe33638aa041d65f1bc34318cd2d9",
+    "telemetry.json": "sha256:6524728b5bbe4896ec64a0a0b9f182cc8efd8bbf9b4fe619b9a7126458db72c1"
+  },
+  "limitations": [
+    "No authority-approved GITHUB_HOSTED_LINUX_SANDBOX_V1 attestation provider was available.",
+    "No Evidence Bundle or product Verdict was produced.",
+    "The open consumer pull request was not merged."
+  ]
+}

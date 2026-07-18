@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "proofrail.product-market-validation.full-verification.v1",
+  "recordedAt": "2026-07-18",
+  "sourceCandidateSha": "521aa8110c776538013bd447939921eae7e55a00",
+  "command": "pnpm verify",
+  "environment": {
+    "platform": "win32",
+    "nodeVersion": "v24.18.0",
+    "pnpmVersion": "11.7.0"
+  },
+  "result": {
+    "exitCode": 0,
+    "status": "PASS",
+    "gitDiffCheckIncluded": true
+  },
+  "runtimeNote": "The Codex desktop bundled Node v24.14.0 lacked its adjacent Corepack distribution. Verification was rerun with the installed system Node v24.18.0 and its Corepack-managed pnpm 11.7.0. The temporary PATH shim was removed after the successful run and is not retained.",
+  "limitations": [
+    "Pre-existing Windows file-symlink construction cases that receive EPERM remain skipped by their existing platform guards.",
+    "A successful repository verification does not satisfy the missing authority-approved live execution-boundary attestation."
+  ]
+}
