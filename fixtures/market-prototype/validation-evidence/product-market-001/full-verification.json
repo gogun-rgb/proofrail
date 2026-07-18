@@ -1,7 +1,7 @@
 {
   "schemaVersion": "proofrail.product-market-validation.full-verification.v1",
   "recordedAt": "2026-07-18",
-  "sourceCandidateSha": "10203b0960df468d89f0d0cccb833eedf81f6091",
+  "sourceCandidateSha": "51534ffba6c0901bf830637171d0ab6ce16a174a",
   "command": "pnpm verify",
   "environment": {
     "platform": "win32",
