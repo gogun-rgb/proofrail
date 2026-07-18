@@ -2,7 +2,7 @@
   "schemaVersion": "proofrail.product-market-validation.visual-qa.v1",
   "recordedAt": "2026-07-18",
   "sourceCandidateSha": "521aa8110c776538013bd447939921eae7e55a00",
-  "siteContentUnchangedThroughSha": "6c36b2dd01e4358921dc56e49815999967119ff3",
+  "siteContentUnchangedThroughSha": "7e67daf9229f6b86c345aed2e0f0b2b617072dc6",
   "screenshots": [
     {
       "path": "visual-qa/landing-375.png",
