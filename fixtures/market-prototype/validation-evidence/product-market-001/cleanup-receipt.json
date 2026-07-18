@@ -1,7 +1,7 @@
 {
   "schemaVersion": "proofrail.product-market-validation.cleanup.v1",
   "recordedAt": "2026-07-18",
-  "sourceCandidateSha": "521aa8110c776538013bd447939921eae7e55a00",
+  "sourceCandidateSha": "6c36b2dd01e4358921dc56e49815999967119ff3",
   "checks": {
     "temporaryDebugShimRemoved": true,
     "temporaryDebugJournalRemoved": true,
