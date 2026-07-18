@@ -13,7 +13,7 @@ permissions:
 jobs:
   proofrail:
     name: Proofrail
-    uses: gogun-rgb/proofrail/.github/workflows/proofrail.yml@454eaa9f87950829108281a617c6b38dcbd7e1d6
+    uses: gogun-rgb/proofrail/.github/workflows/proofrail.yml@5e346a6bfd4618afe658a03cf403236cd248129f
     with:
       config-path: .proofrail/config.yml
       strict: true
