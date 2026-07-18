@@ -11,6 +11,8 @@ const EVIDENCE_ROOT = new URL(
   `../../${EVIDENCE_REPOSITORY_PATH}/`,
   import.meta.url,
 );
+const REVIEWED_SOURCE_CANDIDATE_SHA =
+  "b89f4bd7ac31780424fe203c5a0f8ce306d647b1";
 const VALIDATION_TAIL_PATHS = new Set([
   "docs/engineering/validation-evidence.md",
   `${EVIDENCE_REPOSITORY_PATH}/cleanup-receipt.json`,
@@ -56,6 +58,7 @@ test("retained market validation evidence resolves exact repository commits", as
   ]);
 
   const sourceCandidateSha = fullVerification.sourceCandidateSha;
+  assert.equal(sourceCandidateSha, REVIEWED_SOURCE_CANDIDATE_SHA);
   assert.equal(validationSummary.sourceCandidateSha, sourceCandidateSha);
   assert.equal(cleanup.sourceCandidateSha, sourceCandidateSha);
   assertRetainedCommit(sourceCandidateSha, "sourceCandidateSha");
@@ -96,6 +99,10 @@ test("retained market validation evidence resolves exact repository commits", as
     "site must remain unchanged through the SHA claimed by visual evidence",
   );
 
+  assert.deepEqual(
+    Object.keys(liveRun.artifactDigests).sort(),
+    ["failure.json", "summary.md", "telemetry.json"],
+  );
   for (const [name, digest] of Object.entries(liveRun.artifactDigests)) {
     assert.equal(
       retainedBlobSha256(
@@ -105,6 +112,18 @@ test("retained market validation evidence resolves exact repository commits", as
       `live artifact ${name} must match its retained Git-blob digest`,
     );
   }
+  assert.deepEqual(
+    visualQa.screenshots.map(({ path }) => path).sort(),
+    [
+      "visual-qa/landing-1280-anchor-install.png",
+      "visual-qa/landing-1280-skip-focus.png",
+      "visual-qa/landing-1280-skip-mid.png",
+      "visual-qa/landing-1280-skip-rest.png",
+      "visual-qa/landing-1280.png",
+      "visual-qa/landing-375.png",
+      "visual-qa/landing-768.png",
+    ],
+  );
   for (const screenshot of visualQa.screenshots) {
     assert.equal(
       retainedBlobSha256(`${EVIDENCE_REPOSITORY_PATH}/${screenshot.path}`),
