@@ -42,7 +42,7 @@ Accent terra is the only primary decorative accent. Signal colors remain semanti
 
 | Level | Size | Weight | Line height | Tracking | Usage |
 |-------|------|--------|-------------|----------|-------|
-| Display | clamp(2.75rem, 8vw, 6rem) | 600 | 0.98 | -0.04em | Hero title |
+| Display | clamp(2.75rem, 7vw, 5.5rem) | 600 | 0.98 | -0.04em | Hero title |
 | Section heading | clamp(2rem, 4vw, 3.5rem) | 600 | 1.05 | -0.04em | Section headings |
 | Card / rail heading | 1.5rem | 600 | 1.2 | -0.025em to -0.04em | Card and rail titles |
 | Body / lead | 1.25rem | 400 | 1.65 | 0 | Hero and section introductions |
@@ -77,7 +77,7 @@ All spacing derives from a 4px base unit.
 | --space-20 | 80px | Hero rhythm |
 | --space-24 | 96px | Large desktop section padding |
 
-The content column is capped at 1180px with a 24px gutter. Flow and hypothesis content use three columns, verdicts use four columns, and boundary notes use two columns on wide screens. The grids collapse at 1024px, 768px, and 480px to preserve readable line lengths; the hero and install layouts also collapse at 1024px. Sections with native anchor targets reserve space below the sticky header with `scroll-margin-top`.
+The content column is capped at 1180px with a 24px gutter. Flow and hypothesis content use three columns, verdicts use four columns, and boundary notes use two columns on wide screens. The grids collapse at 1100px, 1024px, 768px, and 480px to preserve readable line lengths; the hero collapses at 1100px and the install layout at 1024px. Sections with native anchor targets reserve space below the sticky header with `scroll-margin-top`.
 
 ## 5. Components
 

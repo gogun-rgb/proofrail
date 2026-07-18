@@ -212,7 +212,7 @@ pre {
 
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.78fr);
+  grid-template-columns: minmax(0, 1.12fr) minmax(360px, 0.68fr);
   gap: var(--space-12);
   align-items: center;
   padding-top: var(--space-20);
@@ -220,7 +220,7 @@ pre {
 }
 
 .hero-copy {
-  max-width: 680px;
+  max-width: 720px;
 }
 
 .eyebrow,
@@ -258,9 +258,9 @@ h3 {
 }
 
 h1 {
-  max-width: 680px;
+  max-width: 720px;
   margin-bottom: var(--space-6);
-  font-size: clamp(2.75rem, 8vw, 6rem);
+  font-size: clamp(2.75rem, 7vw, 5.5rem);
   line-height: 0.98;
 }
 
@@ -776,11 +776,6 @@ h3 {
 }
 
 @media (max-width: 1024px) {
-  .hero {
-    grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr);
-    gap: var(--space-8);
-  }
-
   .verdict-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -792,6 +787,23 @@ h3 {
 
   .install-copy {
     position: static;
+  }
+}
+
+@media (min-width: 769px) {
+  .hero-title-line {
+    white-space: nowrap;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1100px) {
+  .hero {
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+  }
+
+  .evidence-rail {
+    max-width: 640px;
   }
 }
 
@@ -807,8 +819,13 @@ h3 {
     padding-bottom: var(--space-3);
   }
 
-  .nav-list {
+  .header-inner > nav {
     order: 3;
+    flex-basis: 100%;
+    width: 100%;
+  }
+
+  .nav-list {
     width: 100%;
     justify-content: space-between;
     gap: var(--space-3);

@@ -143,6 +143,16 @@ export function validateSite(siteRoot = SITE_ROOT) {
   for (const alt of attributeValues(html, 'img', 'alt')) assert.notEqual(alt.trim(), '', 'images need non-empty alternative text');
 
   assert.match(css, /@media\s*\([^)]*max-width/i, 'styles need a responsive layout rule');
+  assert.match(
+    css,
+    /@media\s*\(max-width:\s*768px\)[\s\S]*?\.header-inner\s*>\s*nav\s*\{[\s\S]*?flex-basis:\s*100%/i,
+    'mobile primary navigation must occupy its own full-width flex row',
+  );
+  assert.match(
+    css,
+    /@media\s*\(min-width:\s*769px\)[\s\S]*?\.hero-title-line\s*\{[\s\S]*?white-space:\s*nowrap/i,
+    'desktop hero title lines must preserve their declared phrase grouping',
+  );
   assert.match(css, /prefers-reduced-motion/i, 'styles need a reduced-motion fallback');
   assert.match(css, /:focus-visible/i, 'styles need a visible keyboard focus state');
   assert.match(css, /\.section\[id\]\s*\{[\s\S]*?scroll-margin-top:/i, 'anchor targets need sticky-header offset');
