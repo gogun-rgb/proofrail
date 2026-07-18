@@ -3,7 +3,7 @@
   "recordedAt": "2026-07-18",
   "taskId": "PRODUCT-MARKET-001",
   "baselineSha": "f643815f4acc716bcf817cb78636a9fa94ce7523",
-  "sourceCandidateSha": "7e67daf9229f6b86c345aed2e0f0b2b617072dc6",
+  "sourceCandidateSha": "10203b0960df468d89f0d0cccb833eedf81f6091",
   "authorityDigests": {
     "machineTaskContract": "sha256:D8419049A948E45904097800F2D7A242D6EC437F889A9A58C9723D40B67E679C",
     "trustedConfiguration": "sha256:7A76DCA50F3F76167EA92F5AF68D64ACFCE8539C03EAE20262876F5D6423A683",
