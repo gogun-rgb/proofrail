@@ -291,10 +291,15 @@ function sameBaselineWorktreeEntry(left, right) {
 
 async function assertNoUnrecognizedWorktreeAdditions(before) {
   const baselinePaths = new Set(before.entries.map((entry) => entry.relative));
-  await assertNoUnrecognizedWorktreeEntry(before.root, "", baselinePaths);
+  const baselinePackageManifests = new Set(
+    before.entries
+      .filter((entry) => entry.kind === "file" && (entry.relative === "package.json" || entry.relative.endsWith("/package.json")))
+      .map((entry) => entry.relative),
+  );
+  await assertNoUnrecognizedWorktreeEntry(before.root, "", baselinePaths, baselinePackageManifests);
 }
 
-async function assertNoUnrecognizedWorktreeEntry(root, relative, baselinePaths) {
+async function assertNoUnrecognizedWorktreeEntry(root, relative, baselinePaths, baselinePackageManifests) {
   const directory = relative === "" ? root : path.join(root, ...relative.split("/"));
   let children;
   try {
@@ -307,7 +312,7 @@ async function assertNoUnrecognizedWorktreeEntry(root, relative, baselinePaths) 
     if (!baselinePaths.has(childRelative) && childRelative.replaceAll("\\", "/").split("/")[0] === ".git") {
       throw new PrototypeBoundaryError("PRF_STALE_TARGET", "target worktree changed during verification");
     }
-    const outputRoot = generatedOutputRoot(childRelative);
+    const outputRoot = generatedOutputRoot(childRelative, baselinePackageManifests);
     if (!baselinePaths.has(childRelative) && outputRoot === null) {
       throw new PrototypeBoundaryError("PRF_STALE_TARGET", "target worktree changed during verification");
     }
@@ -317,15 +322,17 @@ async function assertNoUnrecognizedWorktreeEntry(root, relative, baselinePaths) 
         throw new PrototypeBoundaryError("PRF_STALE_TARGET", "generated output root is not a directory");
       }
     }
-    if (child.isDirectory()) await assertNoUnrecognizedWorktreeEntry(root, childRelative, baselinePaths);
+    if (child.isDirectory()) await assertNoUnrecognizedWorktreeEntry(root, childRelative, baselinePaths, baselinePackageManifests);
   }
 }
 
-function generatedOutputRoot(relative) {
+function generatedOutputRoot(relative, baselinePackageManifests) {
   const segments = relative.split("/");
   if (segments[0] === "dist") return "dist";
   const index = segments.indexOf("node_modules");
-  return index < 0 ? null : segments.slice(0, index + 1).join("/");
+  if (index < 0) return null;
+  const packageManifest = [...segments.slice(0, index), "package.json"].join("/");
+  return baselinePackageManifests.has(packageManifest) ? segments.slice(0, index + 1).join("/") : null;
 }
 
 async function boundedDigest(file, size) {

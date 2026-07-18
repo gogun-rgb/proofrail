@@ -28,6 +28,8 @@ async function expectStale(snapshot) {
 test("worktree baseline permits fresh dependency and build output directories", async (t) => {
   const root = await fixture(t);
   await mkdir(path.join(root, "packages", "workspace"), { recursive: true });
+  await writeFile(path.join(root, "package.json"), "{}\n", "utf8");
+  await writeFile(path.join(root, "packages", "workspace", "package.json"), "{}\n", "utf8");
   const snapshot = await captureWorktreeSnapshot(root);
 
   await mkdir(path.join(root, "node_modules", "example"), { recursive: true });
@@ -38,6 +40,17 @@ test("worktree baseline permits fresh dependency and build output directories", 
   await writeFile(path.join(root, "dist", "bundle.js"), "console.log('built');\n", "utf8");
 
   await assert.doesNotReject(assertWorktreeSnapshotStable(snapshot));
+});
+
+test("worktree baseline rejects a dependency directory below a non-package parent", async (t) => {
+  const root = await fixture(t);
+  await mkdir(path.join(root, "arbitrary-existing"), { recursive: true });
+  const snapshot = await captureWorktreeSnapshot(root);
+
+  await mkdir(path.join(root, "arbitrary-existing", "node_modules", "example"), { recursive: true });
+  await writeFile(path.join(root, "arbitrary-existing", "node_modules", "example", "index.js"), "export {};\n", "utf8");
+
+  await expectStale(snapshot);
 });
 
 test("worktree baseline rejects an arbitrary top-level addition", async (t) => {
