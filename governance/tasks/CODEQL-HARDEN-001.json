@@ -1,0 +1,90 @@
+{
+  "task": {
+    "id": "CODEQL-HARDEN-001",
+    "class": "codeql_security_hardening",
+    "objective": "Resolve CodeQL alerts 1 and 2 with the smallest correct changes while preserving product behavior, authority, and semantics."
+  },
+  "scope": {
+    "write": [
+      "governance/tasks/CODEQL-HARDEN-001.json",
+      ".github/workflows/foundation-governance.yml",
+      "tests/evidence-gate/github-importer.test.mjs"
+    ],
+    "read_only_authority": [
+      "AGENTS.md",
+      "docs/**",
+      "packages/**",
+      "config/**",
+      "schemas/**",
+      "scripts/**",
+      "package.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "tsconfig.json",
+      "governance/generated/**",
+      "existing governance/tasks/**"
+    ],
+    "forbidden": [
+      "all paths outside scope.write",
+      "modification of existing Machine Task Contracts",
+      "product code, schema, policy, or authority-document changes",
+      "dependency or lockfile changes",
+      "test deletion, skipping, assertion weakening, or validation bypass",
+      "dismissal of CodeQL alerts without a verified fix",
+      "product semantics, Verdict, or Evidence authority changes"
+    ]
+  },
+  "authority": {
+    "read": [
+      "governance/tasks/CODEQL-HARDEN-001.json",
+      "AGENTS.md",
+      "docs/engineering/machine-task-contract.md",
+      ".github/workflows/foundation-governance.yml",
+      "tests/evidence-gate/github-importer.test.mjs"
+    ],
+    "mayChangeAuthority": false,
+    "mayChangeProductSemantics": false
+  },
+  "acceptance": {
+    "requirements": [
+      "Materialize this externally supplied contract as the first branch commit from baseline fbcfc3e99f02679d3452bc2d671d5205f71a8366.",
+      "Declare the workflow's minimum GitHub token permission as permissions: contents: read.",
+      "Replace the test's dynamically constructed regular expression with a safe literal string containment assertion.",
+      "Preserve the existing test intent and all product behavior.",
+      "Resolve CodeQL alerts 1 and 2 on the retained change.",
+      "After verification, publish the branch with a normal push and open a draft pull request."
+    ]
+  },
+  "verification": {
+    "commands": [
+      "pnpm verify",
+      "git diff --check",
+      "GitHub PR foundation-governance",
+      "GitHub PR CodeQL actions",
+      "GitHub PR CodeQL javascript-typescript"
+    ],
+    "requiredInvariants": [
+      "Every changed path is writable under this contract.",
+      "No existing test is weakened.",
+      "No dependency, product code, policy, schema, authority document, or output changes are introduced.",
+      "The final retained diff receives a fresh evidence-based review that does not rely on the Builder claim."
+    ]
+  },
+  "requiredArtifacts": [
+    "CODEQL-HARDEN-001 Machine Task Contract",
+    "least-privilege Foundation governance workflow",
+    "safe non-disclosure test assertion",
+    "local verification evidence",
+    "passing required pull-request checks"
+  ],
+  "stopConditions": [
+    "A change outside scope.write is required: BLOCKED_SCOPE",
+    "Product semantics or authority must change: BLOCKED_SCOPE",
+    "A dependency or lockfile change is required: BLOCKED_SCOPE",
+    "An existing test failure cannot be resolved within scope: BLOCKED_SCOPE"
+  ],
+  "review": {
+    "expectation": "evidence_based_self_review_required",
+    "reviewerMustNotRelyOnBuilderClaim": true
+  }
+}
