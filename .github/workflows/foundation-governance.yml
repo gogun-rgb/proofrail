@@ -1,5 +1,8 @@
 name: foundation-governance
 
+permissions:
+  contents: read
+
 on:
   pull_request:
   push:

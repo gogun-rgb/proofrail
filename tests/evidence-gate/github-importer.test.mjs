@@ -593,7 +593,7 @@ test("collector validates metadata identity and changed-file bounds before pagin
       }),
       (error) => {
         assert.equal(error.message, "GitHub collection returned invalid pull request metadata");
-        assert.doesNotMatch(error.message, new RegExp(String(input.number + 1)));
+        assert.equal(error.message.includes(String(input.number + 1)), false);
         return true;
       }
     );
